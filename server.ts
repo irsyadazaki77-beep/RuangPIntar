@@ -31,6 +31,8 @@ import {
   savePeersToDb,
   setHostConfig,
   closeDatabase,
+  exportSneakernetPackage,
+  importSneakernetPackage,
 } from './src/utils/db.ts';
 
 dotenv.config();
@@ -796,6 +798,52 @@ async function startServer() {
     broadcastState();
     res.status(201).json({ entry: newEntry, state: getFullState() });
   });
+
+  // GET Export Sneakernet Package (.json) for USB Flashdisk transfer (Protected by x-host-pin)
+  app.get('/api/host/export-package', requireHostPin, (_req, res) => {
+    const pkg = exportSneakernetPackage();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="ruangpintar-sneakernet-${new Date().toISOString().slice(0, 10)}.json"`
+    );
+    res.json(pkg);
+  });
+
+  // POST Import Sneakernet Package from USB Flashdisk into SQLite (Protected by x-host-pin)
+  app.post('/api/host/import-package', requireHostPin, (req, res) => {
+    const pkg = req.body;
+    if (!pkg || typeof pkg !== 'object') {
+      res.status(400).json({ ok: false, error: 'Paket data Sneakernet tidak valid atau kosong.' });
+      return;
+    }
+
+    try {
+      const result = importSneakernetPackage(pkg);
+      modules = result.modules;
+      cacheEntries = result.cacheEntries;
+
+      // Seed newly imported modules on Teacher Host node
+      for (const mod of modules) {
+        for (const p of peers) {
+          if (p.role === 'HOST' && (!p.moduleChunks[mod.id] || p.moduleChunks[mod.id].length === 0)) {
+            p.moduleChunks[mod.id] = Array.from({ length: mod.totalChunks }, (_, i) => i);
+          }
+        }
+      }
+      savePeersToDb(peers);
+      broadcastState();
+
+      res.json({
+        ok: true,
+        message: `Berhasil mengimpor ${result.modulesCount} modul kurikulum dan ${result.cacheCount} cache tanya-jawab ke Simpul Guru!`,
+        state: getFullState(),
+      });
+    } catch (err: any) {
+      res.status(500).json({ ok: false, error: err?.message || 'Gagal memproses impor paket data.' });
+    }
+  });
+
 
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');

@@ -379,6 +379,20 @@ export function setHostConfig(key: string, value: string): void {
   );
 }
 
+export function exportSneakernetPackage(): {
+  version: string;
+  exportedAt: string;
+  modules: LearningModule[];
+  cacheEntries: CacheEntry[];
+} {
+  return {
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    modules: loadModulesFromDb(),
+    cacheEntries: loadCacheEntriesFromDb(),
+  };
+}
+
 export function importSneakernetPackage(pkg: {
   modules?: LearningModule[];
   cacheEntries?: CacheEntry[];

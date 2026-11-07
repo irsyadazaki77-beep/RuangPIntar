@@ -28,6 +28,7 @@ import { MeshTopologyView } from './components/MeshTopologyView';
 import { AiTutorGatewayView } from './components/AiTutorGatewayView';
 import { TeacherHostView } from './components/TeacherHostView';
 import { PWAInstallButton, useOnlineStatus } from './components/PWAInstallButton';
+import { stopSpeech } from './utils/speechUtils';
 
 type ActiveTab = 'pustaka' | 'mesh' | 'tutor' | 'guru';
 
@@ -91,6 +92,7 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
+    stopSpeech();
   }, [activeTab]);
 
   /**
@@ -618,6 +620,60 @@ export default function App() {
     }
   };
 
+const handleExportPackage = async () => {
+    try {
+      const pinHeader = verifiedHostPin || '';
+      const res = await fetch('/api/host/export-package', {
+        headers: { 'x-host-pin': pinHeader },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Gagal mengekspor paket data.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ruangpintar-sneakernet-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      alert('Gagal mengekspor data: ' + (err?.message || 'Koneksi lokal terputus.'));
+    }
+  };
+
+  const handleImportPackage = async (
+    pkg: unknown
+  ): Promise<{ ok: boolean; error?: string; message?: string }> => {
+    try {
+      const pinHeader = verifiedHostPin || '';
+      const res = await fetch('/api/host/import-package', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-host-pin': pinHeader,
+        },
+        body: JSON.stringify(pkg),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        return { ok: false, error: data.error || 'Gagal mengimpor paket data Sneakernet.' };
+      }
+      if (data.state) {
+        applyServerState(data.state);
+      }
+      return { ok: true, message: data.message };
+    } catch (err: any) {
+      return {
+        ok: false,
+        error: 'Koneksi lokal gagal saat mengimpor paket: ' + (err?.message || 'Error jaringan'),
+      };
+    }
+  };
+
   const handleLockHost = () => {
     setVerifiedHostPin(null);
     try {
@@ -912,6 +968,8 @@ export default function App() {
                 onToggleGatewayTethering={handleToggleGatewayTethering}
                 onPublishModule={handlePublishModule}
                 onSeedCacheEntry={handleSeedCacheEntry}
+                onExportPackage={handleExportPackage}
+                onImportPackage={handleImportPackage}
               />
             )}
           </motion.div>

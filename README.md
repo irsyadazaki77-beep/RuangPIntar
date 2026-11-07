@@ -122,24 +122,27 @@ RUANGPINTAR_DB_PATH="./ruangpintar-edge.db"
 ```
 
 ### 5. Menjalankan Server Pengembangan
-```bash
-npm run dev
-```
+* **Cara Cepat (Windows):** Cukup klik ganda (double click) file **`jalankan-simpul-guru.bat`** di folder utama. Server akan aktif dan browser otomatis membuka `http://localhost:3000`.
+* **Cara Manual (Terminal):**
+  ```bash
+  npm run dev
+  ```
 Buka browser di `http://localhost:3000`.
 
 ---
 
-## 🔒 Hak Akses Simpul Guru
+## 🔒 Hak Akses Simpul Guru & Distribusi Sneakernet
 * Untuk membuka tab **Simpul Guru & Cache**, masukkan PIN default: **`1945`**.
 * Guru dapat mengubah PIN kapan saja di panel pengaturan Simpul Guru.
 * Endpoint verifikasi PIN dilengkapi proteksi *cooldown* otomatis (maksimal 5 kali salah per menit) untuk mencegah percobaan tebakan siswa.
+* **Fitur Sneakernet (USB Flashdisk):** Guru dapat mengunduh paket data modul kurikulum & cache (`.json`) saat berada di kota berinternet, lalu membawanya via flashdisk untuk diimpor ke laptop sekolah pedalaman tanpa kuota internet satelit.
 
 ---
 
 ## 🧪 Pengujian Unit & Validasi Kode
 
 ```bash
-# Menjalankan 9 unit test engine edge & simulasi
+# Menjalankan 10 unit test engine edge, checksum, dan simulasi
 npm test
 
 # Pengecekan tipe data TypeScript
