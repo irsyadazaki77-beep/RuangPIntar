@@ -57,6 +57,7 @@ interface Props {
   onNavigateTab: (tab: 'pustaka' | 'mesh' | 'tutor' | 'guru') => void;
   onAskTutorWithPrompt?: (moduleId: string, questionPrompt: string) => void;
   isSyncing: boolean;
+  onSyncStudentSubmission?: (payload: { moduleId: string; moduleTitle: string; quizScore: number; totalQuestions: number; passed: boolean; simulationCompleted: boolean }) => void;
 }
 
 type ModuleWorkspaceSubTab = 'materi' | 'simulasi' | 'kuis';
@@ -91,6 +92,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
   onNavigateTab,
   onAskTutorWithPrompt,
   isSyncing,
+  onSyncStudentSubmission,
 }) => {
   const [subjectFilter, setSubjectFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -242,10 +244,20 @@ export const ModuleLibraryView: React.FC<Props> = ({
           150,
           'Misi Laboratorium Virtual Tuntas & Lencana Eksperimenter Sains Terbuka!'
         );
+        if (onSyncStudentSubmission && activeModule) {
+          onSyncStudentSubmission({
+            moduleId: activeModule.id,
+            moduleTitle: activeModule.title,
+            quizScore: 100,
+            totalQuestions: activeModule.checkpoints.length,
+            passed: true,
+            simulationCompleted: true,
+          });
+        }
         return { ...prev, [simType]: true };
       });
     },
-    [triggerXpCelebration]
+    [triggerXpCelebration, onSyncStudentSubmission, activeModule]
   );
 
   const handleToggleChapterComplete = (moduleId: string, sectionIdx: number) => {
@@ -328,6 +340,19 @@ export const ModuleLibraryView: React.FC<Props> = ({
         );
       } else {
         triggerXpCelebration(0, 'Belum tepat — simak pembahasan rumus di bawah soal.');
+      }
+      if (onSyncStudentSubmission && activeModule) {
+        const currentCorrect = quizCorrectCount + (isCorrect ? 1 : 0);
+        const total = activeModule.checkpoints.length;
+        const scorePercent = Math.round((currentCorrect / Math.max(1, total)) * 100);
+        onSyncStudentSubmission({
+          moduleId: activeModule.id,
+          moduleTitle: activeModule.title,
+          quizScore: scorePercent,
+          totalQuestions: total,
+          passed: scorePercent >= 70,
+          simulationCompleted: Boolean(completedMissions[activeModule.simulationType]),
+        });
       }
     }
   };

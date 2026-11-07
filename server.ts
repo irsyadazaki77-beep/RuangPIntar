@@ -21,6 +21,7 @@ import {
   type CacheEntry,
   type ChunkTransferEvent,
   type TutorAskResponse,
+  type StudentSubmission,
 } from './src/utils/edgeEngine.ts';
 import { INITIAL_CACHE_ENTRIES } from './src/utils/seedData.ts';
 import {
@@ -33,6 +34,8 @@ import {
   closeDatabase,
   exportSneakernetPackage,
   importSneakernetPackage,
+  saveStudentSubmission,
+  loadStudentSubmissions,
 } from './src/utils/db.ts';
 
 dotenv.config();
@@ -82,12 +85,14 @@ function formatTimeWITA(): string {
 
 function getFullState() {
   const metrics = calculateSwarmMetrics(peers, transferHistory, cacheEntries, cloudQueriesCount);
+  const submissions = loadStudentSubmissions(100);
   return {
     modules,
     peers,
     transferHistory: transferHistory.slice(0, 30),
     cacheEntries,
     recentQueries: recentQueries.slice(0, 15),
+    submissions,
     metrics,
     gatewayTetheringOnline,
   };
@@ -226,6 +231,39 @@ async function startServer() {
         }
 
         const msg = JSON.parse(String(raw));
+
+        if (msg.type === 'peer:identify' && msg.peerId && msg.studentName) {
+          const currentMeta = clients.get(ws);
+          if (currentMeta) {
+            currentMeta.peerId = String(msg.peerId);
+          }
+          let existingPeer = peers.find((p) => p.id === msg.peerId);
+          if (existingPeer) {
+            existingPeer.name = String(msg.studentName);
+            if (msg.deviceType === 'Laptop Guru (Host Node)' || msg.deviceType === 'Laptop Siswa' || msg.deviceType === 'Ponsel Siswa') {
+              existingPeer.deviceType = msg.deviceType;
+            }
+            existingPeer.rtcStatus = 'DataChannel Terhubung';
+          } else {
+            const newPeer: PeerNode = {
+              id: String(msg.peerId),
+              name: String(msg.studentName),
+              deviceType: (msg.deviceType === 'Laptop Guru (Host Node)' || msg.deviceType === 'Laptop Siswa') ? msg.deviceType : 'Ponsel Siswa',
+              role: 'PEER',
+              localIp: '192.168.43.' + (100 + peers.length),
+              rtcStatus: 'DataChannel Terhubung',
+              latencyMs: 8,
+              moduleChunks: {},
+              uploadedMB: 0,
+              downloadedMB: 0,
+              activeConnections: 1,
+            };
+            peers.push(newPeer);
+          }
+          savePeersToDb(peers);
+          broadcastState();
+        }
+
         // Relay WebRTC SDP offers, answers, ICE candidates, and chunk requests between connected browser tabs
         if (
           msg.type === 'webrtc:offer' ||
@@ -255,6 +293,45 @@ async function startServer() {
     ws.on('close', () => {
       clients.delete(ws);
     });
+  });
+
+// POST Student submits quiz/simulation progress to Teacher Gradebook
+  app.post('/api/students/sync-submission', (req, res) => {
+    const {
+      peerId,
+      studentName,
+      avatar,
+      moduleId,
+      moduleTitle,
+      quizScore,
+      totalQuestions,
+      passed,
+      simulationCompleted,
+    } = req.body || {};
+
+    if (!peerId || !studentName || !moduleId) {
+      res.status(400).json({ ok: false, error: 'Data pengumpulan nilai tidak lengkap.' });
+      return;
+    }
+
+    const sub: StudentSubmission = {
+      id: `sub-${peerId}-${moduleId}`,
+      peerId: String(peerId).trim(),
+      studentName: String(studentName).trim(),
+      avatar: String(avatar || '🐬 Lumba-lumba').trim(),
+      moduleId: String(moduleId).trim(),
+      moduleTitle: String(moduleTitle || moduleId).trim(),
+      quizScore: Number(quizScore) || 0,
+      totalQuestions: Number(totalQuestions) || 1,
+      passed: Boolean(passed),
+      simulationCompleted: Boolean(simulationCompleted),
+      timestamp: formatTimeWITA(),
+      updatedMs: Date.now(),
+    };
+
+    saveStudentSubmission(sub);
+    broadcastState();
+    res.json({ ok: true, submission: sub, state: getFullState() });
   });
 
   // GET authoritative classroom edge state

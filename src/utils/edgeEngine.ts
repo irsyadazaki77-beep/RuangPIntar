@@ -1406,3 +1406,53 @@ export function computeDeterministicChunkHash(
   const hex = (hash >>> 0).toString(16).padStart(8, '0');
   return `chk-${hex.slice(0, 4)}-${String(chunkIndex).padStart(2, '0')}`;
 }
+export interface StudentProfile {
+  peerId: string;
+  studentName: string;
+  avatar: string;
+  deviceType: string;
+}
+
+export interface StudentSubmission {
+  id: string;
+  peerId: string;
+  studentName: string;
+  avatar: string;
+  moduleId: string;
+  moduleTitle: string;
+  quizScore: number;
+  totalQuestions: number;
+  passed: boolean;
+  simulationCompleted: boolean;
+  timestamp: string;
+  updatedMs: number;
+}
+
+export interface GradebookSummary {
+  totalSubmissions: number;
+  averageScore: number;
+  passRatePercent: number;
+  simulationsCompletedCount: number;
+}
+
+export function calculateGradebookSummary(submissions: StudentSubmission[]): GradebookSummary {
+  if (!submissions || submissions.length === 0) {
+    return {
+      totalSubmissions: 0,
+      averageScore: 0,
+      passRatePercent: 0,
+      simulationsCompletedCount: 0,
+    };
+  }
+  const totalSubmissions = submissions.length;
+  const scoreSum = submissions.reduce((sum, s) => sum + s.quizScore, 0);
+  const passedCount = submissions.filter((s) => s.passed).length;
+  const simulationsCompletedCount = submissions.filter((s) => s.simulationCompleted).length;
+
+  return {
+    totalSubmissions,
+    averageScore: Math.round(scoreSum / totalSubmissions),
+    passRatePercent: Math.round((passedCount / totalSubmissions) * 100),
+    simulationsCompletedCount,
+  };
+}

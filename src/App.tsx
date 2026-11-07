@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { WifiOff, Binary } from 'lucide-react';
+import { WifiOff, Binary, UserCheck, X } from 'lucide-react';
 import {
   INITIAL_MODULES,
   INITIAL_PEERS,
@@ -17,6 +17,7 @@ import {
   type CacheEntry,
   type TutorAskResponse,
   type SwarmMetrics,
+  type StudentSubmission,
 } from './utils/edgeEngine';
 import {
   loadClientDownloadedChunks,
@@ -41,6 +42,8 @@ const NAV_ITEMS: { id: ActiveTab; label: string; mobileLabel: string }[] = [
 
 const STUDENT_PEER_ID = 'peer-siswa-05';
 const HOST_PIN_STORAGE_KEY = 'ruangpintar_verified_host_pin';
+const STUDENT_PROFILE_KEY = 'ruangpintar_student_identity_v2';
+const DEFAULT_AVATARS = ['🐬 Lumba-lumba', '🦅 Cendrawasih', '🦎 Komodo', '🌿 Bakau', '⛵ Pinisi', '🐢 Penyu Sisik'];
 
 function base64ToUint8Array(b64: string): Uint8Array {
   const binaryString = window.atob(b64);
@@ -60,6 +63,26 @@ export default function App() {
   );
   const [cacheEntries, setCacheEntries] = useState<CacheEntry[]>(INITIAL_CACHE_ENTRIES);
   const [recentQueries, setRecentQueries] = useState<TutorAskResponse[]>([]);
+const [studentProfile, setStudentProfile] = useState<{
+    peerId: string;
+    studentName: string;
+    avatar: string;
+  }>(() => {
+    try {
+      const saved = window.localStorage.getItem(STUDENT_PROFILE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    const randId = `peer-siswa-${Math.random().toString(36).slice(2, 6)}`;
+    return {
+      peerId: randId,
+      studentName: 'Hendrikus D.',
+      avatar: '🐬 Lumba-lumba',
+    };
+  });
+  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [editNameInput, setEditNameInput] = useState<string>(studentProfile.studentName);
+  const [editAvatarInput, setEditAvatarInput] = useState<string>(studentProfile.avatar);
+  const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
   const [metrics, setMetrics] = useState<SwarmMetrics>(() =>
     calculateSwarmMetrics(INITIAL_PEERS, INITIAL_TRANSFER_HISTORY, INITIAL_CACHE_ENTRIES, 4)
   );
@@ -249,6 +272,7 @@ export default function App() {
     if (data.transferHistory) setTransferHistory(data.transferHistory);
     if (data.cacheEntries) setCacheEntries(data.cacheEntries);
     if (data.recentQueries) setRecentQueries(data.recentQueries);
+    if ((data as any).submissions) setSubmissions((data as any).submissions);
     if (data.metrics) setMetrics(data.metrics);
     if (typeof data.gatewayTetheringOnline === 'boolean') {
       setGatewayTetheringOnline(data.gatewayTetheringOnline);
@@ -315,6 +339,16 @@ export default function App() {
         const ws = new WebSocket(wsUrl);
         ws.binaryType = 'arraybuffer';
         wsRef.current = ws;
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify({
+            type: 'peer:identify',
+            peerId: studentProfile.peerId,
+            studentName: studentProfile.studentName,
+            avatar: studentProfile.avatar,
+            deviceType: 'Smartphone Siswa (Android)',
+          }));
+        };
 
         ws.onclose = () => {
           if (mounted) {
@@ -829,12 +863,26 @@ const handleExportPackage = async () => {
 
           {/* Zone 3: Primary action + PWA Install prompt if available */}
           <div className="flex items-center gap-2.5 shrink-0">
+{/* Student Profile Avatar Chip */}
+            <button
+              type="button"
+              onClick={() => {
+                setEditNameInput(studentProfile.studentName);
+                setEditAvatarInput(studentProfile.avatar);
+                setShowProfileModal(true);
+              }}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-800 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              title="Klik untuk ubah profil siswa"
+            >
+              <span className="text-sm">{studentProfile.avatar.split(' ')[0]}</span>
+              <span className="hidden sm:inline font-medium">{studentProfile.studentName}</span>
+            </button>
             <PWAInstallButton />
             <motion.button
               type="button"
               whileTap={{ scale: 0.97 }}
               disabled={isSyncing}
-              onClick={() => handleSyncChunks(activeModuleId, 4, STUDENT_PEER_ID)}
+              onClick={() => handleSyncChunks(activeModuleId, 4, studentProfile.peerId)}
               className="px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 disabled:opacity-50 rounded-lg transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
             >
               {isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi P2P'}

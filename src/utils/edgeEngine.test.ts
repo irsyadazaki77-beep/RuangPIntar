@@ -12,9 +12,11 @@ import {
   computeDeterministicChunkHash,
   calculateMicrohydroOutput,
   calculateMangroveMitigation,
+  calculateGradebookSummary,
   type CacheEntry,
   type PeerNode,
   type LearningModule,
+  type StudentSubmission,
 } from './edgeEngine';
 
 test('normalizeQuestion strips Indonesian stopwords and punctuation deterministically', () => {
@@ -374,4 +376,42 @@ test('computeDeterministicChunkHash generates stable deterministic hashes for id
   assert.equal(hash1, hash2);
   assert.notEqual(hash1, hashDiff);
   assert.equal(hash1.startsWith('chk-'), true);
+});
+test('calculateGradebookSummary aggregates student quiz scores and simulation badges accurately', () => {
+  const sampleSubs: StudentSubmission[] = [
+    {
+      id: 'sub-1',
+      peerId: 'peer-1',
+      studentName: 'Hendrikus',
+      avatar: '🐬 Lumba-lumba',
+      moduleId: 'mod-1',
+      moduleTitle: 'Fisika Mikrohidro',
+      quizScore: 100,
+      totalQuestions: 1,
+      passed: true,
+      simulationCompleted: true,
+      timestamp: '08:00 WITA',
+      updatedMs: 1000,
+    },
+    {
+      id: 'sub-2',
+      peerId: 'peer-2',
+      studentName: 'Maria',
+      avatar: '🦅 Cendrawasih',
+      moduleId: 'mod-1',
+      moduleTitle: 'Fisika Mikrohidro',
+      quizScore: 60,
+      totalQuestions: 1,
+      passed: false,
+      simulationCompleted: false,
+      timestamp: '08:05 WITA',
+      updatedMs: 2000,
+    },
+  ];
+
+  const summary = calculateGradebookSummary(sampleSubs);
+  assert.equal(summary.totalSubmissions, 2);
+  assert.equal(summary.averageScore, 80);
+  assert.equal(summary.passRatePercent, 50);
+  assert.equal(summary.simulationsCompletedCount, 1);
 });

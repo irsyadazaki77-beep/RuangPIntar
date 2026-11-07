@@ -16,11 +16,16 @@ import {
   UploadCloud,
   FileJson,
   Clock,
+  GraduationCap,
+  Award,
+  BarChart3,
 } from 'lucide-react';
-import type {
-  LearningModule,
-  CacheEntry,
-  SwarmMetrics,
+import {
+  calculateGradebookSummary,
+  type LearningModule,
+  type CacheEntry,
+  type SwarmMetrics,
+  type StudentSubmission,
 } from '../utils/edgeEngine';
 import { getSubjectTheme } from '../utils/subjectTheme';
 
@@ -28,6 +33,7 @@ interface Props {
   modules: LearningModule[];
   cacheEntries: CacheEntry[];
   metrics: SwarmMetrics;
+  submissions?: StudentSubmission[];
   gatewayTetheringOnline: boolean;
   isPinVerified: boolean;
   onVerifyPin: (pin: string) => Promise<{ ok: boolean; error?: string; retryAfterSeconds?: number }>;
@@ -75,6 +81,7 @@ export const TeacherHostView: React.FC<Props> = ({
   modules,
   cacheEntries,
   metrics,
+  submissions = [],
   gatewayTetheringOnline,
   isPinVerified,
   onVerifyPin,

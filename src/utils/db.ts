@@ -5,6 +5,7 @@ import type {
   CacheEntry,
   ChunkTransferEvent,
   PeerNode,
+  StudentSubmission,
 } from './edgeEngine.ts';
 import {
   INITIAL_MODULES,
@@ -84,6 +85,21 @@ db.exec(`
     id TEXT PRIMARY KEY,
     peer_json TEXT NOT NULL,
     sort_order INTEGER NOT NULL DEFAULT 0
+  );
+
+CREATE TABLE IF NOT EXISTS student_submissions (
+    id TEXT PRIMARY KEY,
+    peer_id TEXT NOT NULL,
+    student_name TEXT NOT NULL,
+    avatar TEXT NOT NULL,
+    module_id TEXT NOT NULL,
+    module_title TEXT NOT NULL,
+    quiz_score INTEGER NOT NULL,
+    total_questions INTEGER NOT NULL,
+    passed INTEGER NOT NULL,
+    simulation_completed INTEGER NOT NULL DEFAULT 0,
+    timestamp TEXT NOT NULL,
+    updated_ms INTEGER NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS host_config (
@@ -377,6 +393,51 @@ export function setHostConfig(key: string, value: string): void {
     key,
     value
   );
+}
+
+export function saveStudentSubmission(sub: StudentSubmission): void {
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO student_submissions (
+      id, peer_id, student_name, avatar, module_id, module_title,
+      quiz_score, total_questions, passed, simulation_completed,
+      timestamp, updated_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  stmt.run(
+    sub.id,
+    sub.peerId,
+    sub.studentName,
+    sub.avatar,
+    sub.moduleId,
+    sub.moduleTitle,
+    sub.quizScore,
+    sub.totalQuestions,
+    sub.passed ? 1 : 0,
+    sub.simulationCompleted ? 1 : 0,
+    sub.timestamp,
+    sub.updatedMs
+  );
+}
+
+export function loadStudentSubmissions(limit = 100): StudentSubmission[] {
+  const rows = db
+    .prepare('SELECT * FROM student_submissions ORDER BY updated_ms DESC LIMIT ?')
+    .all(limit) as any[];
+
+  return rows.map((r) => ({
+    id: r.id,
+    peerId: r.peer_id,
+    studentName: r.student_name,
+    avatar: r.avatar,
+    moduleId: r.module_id,
+    moduleTitle: r.module_title,
+    quizScore: r.quiz_score,
+    totalQuestions: r.total_questions,
+    passed: Boolean(r.passed),
+    simulationCompleted: Boolean(r.simulation_completed),
+    timestamp: r.timestamp,
+    updatedMs: r.updated_ms,
+  }));
 }
 
 export function exportSneakernetPackage(): {
