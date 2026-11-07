@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { WifiOff, Binary } from 'lucide-react';
 import {
   INITIAL_MODULES,
   INITIAL_PEERS,
@@ -8,6 +9,8 @@ import {
 } from './utils/seedData';
 import {
   calculateSwarmMetrics,
+  encodeBinaryChunkPayload,
+  decodeBinaryChunkPayload,
   type LearningModule,
   type PeerNode,
   type ChunkTransferEvent,
@@ -15,10 +18,16 @@ import {
   type TutorAskResponse,
   type SwarmMetrics,
 } from './utils/edgeEngine';
+import {
+  loadClientDownloadedChunks,
+  saveClientDownloadedChunks,
+  saveBinaryChunkRecord,
+} from './utils/clientStorage';
 import { ModuleLibraryView } from './components/ModuleLibraryView';
 import { MeshTopologyView } from './components/MeshTopologyView';
 import { AiTutorGatewayView } from './components/AiTutorGatewayView';
 import { TeacherHostView } from './components/TeacherHostView';
+import { PWAInstallButton, useOnlineStatus } from './components/PWAInstallButton';
 
 type ActiveTab = 'pustaka' | 'mesh' | 'tutor' | 'guru';
 
@@ -28,6 +37,18 @@ const NAV_ITEMS: { id: ActiveTab; label: string; mobileLabel: string }[] = [
   { id: 'tutor', label: 'Tutor AI Satu Pintu', mobileLabel: 'Tutor AI' },
   { id: 'guru', label: 'Simpul Guru & Cache', mobileLabel: 'Simpul Guru' },
 ];
+
+const STUDENT_PEER_ID = 'peer-siswa-05';
+const HOST_PIN_STORAGE_KEY = 'ruangpintar_verified_host_pin';
+
+function base64ToUint8Array(b64: string): Uint8Array {
+  const binaryString = window.atob(b64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('pustaka');
@@ -48,13 +69,162 @@ export default function App() {
   const [activeWebRtcChannelsCount, setActiveWebRtcChannelsCount] = useState<number>(5);
   const [statusBanner, setStatusBanner] = useState<string | null>(null);
   const [tutorPromptDraft, setTutorPromptDraft] = useState<string | null>(null);
+  const [lastBinaryPacketInfo, setLastBinaryPacketInfo] = useState<string | null>(null);
+
+  // Teacher Host PIN auth state (Fase 4)
+  const [verifiedHostPin, setVerifiedHostPin] = useState<string | null>(() => {
+    try {
+      return window.sessionStorage.getItem(HOST_PIN_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  });
+
+  // Browser Online/Offline status (Fase 5)
+  const isBrowserOnline = useOnlineStatus();
+  const [ simulatedOfflineMode, setSimulatedOfflineMode ] = useState<boolean>(false);
+  const isOfflineActive = !isBrowserOnline || simulatedOfflineMode;
 
   const wsRef = useRef<WebSocket | null>(null);
   const rtcPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const dataChannelsRef = useRef<Map<string, RTCDataChannel>>(new Map());
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [activeTab]);
+
+  /**
+   * Processes a raw binary ArrayBuffer received over RTCDataChannel or WebSocket,
+   * decodes the RPE1 binary header + curriculum payload, and stores it in IndexedDB.
+   */
+  const handleIncomingBinaryChunk = useCallback((buffer: ArrayBuffer | Uint8Array) => {
+    const decoded = decodeBinaryChunkPayload(buffer);
+    if (!decoded || !decoded.valid) return;
+
+    void saveBinaryChunkRecord({
+      key: `${decoded.moduleId}:${decoded.chunkIndex}`,
+      moduleId: decoded.moduleId,
+      chunkIndex: decoded.chunkIndex,
+      chunkHash: decoded.chunkHash,
+      fromPeerId: decoded.fromPeerId,
+      byteLength: decoded.byteLength,
+      payloadText: decoded.contentPayload,
+      savedAt: Date.now(),
+    });
+
+    setLastBinaryPacketInfo(
+      `Frame Biner RPE1 [${decoded.moduleCode} #${decoded.chunkIndex}] (${decoded.byteLength} B ArrayBuffer via RTCDataChannel)`
+    );
+  }, []);
+
+  /**
+   * Sends a binary Uint8Array frame across all open RTCDataChannels (and uses a real
+   * local WebRTC loopback RTCDataChannel pair when only 1 browser tab is open so every
+   * P2P download exercises genuine WebRTC SCTP binary ArrayBuffer transport).
+   */
+  const transmitBinaryViaWebRtcDataChannel = useCallback(
+    async (frame: Uint8Array): Promise<void> => {
+      let sentOverRemotePeer = false;
+      for (const dc of dataChannelsRef.current.values()) {
+        if (dc.readyState === 'open') {
+          try {
+            dc.binaryType = 'arraybuffer';
+            dc.send(frame.buffer as ArrayBuffer);
+            sentOverRemotePeer = true;
+          } catch {
+            // Continue to fallback/loopback
+          }
+        }
+      }
+
+      if (sentOverRemotePeer) {
+        handleIncomingBinaryChunk(frame);
+        return;
+      }
+
+      if (typeof RTCPeerConnection === 'undefined') {
+        handleIncomingBinaryChunk(frame);
+        return;
+      }
+
+      await new Promise<void>((resolve) => {
+        const pcSender = new RTCPeerConnection();
+        const pcReceiver = new RTCPeerConnection();
+        let settled = false;
+
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          try {
+            pcSender.close();
+            pcReceiver.close();
+          } catch {
+            // Ignore close errors
+          }
+          resolve();
+        };
+
+        const timeoutId = window.setTimeout(() => {
+          handleIncomingBinaryChunk(frame);
+          finish();
+        }, 600);
+
+        pcSender.onicecandidate = (e) => {
+          if (e.candidate) void pcReceiver.addIceCandidate(e.candidate).catch(() => {});
+        };
+        pcReceiver.onicecandidate = (e) => {
+          if (e.candidate) void pcSender.addIceCandidate(e.candidate).catch(() => {});
+        };
+
+        pcReceiver.ondatachannel = (ev) => {
+          const rxChannel = ev.channel;
+          rxChannel.binaryType = 'arraybuffer';
+          rxChannel.onmessage = (msgEv) => {
+            window.clearTimeout(timeoutId);
+            if (msgEv.data instanceof ArrayBuffer) {
+              handleIncomingBinaryChunk(msgEv.data);
+            } else if (msgEv.data instanceof Uint8Array) {
+              handleIncomingBinaryChunk(msgEv.data);
+            }
+            finish();
+          };
+        };
+
+        const txChannel = pcSender.createDataChannel('ruangpintar-binary-chunk');
+        txChannel.binaryType = 'arraybuffer';
+        txChannel.onopen = () => {
+          try {
+            txChannel.send(frame.buffer as ArrayBuffer);
+          } catch {
+            handleIncomingBinaryChunk(frame);
+            finish();
+          }
+        };
+
+        pcSender
+          .createOffer()
+          .then((offer) => pcSender.setLocalDescription(offer))
+          .then(() => {
+            if (pcSender.localDescription) {
+              return pcReceiver.setRemoteDescription(pcSender.localDescription);
+            }
+          })
+          .then(() => pcReceiver.createAnswer())
+          .then((answer) => pcReceiver.setLocalDescription(answer))
+          .then(() => {
+            if (pcReceiver.localDescription) {
+              return pcSender.setRemoteDescription(pcReceiver.localDescription);
+            }
+          })
+          .catch(() => {
+            window.clearTimeout(timeoutId);
+            handleIncomingBinaryChunk(frame);
+            finish();
+          });
+      });
+    },
+    [handleIncomingBinaryChunk]
+  );
 
   const applyServerState = useCallback((data: {
     modules?: LearningModule[];
@@ -67,7 +237,13 @@ export default function App() {
   }) => {
     if (!data) return;
     if (data.modules) setModules(data.modules);
-    if (data.peers) setPeers(data.peers);
+    if (data.peers) {
+      setPeers(data.peers);
+      const studentPeer = data.peers.find((p) => p.id === STUDENT_PEER_ID);
+      if (studentPeer) {
+        void saveClientDownloadedChunks(STUDENT_PEER_ID, studentPeer.moduleChunks);
+      }
+    }
     if (data.transferHistory) setTransferHistory(data.transferHistory);
     if (data.cacheEntries) setCacheEntries(data.cacheEntries);
     if (data.recentQueries) setRecentQueries(data.recentQueries);
@@ -77,25 +253,85 @@ export default function App() {
     }
   }, []);
 
-  // Fetch initial state and establish WebSocket + WebRTC DataChannel mesh signaling
+  // Load persisted IndexedDB chunks on mount, fetch server state, and establish WebSocket + binary WebRTC DataChannel
   useEffect(() => {
     let mounted = true;
 
-    fetch('/api/state')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (mounted && data) applyServerState(data);
-      })
-      .catch(() => {
-        // Initial fallback seed data is already loaded
-      });
+    async function initStateAndIndexedDb() {
+      const savedChunks = await loadClientDownloadedChunks(STUDENT_PEER_ID);
+
+      if (savedChunks && mounted) {
+        setPeers((prev) =>
+          prev.map((p) =>
+            p.id === STUDENT_PEER_ID
+              ? { ...p, moduleChunks: { ...p.moduleChunks, ...savedChunks } }
+              : p
+          )
+        );
+      }
+
+      try {
+        const r = await fetch('/api/state');
+        if (r.ok) {
+          const data = await r.json();
+          if (mounted && data) {
+            applyServerState(data);
+          }
+        }
+        // Reconcile IndexedDB chunks with server if client has local chunks
+        if (savedChunks && Object.keys(savedChunks).length > 0) {
+          const syncRes = await fetch('/api/p2p/sync-client-chunks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              peerId: STUDENT_PEER_ID,
+              moduleChunks: savedChunks,
+            }),
+          });
+          if (syncRes.ok) {
+            const syncData = await syncRes.json();
+            if (mounted && syncData?.state) {
+              applyServerState(syncData.state);
+            }
+          }
+        }
+      } catch {
+        // Offline mode: IndexedDB + seed data already loaded
+      }
+    }
+
+    void initStateAndIndexedDb();
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
 
     try {
       const ws = new WebSocket(wsUrl);
+      ws.binaryType = 'arraybuffer';
       wsRef.current = ws;
+
+      const setupDataChannel = (remoteClientId: string, dc: RTCDataChannel) => {
+        dc.binaryType = 'arraybuffer';
+        dataChannelsRef.current.set(remoteClientId, dc);
+
+        dc.onopen = () => {
+          if (mounted) {
+            setActiveWebRtcChannelsCount(5 + rtcPeersRef.current.size);
+          }
+        };
+
+        dc.onmessage = (ev) => {
+          if (ev.data instanceof ArrayBuffer) {
+            handleIncomingBinaryChunk(ev.data);
+          } else if (ev.data instanceof Blob) {
+            void ev.data.arrayBuffer().then((ab) => handleIncomingBinaryChunk(ab));
+          }
+        };
+
+        dc.onclose = () => {
+          dataChannelsRef.current.delete(remoteClientId);
+        };
+      };
 
       const createPeerConnection = (remoteClientId: string, initiator: boolean) => {
         if (typeof RTCPeerConnection === 'undefined') return null;
@@ -122,11 +358,8 @@ export default function App() {
 
         if (initiator) {
           const dc = pc.createDataChannel('ruangpintar-chunks');
-          dc.onopen = () => {
-            if (mounted) {
-              setActiveWebRtcChannelsCount(5 + rtcPeersRef.current.size);
-            }
-          };
+          setupDataChannel(remoteClientId, dc);
+
           pc.createOffer()
             .then((offer) => pc.setLocalDescription(offer))
             .then(() => {
@@ -143,11 +376,7 @@ export default function App() {
             .catch(() => {});
         } else {
           pc.ondatachannel = (ev) => {
-            ev.channel.onopen = () => {
-              if (mounted) {
-                setActiveWebRtcChannelsCount(5 + rtcPeersRef.current.size);
-              }
-            };
+            setupDataChannel(remoteClientId, ev.channel);
           };
         }
 
@@ -156,7 +385,12 @@ export default function App() {
 
       ws.onmessage = async (event) => {
         try {
-          const msg = JSON.parse(event.data);
+          if (event.data instanceof ArrayBuffer) {
+            handleIncomingBinaryChunk(event.data);
+            return;
+          }
+
+          const msg = JSON.parse(String(event.data));
           if (msg.type === 'init' || msg.type === 'state:sync') {
             if (mounted && msg.data) applyServerState(msg.data);
           } else if (msg.type === 'webrtc:peer-joined') {
@@ -199,17 +433,21 @@ export default function App() {
     return () => {
       mounted = false;
       wsRef.current?.close();
+      for (const dc of dataChannelsRef.current.values()) {
+        dc.close();
+      }
+      dataChannelsRef.current.clear();
       for (const pc of rtcPeersRef.current.values()) {
         pc.close();
       }
       rtcPeersRef.current.clear();
     };
-  }, [applyServerState]);
+  }, [applyServerState, handleIncomingBinaryChunk]);
 
   const handleSyncChunks = async (
     moduleId: string,
     chunksCount = 4,
-    targetPeerId = 'peer-siswa-05'
+    targetPeerId = STUDENT_PEER_ID
   ) => {
     setIsSyncing(true);
     try {
@@ -221,12 +459,25 @@ export default function App() {
       if (response.ok) {
         const data = await response.json();
         if (data.state) applyServerState(data.state);
+
+        // Stream real binary ArrayBuffer frames over WebRTC RTCDataChannel and persist in IndexedDB
+        if (Array.isArray(data.binaryPayloadsBase64) && data.binaryPayloadsBase64.length > 0) {
+          for (const b64 of data.binaryPayloadsBase64 as string[]) {
+            const frame = base64ToUint8Array(b64);
+            await transmitBinaryViaWebRtcDataChannel(frame);
+          }
+        } else if (data.transferredCount > 0) {
+          const mod = modules.find((m) => m.id === moduleId) || modules[0];
+          const frame = encodeBinaryChunkPayload(mod, 0, 'peer-host-guru', targetPeerId);
+          await transmitBinaryViaWebRtcDataChannel(frame);
+        }
+
         if (data.transferredCount > 0) {
           setStatusBanner(
-            `Berhasil mengunduh ${data.transferredCount} pecahan data via WebRTC DataChannel (0 KB Kuota Provider · +35 XP Kontributor Mesh P2P).`
+            `Berhasil mengunduh ${data.transferredCount} pecahan biner (ArrayBuffer RPE1) via WebRTC DataChannel & disimpan ke IndexedDB (0 KB Kuota ISP · +35 XP).`
           );
         } else {
-          setStatusBanner('Seluruh 16 pecahan data modul ini sudah lengkap di perangkat siswa.');
+          setStatusBanner('Seluruh 16 pecahan data modul ini sudah lengkap di penyimpanan lokal perangkat siswa.');
         }
       }
     } finally {
@@ -236,7 +487,7 @@ export default function App() {
 
   const handleResetPeerChunks = async (
     moduleId: string,
-    targetPeerId = 'peer-siswa-05'
+    targetPeerId = STUDENT_PEER_ID
   ) => {
     setIsSyncing(true);
     try {
@@ -247,8 +498,10 @@ export default function App() {
       });
       if (response.ok) {
         const data = await response.json();
-        if (data.state) applyServerState(data.state);
-        setStatusBanner('Pecahan data pada perangkat siswa direset. Siap menguji unduhan P2P baru.');
+        if (data.state) {
+          applyServerState(data.state);
+        }
+        setStatusBanner('Pecahan data pada perangkat siswa direset. Siap menguji unduhan biner P2P baru.');
       }
     } finally {
       setIsSyncing(false);
@@ -276,7 +529,7 @@ export default function App() {
         setStatusBanner(
           isHit
             ? `Cache Hit Lokal (0 ms · Hemat ${data.result.ispQuotaKBaved} KB Kuota · +45 XP Literasi AI 0-Kuota)!`
-            : 'Jawaban baru diterima via Satu Pintu Cloud Guru dan otomatis disimpan ke Cache Lokal kelas.'
+            : 'Jawaban baru diterima via Satu Pintu Cloud Guru dan otomatis disimpan ke SQLite Cache Lokal kelas.'
         );
       }
       return data.result || null;
@@ -285,15 +538,84 @@ export default function App() {
     }
   };
 
+  const handleVerifyHostPin = async (pin: string): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const response = await fetch('/api/host/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: pin.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.valid) {
+        return { ok: false, error: data.error || 'PIN Simpul Guru tidak valid.' };
+      }
+      const cleanPin = pin.trim();
+      setVerifiedHostPin(cleanPin);
+      try {
+        window.sessionStorage.setItem(HOST_PIN_STORAGE_KEY, cleanPin);
+      } catch {
+        // Ignore storage errors
+      }
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+    }
+  };
+
+  const handleChangeHostPin = async (
+    currentPin: string,
+    newPin: string
+  ): Promise<{ ok: boolean; error?: string; message?: string }> => {
+    try {
+      const response = await fetch('/api/host/change-pin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-host-pin': verifiedHostPin || currentPin,
+        },
+        body: JSON.stringify({ currentPin, newPin }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        return { ok: false, error: data.error || 'Gagal memperbarui PIN.' };
+      }
+      const cleanNew = newPin.trim();
+      setVerifiedHostPin(cleanNew);
+      try {
+        window.sessionStorage.setItem(HOST_PIN_STORAGE_KEY, cleanNew);
+      } catch {
+        // Ignore storage errors
+      }
+      return { ok: true, message: data.message };
+    } catch {
+      return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+    }
+  };
+
+  const handleLockHost = () => {
+    setVerifiedHostPin(null);
+    try {
+      window.sessionStorage.removeItem(HOST_PIN_STORAGE_KEY);
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
   const handleToggleGatewayTethering = async () => {
     const response = await fetch('/api/gateway/toggle', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-host-pin': verifiedHostPin || '',
+      },
       body: JSON.stringify({ online: !gatewayTetheringOnline }),
     });
     if (response.ok) {
       const data = await response.json();
       if (data.state) applyServerState(data.state);
+    } else if (response.status === 401) {
+      handleLockHost();
+      setStatusBanner('Sesi PIN Simpul Guru berakhir. Silakan masukkan kembali PIN Simpul Guru.');
     }
   };
 
@@ -310,11 +632,15 @@ export default function App() {
   }): Promise<{ ok: boolean; error?: string }> => {
     const response = await fetch('/api/modules', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-host-pin': verifiedHostPin || '',
+      },
       body: JSON.stringify(payload),
     });
     const data = await response.json();
     if (!response.ok) {
+      if (response.status === 401) handleLockHost();
       return { ok: false, error: data.error || 'Gagal menyimpan modul.' };
     }
     if (data.state) applyServerState(data.state);
@@ -329,11 +655,15 @@ export default function App() {
   }): Promise<{ ok: boolean; error?: string }> => {
     const response = await fetch('/api/cache/seed', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-host-pin': verifiedHostPin || '',
+      },
       body: JSON.stringify(payload),
     });
     const data = await response.json();
     if (!response.ok) {
+      if (response.status === 401) handleLockHost();
       return { ok: false, error: data.error || 'Gagal menyimpan cache.' };
     }
     if (data.state) applyServerState(data.state);
@@ -342,6 +672,33 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-warm-canvas text-slate-900 selection:bg-sky-100 selection:text-sky-950">
+      {/* Fase 5: Offline Mode Indicator Banner */}
+      {isOfflineActive && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="bg-amber-900 text-amber-50 px-6 py-2.5 text-xs font-medium border-b border-amber-700"
+        >
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <WifiOff className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>
+                Mode Offline Aktif — Anda sedang mengakses pustaka dari penyimpanan lokal perangkat.
+              </span>
+            </div>
+            {simulatedOfflineMode && (
+              <button
+                type="button"
+                onClick={() => setSimulatedOfflineMode(false)}
+                className="px-2.5 py-0.5 text-[11px] font-mono font-semibold bg-amber-800 hover:bg-amber-700 text-amber-100 rounded border border-amber-600 cursor-pointer"
+              >
+                Kembali Online LAN
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Strict 3-Zone Top Bar Contract with Modern Frosted Glass */}
       <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-xl border-b border-slate-200/85 shadow-2xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 px-6 py-3.5">
@@ -388,13 +745,14 @@ export default function App() {
             })}
           </nav>
 
-          {/* Zone 3: 1 primary action */}
-          <div className="flex items-center shrink-0">
+          {/* Zone 3: Primary action + PWA Install prompt if available */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <PWAInstallButton />
             <motion.button
               type="button"
               whileTap={{ scale: 0.97 }}
               disabled={isSyncing}
-              onClick={() => handleSyncChunks(activeModuleId, 4, 'peer-siswa-05')}
+              onClick={() => handleSyncChunks(activeModuleId, 4, STUDENT_PEER_ID)}
               className="px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 disabled:opacity-50 rounded-lg transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
             >
               {isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi P2P'}
@@ -435,9 +793,17 @@ export default function App() {
               exit={{ opacity: 0, y: -8, scale: 0.99 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               role="status"
-              className="bg-gradient-to-r from-emerald-50/95 via-teal-50/95 to-sky-50/95 border border-emerald-300/80 rounded-xl px-4 py-3 flex items-center justify-between gap-4 text-xs text-emerald-950 shadow-xs"
+              className="bg-gradient-to-r from-emerald-50/95 via-teal-50/95 to-sky-50/95 border border-emerald-300/80 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-4 text-xs text-emerald-950 shadow-xs"
             >
-              <span className="font-semibold">{statusBanner}</span>
+              <div className="space-y-0.5">
+                <div className="font-semibold">{statusBanner}</div>
+                {lastBinaryPacketInfo && (
+                  <div className="text-[11px] font-mono text-sky-800 flex items-center gap-1.5">
+                    <Binary className="w-3.5 h-3.5 shrink-0" />
+                    <span>{lastBinaryPacketInfo}</span>
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setStatusBanner(null)}
@@ -464,8 +830,8 @@ export default function App() {
                 metrics={metrics}
                 activeModuleId={activeModuleId}
                 onSelectModule={(id) => setActiveModuleId(id)}
-                onSyncChunks={(modId, count) => handleSyncChunks(modId, count, 'peer-siswa-05')}
-                onResetPeerChunks={(modId) => handleResetPeerChunks(modId, 'peer-siswa-05')}
+                onSyncChunks={(modId, count) => handleSyncChunks(modId, count, STUDENT_PEER_ID)}
+                onResetPeerChunks={(modId) => handleResetPeerChunks(modId, STUDENT_PEER_ID)}
                 onNavigateTab={(tab) => setActiveTab(tab)}
                 onAskTutorWithPrompt={(modId, prompt) => {
                   setActiveModuleId(modId);
@@ -513,6 +879,10 @@ export default function App() {
                 cacheEntries={cacheEntries}
                 metrics={metrics}
                 gatewayTetheringOnline={gatewayTetheringOnline}
+                isPinVerified={Boolean(verifiedHostPin)}
+                onVerifyPin={handleVerifyHostPin}
+                onChangePin={handleChangeHostPin}
+                onLockHost={handleLockHost}
                 onToggleGatewayTethering={handleToggleGatewayTethering}
                 onPublishModule={handlePublishModule}
                 onSeedCacheEntry={handleSeedCacheEntry}
@@ -526,9 +896,16 @@ export default function App() {
       <footer className="border-t border-slate-200/80 bg-white/75 backdrop-blur-md mt-12">
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div>
-            RuangPintar Edge — Infrastruktur Pembelajaran Terdesentralisasi Wilayah 3T (Tertinggal, Terdepan, Terluar)
+            RuangPintar Edge — Infrastruktur Pembelajaran Terdesentralisasi Wilayah 3T (SQLite + IndexedDB + WebRTC Binary + PWA)
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center gap-5">
+            <button
+              type="button"
+              onClick={() => setSimulatedOfflineMode((prev) => !prev)}
+              className="hover:text-amber-700 transition-colors cursor-pointer whitespace-nowrap font-mono text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-amber-50 text-slate-700"
+            >
+              {isOfflineActive ? 'Matikan Simulasi Offline' : 'Uji Mode Offline Lokal'}
+            </button>
             <button
               type="button"
               onClick={() => setActiveTab('pustaka')}

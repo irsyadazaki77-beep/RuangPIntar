@@ -338,9 +338,29 @@ test('new 3T simulation calculators (solar, agroforestry, desalination), inline 
   const level2 = getStudentLevelInfo(345);
   assert.equal(level2.level, 2);
   assert.equal(level2.progressPct > 0, true);
+
+  const {
+    encodeBinaryChunkPayload,
+    decodeBinaryChunkPayload,
+    validateHostPinChange,
+  } = await import('./edgeEngine');
+  const encodedFrame = encodeBinaryChunkPayload(
+    INITIAL_MODULES[0],
+    2,
+    'peer-siswa-01',
+    'peer-siswa-05'
+  );
+  assert.equal(encodedFrame instanceof Uint8Array, true);
+  assert.equal(encodedFrame.byteLength > 20, true);
+
+  const decodedFrame = decodeBinaryChunkPayload(encodedFrame.buffer);
+  assert.notEqual(decodedFrame, null);
+  assert.equal(decodedFrame?.valid, true);
+  assert.equal(decodedFrame?.moduleId, INITIAL_MODULES[0].id);
+  assert.equal(decodedFrame?.chunkIndex, 2);
+  assert.equal(decodedFrame?.fromPeerId, 'peer-siswa-01');
+  assert.equal(decodedFrame?.toPeerId, 'peer-siswa-05');
+
+  assert.equal(validateHostPinChange('wrong', '1945', '2026').valid, false);
+  assert.equal(validateHostPinChange('1945', '1945', '2026').valid, true);
 });
-
-
-
-
-

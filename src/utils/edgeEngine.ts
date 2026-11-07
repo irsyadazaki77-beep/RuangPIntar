@@ -1227,3 +1227,163 @@ export function computeStudentAchievements(params: {
     unlockedCount: badges.filter((b) => b.unlocked).length,
   };
 }
+
+export interface BinaryChunkPacketMetadata {
+  magic: string;
+  moduleId: string;
+  moduleCode: string;
+  moduleTitle: string;
+  chunkIndex: number;
+  totalChunks: number;
+  chunkHash: string;
+  fromPeerId: string;
+  toPeerId: string;
+  sizeKB: number;
+  simulationType: SimulationType;
+  contentPayload: string;
+  timestampMs: number;
+}
+
+export interface DecodedBinaryChunkPacket extends BinaryChunkPacketMetadata {
+  valid: boolean;
+  byteLength: number;
+}
+
+/**
+ * Encodes a real module chunk into a binary Uint8Array (ArrayBuffer) frame
+ * suitable for transmission over WebRTC RTCDataChannel (binaryType = 'arraybuffer')
+ * or binary WebSocket frames.
+ *
+ * Frame layout:
+ * - Bytes 0..3: ASCII Magic Header "RPE1" (0x52, 0x50, 0x45, 0x31)
+ * - Bytes 4..5: uint16 chunkIndex (Big Endian)
+ * - Bytes 6..7: uint16 totalChunks (Big Endian)
+ * - Bytes 8..11: uint32 JSON payload length in bytes (Big Endian)
+ * - Bytes 12..N: UTF-8 encoded JSON payload containing real curriculum & simulation slice
+ */
+export function encodeBinaryChunkPayload(
+  module: LearningModule,
+  chunkIndex: number,
+  fromPeerId: string,
+  toPeerId: string
+): Uint8Array {
+  const safeIndex = Math.max(0, Math.min(module.totalChunks - 1, chunkIndex));
+  const sectionIdx = safeIndex % Math.max(1, module.sections.length);
+  const sec = module.sections[sectionIdx];
+  const contentSlice = sec
+    ? `[${module.code} Pecahan #${safeIndex}/${module.totalChunks}] ${sec.heading} | Rumus: ${sec.formula || '-'} | Intisari: ${sec.keyTakeaway} | Isi: ${sec.body.slice(0, 280)}`
+    : `[${module.code} Pecahan #${safeIndex}] ${module.summary}`;
+
+  const meta: BinaryChunkPacketMetadata = {
+    magic: 'RPE1',
+    moduleId: module.id,
+    moduleCode: module.code,
+    moduleTitle: module.title,
+    chunkIndex: safeIndex,
+    totalChunks: module.totalChunks,
+    chunkHash: module.chunkHashes[safeIndex] || `chk-${safeIndex}`,
+    fromPeerId,
+    toPeerId,
+    sizeKB: module.chunkSizeKB,
+    simulationType: module.simulationType,
+    contentPayload: contentSlice,
+    timestampMs: Date.now(),
+  };
+
+  const jsonStr = JSON.stringify(meta);
+  const encoder = new TextEncoder();
+  const payloadBytes = encoder.encode(jsonStr);
+
+  const frame = new Uint8Array(12 + payloadBytes.byteLength);
+  const view = new DataView(frame.buffer);
+
+  // Magic "RPE1"
+  frame[0] = 0x52; // 'R'
+  frame[1] = 0x50; // 'P'
+  frame[2] = 0x45; // 'E'
+  frame[3] = 0x31; // '1'
+
+  view.setUint16(4, safeIndex, false);
+  view.setUint16(6, module.totalChunks, false);
+  view.setUint32(8, payloadBytes.byteLength, false);
+
+  frame.set(payloadBytes, 12);
+  return frame;
+}
+
+/**
+ * Decodes and validates a binary ArrayBuffer or Uint8Array received via WebRTC DataChannel.
+ */
+export function decodeBinaryChunkPayload(
+  input: ArrayBufferLike | Uint8Array
+): DecodedBinaryChunkPacket | null {
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  if (bytes.byteLength < 12) return null;
+
+  if (
+    bytes[0] !== 0x52 ||
+    bytes[1] !== 0x50 ||
+    bytes[2] !== 0x45 ||
+    bytes[3] !== 0x31
+  ) {
+    return null;
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const headerChunkIndex = view.getUint16(4, false);
+  const headerTotalChunks = view.getUint16(6, false);
+  const payloadLength = view.getUint32(8, false);
+
+  if (bytes.byteLength < 12 + payloadLength) {
+    return null;
+  }
+
+  try {
+    const payloadSlice = bytes.subarray(12, 12 + payloadLength);
+    const decoder = new TextDecoder();
+    const jsonStr = decoder.decode(payloadSlice);
+    const parsed = JSON.parse(jsonStr) as BinaryChunkPacketMetadata;
+
+    if (
+      parsed.magic !== 'RPE1' ||
+      typeof parsed.moduleId !== 'string' ||
+      parsed.chunkIndex !== headerChunkIndex
+    ) {
+      return null;
+    }
+
+    return {
+      ...parsed,
+      totalChunks: headerTotalChunks,
+      valid: true,
+      byteLength: bytes.byteLength,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Validates Teacher Host Node PIN change request.
+ */
+export function validateHostPinChange(
+  currentPinInput: string,
+  actualCurrentPin: string,
+  newPinInput: string
+): ValidationOutcome {
+  if (!currentPinInput || currentPinInput.trim() !== actualCurrentPin) {
+    return {
+      valid: false,
+      error: 'PIN Simpul Guru saat ini tidak sesuai.',
+    };
+  }
+  const cleanedNew = (newPinInput || '').trim();
+  if (cleanedNew.length < 4 || cleanedNew.length > 12) {
+    return {
+      valid: false,
+      error: 'PIN baru harus terdiri dari 4 hingga 12 karakter/angka.',
+    };
+  }
+  return { valid: true };
+}
+

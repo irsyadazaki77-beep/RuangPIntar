@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,49 +12,61 @@ import {
   calculateSwarmMetrics,
   validateQuestionSubmission,
   validateModuleSubmission,
+  encodeBinaryChunkPayload,
+  decodeBinaryChunkPayload,
+  validateHostPinChange,
   type LearningModule,
   type PeerNode,
   type CacheEntry,
   type ChunkTransferEvent,
   type TutorAskResponse,
 } from './src/utils/edgeEngine.ts';
+import { INITIAL_CACHE_ENTRIES } from './src/utils/seedData.ts';
 import {
-  INITIAL_MODULES,
-  INITIAL_PEERS,
-  INITIAL_TRANSFER_HISTORY,
-  INITIAL_CACHE_ENTRIES,
-} from './src/utils/seedData.ts';
+  ensureDatabaseSeeded,
+  saveModuleToDb,
+  saveCacheEntryToDb,
+  insertTransferLogToDb,
+  savePeersToDb,
+  setHostConfig,
+} from './src/utils/db.ts';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Server-authoritative state on the Teacher Host Node
-let modules: LearningModule[] = structuredClone(INITIAL_MODULES);
-let peers: PeerNode[] = structuredClone(INITIAL_PEERS);
-let transferHistory: ChunkTransferEvent[] = structuredClone(INITIAL_TRANSFER_HISTORY);
-let cacheEntries: CacheEntry[] = structuredClone(INITIAL_CACHE_ENTRIES);
+// Load or seed persistent SQLite state on the Teacher Host Node
+const seeded = ensureDatabaseSeeded();
+let modules: LearningModule[] = seeded.modules;
+let peers: PeerNode[] = seeded.peers;
+let transferHistory: ChunkTransferEvent[] = seeded.transferHistory;
+let cacheEntries: CacheEntry[] = seeded.cacheEntries;
+let hostPin: string = seeded.hostPin;
+let gatewayTetheringOnline: boolean = seeded.gatewayTetheringOnline;
+let cloudQueriesCount: number = seeded.cloudQueriesCount;
+
 let recentQueries: TutorAskResponse[] = [
   {
     queryId: 'q-init-1',
     question: 'Bagaimana rumus menghitung daya listrik mikrohidro dari tinggi jatuh air dan debit sungai?',
     askedByPeerName: 'Hendrikus D. (Peer 05)',
     moduleId: 'mod-fisika-mikrohidro',
-    answerMarkdown: INITIAL_CACHE_ENTRIES[0].answerMarkdown,
-    keyConcepts: INITIAL_CACHE_ENTRIES[0].keyConcepts,
+    answerMarkdown:
+      cacheEntries[0]?.answerMarkdown || INITIAL_CACHE_ENTRIES[0].answerMarkdown,
+    keyConcepts:
+      cacheEntries[0]?.keyConcepts || INITIAL_CACHE_ENTRIES[0].keyConcepts,
     source: 'LOCAL_CACHE',
     similarityScore: 0.94,
-    matchedCanonicalQuestion: INITIAL_CACHE_ENTRIES[0].questionCanonical,
+    matchedCanonicalQuestion:
+      cacheEntries[0]?.questionCanonical || INITIAL_CACHE_ENTRIES[0].questionCanonical,
     latencyMs: 0,
     ispQuotaBytesUsed: 0,
     ispQuotaKBaved: 4.8,
-    cacheEntryId: INITIAL_CACHE_ENTRIES[0].id,
+    cacheEntryId: cacheEntries[0]?.id || INITIAL_CACHE_ENTRIES[0].id,
     timestamp: '08:40:15 WITA',
   },
 ];
-let cloudQueriesCount = 4; // Initial 4 cache entries were populated via single-gateway / prewarm
-let gatewayTetheringOnline = true;
 
 function formatTimeWITA(): string {
   const now = new Date();
@@ -102,10 +114,44 @@ function buildCurriculumSynthesis(question: string, mod: LearningModule): {
   };
 }
 
+/**
+ * Middleware: Requires valid `x-host-pin` header (or `hostPin` in request body)
+ * to protect Teacher Host Node endpoints from unauthorized student toggling.
+ */
+function requireHostPin(req: Request, res: Response, next: NextFunction): void {
+  const headerPin = req.header('x-host-pin');
+  const bodyPin = typeof req.body?.hostPin === 'string' ? req.body.hostPin : undefined;
+  const candidate = (headerPin || bodyPin || '').trim();
+
+  if (!candidate || candidate !== hostPin) {
+    res.status(401).json({
+      error:
+        'Akses ditolak: PIN Simpul Guru (x-host-pin) tidak valid atau belum diotorisasi. Masukkan PIN Simpul Guru (default: 1945).',
+    });
+    return;
+  }
+  next();
+}
+
 async function startServer() {
   const app = express();
   const server = http.createServer(app);
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on('upgrade', (request, socket, head) => {
+    try {
+      const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
+      if (url.pathname === '/ws') {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          wss.emit('connection', ws, request);
+        });
+      }
+      // Do NOT destroy the socket for other paths/protocols (such as 'vite-hmr')
+      // because Vite attaches its own 'upgrade' listener to `server`.
+    } catch {
+      // Ignore URL parse errors
+    }
+  });
 
   app.use(express.json({ limit: '2mb' }));
 
@@ -156,14 +202,32 @@ async function startServer() {
       }
     }
 
-    ws.on('message', (raw) => {
+    ws.on('message', (raw, isBinary) => {
       try {
+        // Handle true binary ArrayBuffer/Buffer chunk frames sent over WebSocket or relayed from RTCDataChannel
+        if (isBinary) {
+          const buf = Buffer.isBuffer(raw)
+            ? new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength)
+            : new Uint8Array(raw as ArrayBuffer);
+          const decoded = decodeBinaryChunkPayload(buf);
+          if (decoded && decoded.valid) {
+            // Relay binary frame to other connected peer tabs
+            for (const [targetWs] of clients.entries()) {
+              if (targetWs !== ws && targetWs.readyState === WebSocket.OPEN) {
+                targetWs.send(buf, { binary: true });
+              }
+            }
+          }
+          return;
+        }
+
         const msg = JSON.parse(String(raw));
-        // Relay WebRTC SDP offers, answers, and ICE candidates between connected browser tabs
+        // Relay WebRTC SDP offers, answers, ICE candidates, and chunk requests between connected browser tabs
         if (
           msg.type === 'webrtc:offer' ||
           msg.type === 'webrtc:answer' ||
-          msg.type === 'webrtc:ice'
+          msg.type === 'webrtc:ice' ||
+          msg.type === 'webrtc:chunk-request'
         ) {
           for (const [targetWs, meta] of clients.entries()) {
             if (
@@ -194,7 +258,75 @@ async function startServer() {
     res.json(getFullState());
   });
 
-  // POST P2P WebRTC Mesh chunk synchronization step
+  // POST Verify Teacher Host PIN
+  app.post('/api/host/verify-pin', (req, res) => {
+    const candidate = String(req.body?.pin || req.header('x-host-pin') || '').trim();
+    if (candidate === hostPin) {
+      res.json({ valid: true });
+      return;
+    }
+    res.status(401).json({
+      valid: false,
+      error: 'PIN Simpul Guru salah. Gunakan PIN default 1945 atau PIN yang telah diperbarui.',
+    });
+  });
+
+  // POST Change Teacher Host PIN
+  app.post('/api/host/change-pin', (req, res) => {
+    const currentPin = String(req.body?.currentPin || req.header('x-host-pin') || '').trim();
+    const newPin = String(req.body?.newPin || '').trim();
+
+    const validation = validateHostPinChange(currentPin, hostPin, newPin);
+    if (!validation.valid) {
+      res.status(400).json({ ok: false, error: validation.error });
+      return;
+    }
+
+    hostPin = newPin;
+    setHostConfig('host_pin', hostPin);
+    res.json({
+      ok: true,
+      message: 'PIN Keamanan Simpul Guru berhasil diperbarui dan disimpan di SQLite lokal.',
+    });
+  });
+
+  // POST Reconcile client IndexedDB downloaded chunks with server peer state on reload
+  app.post('/api/p2p/sync-client-chunks', (req, res) => {
+    const { peerId = 'peer-siswa-05', moduleChunks } = req.body || {};
+    if (!moduleChunks || typeof moduleChunks !== 'object') {
+      res.status(400).json({ error: 'Data pecahan modul klien tidak valid.' });
+      return;
+    }
+
+    const targetPeer = peers.find((p) => p.id === peerId);
+    if (!targetPeer) {
+      res.status(404).json({ error: 'Simpul siswa tidak ditemukan.' });
+      return;
+    }
+
+    let updated = false;
+    for (const [modId, chunks] of Object.entries(moduleChunks as Record<string, number[]>)) {
+      if (Array.isArray(chunks)) {
+        const existing = new Set(targetPeer.moduleChunks[modId] || []);
+        for (const idx of chunks) {
+          if (typeof idx === 'number' && idx >= 0 && !existing.has(idx)) {
+            existing.add(idx);
+            updated = true;
+          }
+        }
+        targetPeer.moduleChunks[modId] = Array.from(existing).sort((a, b) => a - b);
+      }
+    }
+
+    if (updated) {
+      savePeersToDb(peers);
+      broadcastState();
+    }
+
+    res.json({ state: getFullState() });
+  });
+
+  // POST P2P WebRTC Mesh chunk synchronization step (with true binary payload encoding)
   app.post('/api/p2p/transfer-step', (req, res) => {
     const {
       moduleId = 'mod-fisika-mikrohidro',
@@ -222,6 +354,7 @@ async function startServer() {
     );
 
     const createdEvents: ChunkTransferEvent[] = [];
+    const binaryPayloadsBase64: string[] = [];
 
     for (const item of planned) {
       const targetHeld = targetPeer.moduleChunks[mod.id] || [];
@@ -237,6 +370,22 @@ async function startServer() {
       const sourcePeer = peers.find((p) => p.id === item.fromPeerId);
       if (sourcePeer) {
         sourcePeer.uploadedMB = Number((sourcePeer.uploadedMB + mbDelta).toFixed(2));
+      }
+
+      // Encode real binary chunk frame (RPE1 header + curriculum/simulation payload)
+      const binaryFrame = encodeBinaryChunkPayload(
+        mod,
+        item.chunkIndex,
+        item.fromPeerId,
+        item.toPeerId
+      );
+      binaryPayloadsBase64.push(Buffer.from(binaryFrame).toString('base64'));
+
+      // Also broadcast raw binary frame over WebSocket to connected peers
+      for (const client of wss.clients) {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(binaryFrame, { binary: true });
+        }
       }
 
       const ev: ChunkTransferEvent = {
@@ -257,12 +406,18 @@ async function startServer() {
       };
       createdEvents.push(ev);
       transferHistory.unshift(ev);
+      insertTransferLogToDb(ev, Date.now());
+    }
+
+    if (createdEvents.length > 0) {
+      savePeersToDb(peers);
     }
 
     broadcastState();
     res.json({
       transferredCount: createdEvents.length,
       events: createdEvents,
+      binaryPayloadsBase64,
       state: getFullState(),
     });
   });
@@ -277,17 +432,19 @@ async function startServer() {
     }
 
     targetPeer.moduleChunks[moduleId] = [];
+    savePeersToDb(peers);
     broadcastState();
     res.json({ state: getFullState() });
   });
 
-  // POST Toggle Teacher Host Cellular Tethering Gateway status
-  app.post('/api/gateway/toggle', (req, res) => {
+  // POST Toggle Teacher Host Cellular Tethering Gateway status (Protected by x-host-pin)
+  app.post('/api/gateway/toggle', requireHostPin, (req, res) => {
     if (typeof req.body?.online === 'boolean') {
       gatewayTetheringOnline = req.body.online;
     } else {
       gatewayTetheringOnline = !gatewayTetheringOnline;
     }
+    setHostConfig('gateway_tethering_online', String(gatewayTetheringOnline));
     broadcastState();
     res.json({ gatewayTetheringOnline, state: getFullState() });
   });
@@ -316,6 +473,7 @@ async function startServer() {
         match.entry.hitCount += 1;
         const savedKB = 4.8;
         match.entry.savedQuotaKB = Number((match.entry.savedQuotaKB + savedKB).toFixed(1));
+        saveCacheEntryToDb(match.entry, 0);
 
         const result: TutorAskResponse = {
           queryId: `q-${Date.now()}`,
@@ -402,6 +560,7 @@ async function startServer() {
           responseSource = 'CLOUD_GEMINI_GATEWAY';
           quotaBytesUsed = Buffer.byteLength(question + answerMarkdown, 'utf8');
           cloudQueriesCount += 1;
+          setHostConfig('cloud_queries_count', String(cloudQueriesCount));
         }
       } catch {
         // Fallback cleanly to local edge curriculum synthesis if network/key unavailable in sandbox
@@ -423,7 +582,7 @@ async function startServer() {
       ? Math.max(120, Date.now() - startTime)
       : 4;
 
-    // Step 3: Store new answer in the Teacher Host's Local Cache for all future classmates!
+    // Step 3: Store new answer in the Teacher Host's Local SQLite Cache for all future classmates!
     const newCacheEntry: CacheEntry = {
       id: `cache-${Date.now()}`,
       moduleId: selectedModule.id,
@@ -440,6 +599,7 @@ async function startServer() {
     };
 
     cacheEntries.unshift(newCacheEntry);
+    cacheEntries.forEach((c, idx) => saveCacheEntryToDb(c, idx));
 
     const result: TutorAskResponse = {
       queryId: `q-${Date.now()}`,
@@ -463,8 +623,8 @@ async function startServer() {
     res.json({ result, state: getFullState() });
   });
 
-  // POST Teacher Host publishes a new Learning Module to the P2P Swarm
-  app.post('/api/modules', (req, res) => {
+  // POST Teacher Host publishes a new Learning Module to the P2P Swarm (Protected by x-host-pin)
+  app.post('/api/modules', requireHostPin, (req, res) => {
     const {
       title,
       subject,
@@ -542,6 +702,7 @@ async function startServer() {
     };
 
     modules.unshift(newModule);
+    modules.forEach((m, idx) => saveModuleToDb(m, idx));
 
     // Seed all 16 chunks on Teacher Host Node and first 4 chunks on Peer 01
     for (const p of peers) {
@@ -553,13 +714,14 @@ async function startServer() {
         p.moduleChunks[newModule.id] = [];
       }
     }
+    savePeersToDb(peers);
 
     broadcastState();
     res.status(201).json({ module: newModule, state: getFullState() });
   });
 
-  // POST Teacher pre-warms / adds a verified Q&A entry directly into the Local Cache
-  app.post('/api/cache/seed', (req, res) => {
+  // POST Teacher pre-warms / adds a verified Q&A entry directly into the Local Cache (Protected by x-host-pin)
+  app.post('/api/cache/seed', requireHostPin, (req, res) => {
     const {
       moduleId = 'mod-fisika-mikrohidro',
       questionCanonical = '',
@@ -596,6 +758,7 @@ async function startServer() {
     };
 
     cacheEntries.unshift(newEntry);
+    cacheEntries.forEach((c, idx) => saveCacheEntryToDb(c, idx));
     broadcastState();
     res.status(201).json({ entry: newEntry, state: getFullState() });
   });
@@ -603,7 +766,12 @@ async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: {
+          server,
+        },
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

@@ -3,14 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Download,
   RefreshCw,
-  CheckCircle2,
   ArrowRight,
   Search,
   Share2,
   MessageSquare,
   Award,
-  Timer,
-  Zap,
   ChevronDown,
   ChevronUp,
   Sliders,
@@ -20,33 +17,31 @@ import {
   Maximize2,
   Minimize2,
   BookOpen,
-  Calculator,
   Compass,
   BookmarkCheck,
   PenLine,
   Copy,
   Check,
-  Lightbulb,
-  Sparkles,
 } from 'lucide-react';
 import {
   calculateQuizChallengeScore,
   computeStudentAchievements,
-  evaluateInlineSectionCalculator,
   searchCurriculumModules,
   type LearningModule,
   type PeerNode,
   type SwarmMetrics,
   type SimulationType,
-  type SectionInlineCalculator,
 } from '../utils/edgeEngine';
 import {
   getSubjectTheme,
   getStudentLevelInfo,
-  type SubjectVisualTheme,
 } from '../utils/subjectTheme';
 import { HERO_CLASSROOM_IMAGE } from '../utils/seedData';
 import { InteractiveSimulations } from './InteractiveSimulations';
+import { InlineChapterCalculator } from './modules/InlineChapterCalculator';
+import { ModuleCaseStudyView } from './modules/ModuleCaseStudyView';
+import { ModuleGlossaryDrawer } from './modules/ModuleGlossaryDrawer';
+import { ModuleQuizCard } from './modules/ModuleQuizCard';
 
 interface Props {
   modules: LearningModule[];
@@ -80,117 +75,6 @@ const bentoItemVariants = {
     y: 0,
     transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
   },
-};
-
-const InlineChapterCalculator: React.FC<{
-  calculator: SectionInlineCalculator;
-  theme: SubjectVisualTheme;
-}> = ({ calculator, theme }) => {
-  const [values, setValues] = useState<Record<string, number>>(() => {
-    const init: Record<string, number> = {};
-    for (const v of calculator.variables) {
-      init[v.key] = v.defaultValue;
-    }
-    return init;
-  });
-
-  useEffect(() => {
-    const reset: Record<string, number> = {};
-    for (const v of calculator.variables) {
-      reset[v.key] = v.defaultValue;
-    }
-    setValues(reset);
-  }, [calculator]);
-
-  const outcome = evaluateInlineSectionCalculator(calculator.id, values);
-
-  return (
-    <div className="formula-calculator-deck overflow-hidden text-slate-100">
-      <div className={`h-1.5 w-full ${theme.ribbonGradient}`} />
-      <div className="p-4 sm:p-5 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-7 h-7 rounded-lg ${theme.stepNumberClass} flex items-center justify-center shadow-xs`}>
-              <Calculator className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-mono text-slate-400 block">
-                Kalkulator Rumus Interaktif Langsung
-              </span>
-              <h4 className="text-xs sm:text-sm font-bold text-white">{calculator.title}</h4>
-            </div>
-          </div>
-
-          <div className="bg-slate-950/90 border border-slate-700/90 px-3.5 py-2 rounded-xl font-mono tabular-nums flex items-center gap-2 shadow-inner">
-            <span className="text-xs text-slate-400">{calculator.resultLabel}:</span>
-            <strong className={`text-sm sm:text-base font-bold ${theme.darkAccentText}`}>
-              {outcome.formattedValue}
-            </strong>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {calculator.variables.map((v) => {
-            const currentVal = values[v.key] ?? v.defaultValue;
-            const pct = Math.min(
-              100,
-              Math.max(0, Math.round(((currentVal - v.min) / Math.max(1e-6, v.max - v.min)) * 100))
-            );
-            return (
-              <div
-                key={v.key}
-                className="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 space-y-2"
-              >
-                <div className="flex items-center justify-between text-xs font-medium text-slate-200">
-                  <label htmlFor={`calc-${calculator.id}-${v.key}`}>{v.label}</label>
-                  <span className={`font-mono font-bold tabular-nums ${theme.darkAccentText}`}>
-                    {currentVal} {v.unit}
-                  </span>
-                </div>
-                <input
-                  id={`calc-${calculator.id}-${v.key}`}
-                  type="range"
-                  min={v.min}
-                  max={v.max}
-                  step={v.step}
-                  value={currentVal}
-                  onChange={(e) =>
-                    setValues((prev) => ({
-                      ...prev,
-                      [v.key]: Number(e.target.value),
-                    }))
-                  }
-                  className={`w-full cursor-pointer ${theme.sliderAccent}`}
-                />
-                <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    style={{ width: `${pct}%` }}
-                    className={`h-full ${theme.progressGradient}`}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] font-mono text-slate-400 tabular-nums">
-                  <span>
-                    Min: {v.min} {v.unit}
-                  </span>
-                  <span>
-                    Maks: {v.max} {v.unit}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="bg-slate-900/80 border border-slate-800 px-3.5 py-2.5 rounded-xl flex items-start gap-2.5 text-xs text-slate-200 leading-relaxed">
-          <Sparkles className={`w-4 h-4 shrink-0 mt-0.5 ${theme.darkAccentText}`} />
-          <p>
-            <strong className="text-white">Makna Fisis &amp; Lapangan: </strong>
-            {outcome.interpretation}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 export const ModuleLibraryView: React.FC<Props> = ({
@@ -242,7 +126,6 @@ export const ModuleLibraryView: React.FC<Props> = ({
 
   const [copiedNote, setCopiedNote] = useState<boolean>(false);
   const [revealedExerciseSteps, setRevealedExerciseSteps] = useState<Record<string, number>>({});
-  const [glossaryFilter, setGlossaryFilter] = useState<string>('');
 
   // Student gamification, timed quiz challenge & mission states
   const [completedMissions, setCompletedMissions] = useState<Record<string, boolean>>({});
@@ -1526,111 +1409,18 @@ export const ModuleLibraryView: React.FC<Props> = ({
 
                   {/* Authentic 3T Field Case Study Section with Subject Gradient Header */}
                   {activeModule.caseStudy && (
-                    <section
-                      id="section-case-study"
-                      aria-label="Studi Kasus Penerapan Nyata di Wilayah 3T"
-                      className="blueprint-stage text-slate-100 rounded-2xl overflow-hidden border border-slate-800 scroll-mt-24 shadow-md"
-                    >
-                      <div className={`h-1.5 w-full ${activeTheme.ribbonGradient}`} />
-                      <div className="p-6 space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800">
-                          <div>
-                            <span className={`text-xs font-mono font-semibold ${activeTheme.darkAccentText}`}>
-                              Studi Kasus Lapangan Nusantara 3T · {activeModule.caseStudy.location}
-                            </span>
-                            <h3 className="text-base sm:text-lg font-bold text-white mt-0.5">
-                              {activeModule.caseStudy.title}
-                            </h3>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm leading-relaxed">
-                          <div className="bg-amber-950/35 border border-amber-500/30 rounded-xl p-4 space-y-1.5">
-                            <h4 className="font-mono text-xs font-bold text-amber-300">
-                              01. Tantangan Komunitas &amp; Geografis
-                            </h4>
-                            <p className="text-slate-200 text-xs leading-relaxed">
-                              {activeModule.caseStudy.challenge}
-                            </p>
-                          </div>
-
-                          <div className="bg-cyan-950/35 border border-cyan-500/30 rounded-xl p-4 space-y-1.5">
-                            <h4 className="font-mono text-xs font-bold text-cyan-300">
-                              02. Solusi Rekayasa &amp; Kolaborasi Sekolah
-                            </h4>
-                            <p className="text-slate-200 text-xs leading-relaxed">
-                              {activeModule.caseStudy.solution}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                          {activeModule.caseStudy.impactMetrics.map((metric, mIdx) => (
-                            <div
-                              key={mIdx}
-                              className="bg-emerald-950/40 border border-emerald-500/30 px-3.5 py-2.5 rounded-xl font-mono text-xs text-emerald-200 flex items-center gap-2"
-                            >
-                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                              <span>{metric}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </section>
+                    <ModuleCaseStudyView
+                      caseStudy={activeModule.caseStudy}
+                      theme={activeTheme}
+                    />
                   )}
 
                   {/* Technical Glossary & Concept Dictionary */}
                   {activeModule.glossary && activeModule.glossary.length > 0 && (
-                    <section
-                      id="section-glossary"
-                      aria-label="Glosarium Istilah Teknis"
-                      className="bg-slate-50 border border-slate-200/90 p-5 rounded-2xl space-y-4 scroll-mt-24"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
-                        <div>
-                          <h3 className="text-sm font-bold text-slate-900">
-                            Kamus &amp; Glosarium Teknis Modul ({activeModule.glossary.length} Istilah)
-                          </h3>
-                          <p className="text-xs text-slate-600">
-                            Daftar definisi istilah fisis, ekologis, dan satuan ukuran pada modul ini.
-                          </p>
-                        </div>
-
-                        <input
-                          type="search"
-                          value={glossaryFilter}
-                          onChange={(e) => setGlossaryFilter(e.target.value)}
-                          placeholder="Saring istilah glosarium..."
-                          className="px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {activeModule.glossary
-                          .filter(
-                            (g) =>
-                              !glossaryFilter.trim() ||
-                              g.term.toLowerCase().includes(glossaryFilter.toLowerCase()) ||
-                              g.definition.toLowerCase().includes(glossaryFilter.toLowerCase())
-                          )
-                          .map((g, gIdx) => (
-                            <div
-                              key={gIdx}
-                              className="bg-white p-3.5 rounded-xl border border-slate-200/90 space-y-1 shadow-2xs"
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <h4 className="text-xs font-bold text-slate-900">{g.term}</h4>
-                                <span
-                                  className={`font-mono text-[11px] font-bold ${activeTheme.accentText} ${activeTheme.softBg} px-2 py-0.5 rounded-md`}
-                                >
-                                  {g.symbolOrUnit}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-600 leading-relaxed">{g.definition}</p>
-                            </div>
-                          ))}
-                      </div>
-                    </section>
+                    <ModuleGlossaryDrawer
+                      glossary={activeModule.glossary}
+                      theme={activeTheme}
+                    />
                   )}
 
                   {/* Local Student Study Notes (Offline-First Persistence) */}
@@ -1767,268 +1557,50 @@ export const ModuleLibraryView: React.FC<Props> = ({
 
               {/* SUB-TAB 3: Step-by-Step Guided Calculation Exercises + Timed Comprehension Quiz */}
               {activeSubTab === 'kuis' && (
-                <div className="space-y-6">
-                  {/* Step-by-Step Guided Problem Solver Section */}
-                  {activeModule.guidedExercises && activeModule.guidedExercises.length > 0 && (
-                    <section
-                      aria-label="Latihan Hitungan Bertahap"
-                      className={`${activeTheme.softBg} p-5 rounded-2xl border ${activeTheme.softBorder} space-y-4`}
-                    >
-                      {activeModule.guidedExercises.map((ex) => {
-                        const revealedCount = revealedExerciseSteps[ex.id] ?? 1;
-                        const allRevealed = revealedCount >= ex.steps.length;
-
-                        return (
-                          <div key={ex.id} className="space-y-4">
-                            <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-slate-200/80">
-                              <div className="space-y-1">
-                                <div
-                                  className={`flex items-center gap-1.5 text-xs font-mono ${activeTheme.accentText} font-bold`}
-                                >
-                                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                                  <span>Latihan Hitungan Terpandu Langkah demi Langkah</span>
-                                </div>
-                                <h3 className="text-base font-bold text-slate-900">{ex.title}</h3>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setRevealedExerciseSteps((prev) => ({
-                                    ...prev,
-                                    [ex.id]: allRevealed ? 1 : ex.steps.length,
-                                  }));
-                                  if (!allRevealed) {
-                                    setStudentXp((xp) => xp + 40);
-                                    triggerXpCelebration(
-                                      40,
-                                      'Menuntaskan telaah Latihan Hitungan Bertahap!'
-                                    );
-                                  }
-                                }}
-                                className="px-3 py-1.5 text-xs font-semibold text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
-                              >
-                                {allRevealed
-                                  ? 'Sembunyikan Langkah'
-                                  : `Buka Semua Langkah (${ex.steps.length} Tahap · +40 XP)`}
-                              </button>
-                            </div>
-
-                            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                              {ex.scenarioContext}
-                            </p>
-
-                            <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 space-y-1.5 shadow-2xs">
-                              <div className="text-xs font-bold text-slate-900">
-                                Parameter Diketahui di Lapangan:
-                              </div>
-                              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs font-mono text-slate-700">
-                                {ex.givenData.map((d, dIdx) => (
-                                  <li key={dIdx}>• {d}</li>
-                                ))}
-                              </ul>
-                            </div>
-
-                            <div className="space-y-2.5">
-                              {ex.steps.slice(0, revealedCount).map((st, sIdx) => (
-                                <div
-                                  key={sIdx}
-                                  className="bg-white p-4 rounded-xl border border-slate-200/90 space-y-1.5 shadow-2xs"
-                                >
-                                  <div className="text-xs font-bold text-slate-900">
-                                    {st.stepTitle}
-                                  </div>
-                                  <div
-                                    className={`text-xs font-mono ${activeTheme.accentText} ${activeTheme.softBg} px-2.5 py-1 rounded-md inline-block font-semibold`}
-                                  >
-                                    Rumus: {st.formulaOrHint}
-                                  </div>
-                                  <p className="text-xs font-mono font-bold text-emerald-700 pt-0.5">
-                                    → {st.calculationResult}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-
-                            {!allRevealed ? (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setRevealedExerciseSteps((prev) => ({
-                                    ...prev,
-                                    [ex.id]: Math.min(ex.steps.length, revealedCount + 1),
-                                  }))
-                                }
-                                className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${activeTheme.primaryBtn}`}
-                              >
-                                Buka Langkah Berikutnya ({revealedCount + 1}/{ex.steps.length}) →
-                              </button>
-                            ) : (
-                              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-300 p-3.5 rounded-xl text-xs text-emerald-950 leading-relaxed">
-                                <strong>Kesimpulan Rekayasa Lapangan: </strong>
-                                {ex.finalConclusion}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </section>
-                  )}
-
-                  {/* Timed Quiz Checkpoints Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">
-                        Uji Pemahaman Konsep &amp; Mode Tantangan Cepat (
-                        {activeModule.checkpoints.length} Soal)
-                      </h3>
-                      <p className="text-xs text-slate-600">
-                        Jawab pertanyaan evaluasi untuk mengumpulkan XP dan membuka lencana Juara
-                        Tantangan Konsep.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {!isTimedQuizMode ? (
-                        <button
-                          type="button"
-                          onClick={handleStartTimedChallenge}
-                          className="px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
-                        >
-                          <Timer className="w-3.5 h-3.5" />
-                          <span>Mulai Tantangan Cepat (30 Detik)</span>
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-3 py-1.5 rounded-xl tabular-nums flex items-center gap-1.5">
-                            <Zap className="w-3.5 h-3.5 text-amber-600" />
-                            <span>Sisa Waktu: {remainingSeconds} dtk</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsTimedQuizMode(false);
-                              setIsTimerRunning(false);
-                            }}
-                            className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                          >
-                            Mode Santai
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {isTimedQuizMode && (
-                    <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-300 ${
-                          remainingSeconds > 10
-                            ? 'bg-gradient-to-r from-amber-400 to-orange-500'
-                            : 'bg-gradient-to-r from-rose-500 to-red-600'
-                        }`}
-                        style={{ width: `${Math.round((remainingSeconds / 30) * 100)}%` }}
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    {activeModule.checkpoints.map((cp, qIdx) => {
-                      const answerKey = `${activeModule.id}-${qIdx}`;
-                      const chosen = selectedAnswers[answerKey];
-                      const isAnswered = typeof chosen === 'number';
-                      const isCorrect = chosen === cp.correctIndex;
-
-                      return (
-                        <div
-                          key={qIdx}
-                          className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-5 space-y-3.5"
-                        >
-                          <div className="flex items-center justify-between gap-2 text-[11px] font-mono text-slate-500">
-                            <span className={`font-bold ${activeTheme.accentText}`}>
-                              PERTANYAAN 0{qIdx + 1}
-                            </span>
-                            {cp.difficulty && <span>Tingkat: {cp.difficulty}</span>}
-                          </div>
-                          <p className="text-sm font-bold text-slate-900">{cp.question}</p>
-                          <div className="space-y-2">
-                            {cp.options.map((opt, oIdx) => {
-                              const isThisChosen = chosen === oIdx;
-                              return (
-                                <button
-                                  key={oIdx}
-                                  type="button"
-                                  onClick={() =>
-                                    handleSelectQuizOption(qIdx, oIdx, cp.correctIndex)
-                                  }
-                                  className={`w-full text-left px-4 py-3 rounded-xl text-xs font-medium border transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                                    isThisChosen
-                                      ? isCorrect
-                                        ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-500 text-emerald-950 font-semibold shadow-2xs'
-                                        : 'bg-amber-50 border-amber-500 text-amber-950 font-semibold'
-                                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50/60'
-                                  }`}
-                                >
-                                  <span>{opt}</span>
-                                  {isThisChosen && (
-                                    <span className="font-mono text-[11px] font-bold shrink-0">
-                                      {isCorrect ? '✓ TEPAT (+XP)' : '× KURANG TEPAT'}
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          {isAnswered && (
-                            <div className="pt-2.5 border-t border-slate-200 text-xs text-slate-700 leading-relaxed">
-                              <strong className="text-slate-900">Pembahasan:</strong>{' '}
-                              {cp.explanation}
-                            </div>
-                          )}
-                        </div>
+                <ModuleQuizCard
+                  activeModule={activeModule}
+                  theme={activeTheme}
+                  selectedAnswers={selectedAnswers}
+                  revealedExerciseSteps={revealedExerciseSteps}
+                  isTimedQuizMode={isTimedQuizMode}
+                  remainingSeconds={remainingSeconds}
+                  onStartTimedChallenge={handleStartTimedChallenge}
+                  onExitTimedChallenge={() => {
+                    setIsTimedQuizMode(false);
+                    setIsTimerRunning(false);
+                  }}
+                  onSelectQuizOption={handleSelectQuizOption}
+                  onToggleRevealAllSteps={(exerciseId, totalSteps, currentlyAllRevealed) => {
+                    setRevealedExerciseSteps((prev) => ({
+                      ...prev,
+                      [exerciseId]: currentlyAllRevealed ? 1 : totalSteps,
+                    }));
+                    if (!currentlyAllRevealed) {
+                      setStudentXp((xp) => xp + 40);
+                      triggerXpCelebration(
+                        40,
+                        'Menuntaskan telaah Latihan Hitungan Bertahap!'
                       );
-                    })}
-                  </div>
-
-                  {/* Compact AI Tutor Gateway Callout Banner */}
-                  <div className="blueprint-stage text-white rounded-2xl overflow-hidden border border-slate-800 shadow-sm">
-                    <div className={`h-1.5 w-full ${activeTheme.ribbonGradient}`} />
-                    <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-[11px] font-mono text-emerald-400">
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                          <span>Single-Gateway Cloud AI + Local Cache (0 Kuota Siswa)</span>
-                        </div>
-                        <h4 className="text-sm font-bold">
-                          Ingin mendiskusikan soal latihan modul {activeModule.code} lebih lanjut?
-                        </h4>
-                        <p className="text-xs text-slate-300">
-                          Tanyakan langsung ke server lokal laptop guru untuk mendapatkan penjelasan
-                          instan 0 milidetik.
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onAskTutorWithPrompt) {
-                            onAskTutorWithPrompt(
-                              activeModule.id,
-                              activeModule.checkpoints[0]?.question ||
-                                `Jelaskan konsep utama modul ${activeModule.title}`
-                            );
-                          } else {
-                            onNavigateTab('tutor');
-                          }
-                        }}
-                        className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer ${activeTheme.primaryBtn}`}
-                      >
-                        <span>Buka Tutor AI Satu Pintu</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                    }
+                  }}
+                  onRevealNextStep={(exerciseId, totalSteps) => {
+                    setRevealedExerciseSteps((prev) => ({
+                      ...prev,
+                      [exerciseId]: Math.min(totalSteps, (prev[exerciseId] ?? 1) + 1),
+                    }));
+                  }}
+                  onAskTutorAboutQuiz={() => {
+                    if (onAskTutorWithPrompt) {
+                      onAskTutorWithPrompt(
+                        activeModule.id,
+                        activeModule.checkpoints[0]?.question ||
+                          `Jelaskan konsep utama modul ${activeModule.title}`
+                      );
+                    } else {
+                      onNavigateTab('tutor');
+                    }
+                  }}
+                />
               )}
             </div>
           </div>
