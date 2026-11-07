@@ -15,6 +15,7 @@ import {
   encodeBinaryChunkPayload,
   decodeBinaryChunkPayload,
   validateHostPinChange,
+  computeDeterministicChunkHash,
   type LearningModule,
   type PeerNode,
   type CacheEntry,
@@ -691,7 +692,7 @@ async function startServer() {
     const totalChunks = 16;
     const chunkSizeKB = Math.max(256, Math.round((numSizeMB * 1024) / totalChunks));
     const chunkHashes = Array.from({ length: totalChunks }, (_, idx) =>
-      `${Math.random().toString(16).slice(2, 6)}${String(idx).padStart(4, '0')}`
+      computeDeterministicChunkHash(title.trim(), idx, summary.trim())
     );
 
     const newModule: LearningModule = {

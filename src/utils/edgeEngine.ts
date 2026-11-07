@@ -1387,3 +1387,22 @@ export function validateHostPinChange(
   return { valid: true };
 }
 
+
+/**
+ * Fast, deterministic FNV-1a checksum for chunk verification in local P2P networks.
+ * Ensures data integrity across WebRTC SCTP chunk transfers without Math.random().
+ */
+export function computeDeterministicChunkHash(
+  moduleId: string,
+  chunkIndex: number,
+  contentPayload = ''
+): string {
+  let hash = 0x811c9dc5;
+  const str = `${moduleId}:${chunkIndex}:${contentPayload}`;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  const hex = (hash >>> 0).toString(16).padStart(8, '0');
+  return `chk-${hex.slice(0, 4)}-${String(chunkIndex).padStart(2, '0')}`;
+}

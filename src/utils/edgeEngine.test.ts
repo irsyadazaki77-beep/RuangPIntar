@@ -9,6 +9,7 @@ import {
   calculateSwarmMetrics,
   validateQuestionSubmission,
   validateModuleSubmission,
+  computeDeterministicChunkHash,
   calculateMicrohydroOutput,
   calculateMangroveMitigation,
   type CacheEntry,
@@ -363,4 +364,14 @@ test('new 3T simulation calculators (solar, agroforestry, desalination), inline 
 
   assert.equal(validateHostPinChange('wrong', '1945', '2026').valid, false);
   assert.equal(validateHostPinChange('1945', '1945', '2026').valid, true);
+});
+
+test('computeDeterministicChunkHash generates stable deterministic hashes for identical inputs', () => {
+  const hash1 = computeDeterministicChunkHash('mod-fisika-01', 0, 'payload-content');
+  const hash2 = computeDeterministicChunkHash('mod-fisika-01', 0, 'payload-content');
+  const hashDiff = computeDeterministicChunkHash('mod-fisika-01', 1, 'payload-content');
+
+  assert.equal(hash1, hash2);
+  assert.notEqual(hash1, hashDiff);
+  assert.equal(hash1.startsWith('chk-'), true);
 });

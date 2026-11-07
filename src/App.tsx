@@ -304,11 +304,29 @@ export default function App() {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
+    let reconnectTimeoutId: number | undefined;
 
-    try {
-      const ws = new WebSocket(wsUrl);
-      ws.binaryType = 'arraybuffer';
-      wsRef.current = ws;
+    const connectWebSocket = () => {
+      if (!mounted) return;
+
+      try {
+        const ws = new WebSocket(wsUrl);
+        ws.binaryType = 'arraybuffer';
+        wsRef.current = ws;
+
+        ws.onclose = () => {
+          if (mounted) {
+            reconnectTimeoutId = window.setTimeout(connectWebSocket, 3000);
+          }
+        };
+
+        ws.onerror = () => {
+          try {
+            ws.close();
+          } catch {
+            // Ignore close errors
+          }
+        };
 
       const setupDataChannel = (remoteClientId: string, dc: RTCDataChannel) => {
         dc.binaryType = 'arraybuffer';
@@ -431,10 +449,16 @@ export default function App() {
     } catch {
       // Fallback gracefully if WebSocket is blocked
     }
+  };
 
-    return () => {
-      mounted = false;
-      wsRef.current?.close();
+  connectWebSocket();
+
+  return () => {
+    mounted = false;
+    if (reconnectTimeoutId) {
+      window.clearTimeout(reconnectTimeoutId);
+    }
+    wsRef.current?.close();
       for (const dc of dataChannelsRef.current.values()) {
         dc.close();
       }
