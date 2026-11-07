@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   Server,
@@ -11,6 +11,11 @@ import {
   KeyRound,
   ShieldCheck,
   LogOut,
+  HardDrive,
+  Download,
+  UploadCloud,
+  FileJson,
+  Clock,
 } from 'lucide-react';
 import type {
   LearningModule,
@@ -25,7 +30,7 @@ interface Props {
   metrics: SwarmMetrics;
   gatewayTetheringOnline: boolean;
   isPinVerified: boolean;
-  onVerifyPin: (pin: string) => Promise<{ ok: boolean; error?: string }>;
+  onVerifyPin: (pin: string) => Promise<{ ok: boolean; error?: string; retryAfterSeconds?: number }>;
   onChangePin: (currentPin: string, newPin: string) => Promise<{ ok: boolean; error?: string; message?: string }>;
   onLockHost: () => void;
   onToggleGatewayTethering: () => Promise<void>;
@@ -45,6 +50,8 @@ interface Props {
     questionCanonical: string;
     answerMarkdown: string;
   }) => Promise<{ ok: boolean; error?: string }>;
+  onExportPackage?: () => void;
+  onImportPackage?: (pkg: unknown) => Promise<{ ok: boolean; error?: string; message?: string }>;
 }
 
 const hostContainerVariants = {
@@ -76,11 +83,27 @@ export const TeacherHostView: React.FC<Props> = ({
   onToggleGatewayTethering,
   onPublishModule,
   onSeedCacheEntry,
+  onExportPackage,
+  onImportPackage,
 }) => {
-  // PIN Gate state
+  // PIN Gate state & Rate Limiting Cooldown (Task 1)
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
+
+  // Sneakernet (USB / Physical Distribution) State (Task 4)
+  const [importStatus, setImportStatus] = useState<{ ok: boolean; text: string } | null>(null);
+  const [isImporting, setIsImporting] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldownSeconds((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownSeconds]);
 
   // Change PIN modal/drawer state
   const [showChangePinPanel, setShowChangePinPanel] = useState(false);
@@ -119,15 +142,59 @@ export const TeacherHostView: React.FC<Props> = ({
 
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldownSeconds > 0) return;
     setPinError(null);
     setIsVerifyingPin(true);
     const res = await onVerifyPin(pinInput);
     setIsVerifyingPin(false);
     if (!res.ok) {
       setPinError(res.error || 'PIN Simpul Guru tidak sesuai.');
+      if (res.retryAfterSeconds && res.retryAfterSeconds > 0) {
+        setCooldownSeconds(res.retryAfterSeconds);
+      }
       return;
     }
     setPinInput('');
+  };
+
+  const processImportFile = (file: File) => {
+    if (!file.name.endsWith('.json')) {
+      setImportStatus({ ok: false, text: 'File harus berformat paket data JSON (.json).' });
+      return;
+    }
+    setImportStatus(null);
+    setIsImporting(true);
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const parsed = JSON.parse(text);
+        if (onImportPackage) {
+          const res = await onImportPackage(parsed);
+          if (!res.ok) {
+            setImportStatus({ ok: false, text: res.error || 'Gagal mengimpor paket.' });
+          } else {
+            setImportStatus({
+              ok: true,
+              text: res.message || 'Paket data Sneakernet berhasil diimpor ke server lokal kelas!',
+            });
+          }
+        }
+      } catch {
+        setImportStatus({
+          ok: false,
+          text: 'Format isi file JSON paket data Sneakernet rusak atau tidak valid.',
+        });
+      } finally {
+        setIsImporting(false);
+      }
+    };
+    reader.onerror = () => {
+      setIsImporting(false);
+      setImportStatus({ ok: false, text: 'Gagal membaca file dari penyimpanan USB.' });
+    };
+    reader.readAsText(file);
   };
 
   const handleUpdatePin = async (e: React.FormEvent) => {
@@ -254,23 +321,34 @@ export const TeacherHostView: React.FC<Props> = ({
                     id="teacher-pin-input"
                     type="password"
                     inputMode="numeric"
+                    disabled={cooldownSeconds > 0 || isVerifyingPin}
                     value={pinInput}
                     onChange={(e) => setPinInput(e.target.value)}
-                    placeholder="Masukkan PIN (contoh: 1945)"
-                    className="w-full px-3.5 py-2.5 text-sm font-mono tracking-widest bg-[#faf8f5] border border-[#d6d1c4] rounded-xl text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                    placeholder={cooldownSeconds > 0 ? `Terkunci (${cooldownSeconds}s)` : 'Masukkan PIN (contoh: 1945)'}
+                    className="w-full px-3.5 py-2.5 text-sm font-mono tracking-widest bg-[#faf8f5] border border-[#d6d1c4] rounded-xl text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 disabled:opacity-50 transition-all"
                     autoFocus
                   />
                   <button
                     type="button"
+                    disabled={cooldownSeconds > 0 || isVerifyingPin}
                     onClick={() => setPinInput('1945')}
-                    className="px-3 py-2.5 text-xs font-mono font-semibold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl whitespace-nowrap cursor-pointer transition-colors"
+                    className="px-3 py-2.5 text-xs font-mono font-semibold text-sky-800 bg-sky-50 hover:bg-sky-100 disabled:opacity-50 border border-sky-200 rounded-xl whitespace-nowrap cursor-pointer transition-colors"
                   >
                     Isi 1945
                   </button>
                 </div>
               </div>
 
-              {pinError && (
+              {cooldownSeconds > 0 && (
+                <div role="alert" className="p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-center gap-2 text-xs text-amber-900 font-medium">
+                  <Clock className="w-4 h-4 text-amber-700 shrink-0 animate-pulse" />
+                  <span>
+                    Terlalu banyak percobaan PIN. Mohon tunggu <strong>{cooldownSeconds} detik</strong> sebelum mencoba kembali.
+                  </span>
+                </div>
+              )}
+
+              {pinError && cooldownSeconds <= 0 && (
                 <p role="alert" className="text-xs font-medium text-red-600">
                   {pinError}
                 </p>
@@ -279,12 +357,16 @@ export const TeacherHostView: React.FC<Props> = ({
               <motion.button
                 type="submit"
                 whileTap={{ scale: 0.98 }}
-                disabled={isVerifyingPin}
+                disabled={isVerifyingPin || cooldownSeconds > 0}
                 className="w-full py-2.5 px-4 bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>
-                  {isVerifyingPin ? 'Memverifikasi PIN...' : 'Buka Panel Kendali Simpul Guru'}
+                  {cooldownSeconds > 0
+                    ? `Tunggu Cooldown (${cooldownSeconds}s)...`
+                    : isVerifyingPin
+                    ? 'Memverifikasi PIN...'
+                    : 'Buka Panel Kendali Simpul Guru'}
                 </span>
               </motion.button>
             </form>
@@ -705,6 +787,135 @@ export const TeacherHostView: React.FC<Props> = ({
             <p className="leading-relaxed">
               Setiap rekaman yang ditambahkan langsung disimpan secara permanen ke database SQLite lokal laptop guru dan diindeks dengan pencocokan trigram Bahasa Indonesia.
             </p>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* TUGAS 4: Sneakernet / Physical USB Distribution Card */}
+      <motion.section
+        variants={hostItemVariants}
+        aria-label="Distribusi Fisik Sneakernet USB"
+        className="bento-card p-6 sm:p-7 space-y-5"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e6e2d8]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0">
+              <HardDrive className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-stone-900">
+                03. Distribusi Fisik (Sneakernet / USB Flashdisk)
+              </h2>
+              <p className="text-xs text-stone-600 mt-0.5">
+                Bawa paket data kurikulum (.json) menggunakan flashdisk dari kota untuk mengutuhkan server lokal kelas tanpa koneksi internet satelit.
+              </p>
+            </div>
+          </div>
+
+          {onExportPackage && (
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              onClick={onExportPackage}
+              className="px-4 py-2.5 text-xs font-semibold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
+            >
+              <Download className="w-4 h-4" />
+              <span>Unduh Paket Data Modul (.json)</span>
+            </motion.button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Left info column */}
+          <div className="lg:col-span-5 space-y-3 surface-warm-recessed p-5 rounded-2xl flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 font-mono text-xs text-amber-800 font-semibold">
+                <FileJson className="w-4 h-4" />
+                <span>Format Paket Data Kurikulum (.json)</span>
+              </div>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                File paket berisi seluruh data modul kurikulum, skema section, studi kasus, glosarium, dan rekaman cache tanya-jawab Tutor AI lokal.
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-[#e6e2d8] space-y-1.5 text-[11px] font-mono text-stone-600">
+              <div className="flex justify-between">
+                <span>Total Modul Siap Ekspor:</span>
+                <strong className="text-stone-900">{modules.length} Modul</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>Rekaman Cache AI Siap Ekspor:</span>
+                <strong className="text-stone-900">{cacheEntries.length} Topik</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Drag-and-Drop / File Upload Box */}
+          <div className="lg:col-span-7 flex flex-col justify-between">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                  processImportFile(e.dataTransfer.files[0]);
+                }
+              }}
+              className={`p-6 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center space-y-3 transition-colors ${
+                isDragging
+                  ? 'border-amber-500 bg-amber-50/70'
+                  : 'border-slate-300 hover:border-amber-400 bg-slate-50/50'
+              }`}
+            >
+              <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-center text-amber-700">
+                <UploadCloud className="w-6 h-6" />
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-stone-900">
+                  Tarik &amp; Lepas File Paket Sneakernet (.json) ke Sini
+                </p>
+                <p className="text-[11px] text-stone-500">
+                  atau pilih file dari USB Flashdisk / Penyimpanan Lokal
+                </p>
+              </div>
+
+              <label className="px-4 py-2 text-xs font-semibold text-stone-800 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl cursor-pointer transition-colors shadow-2xs">
+                <span>{isImporting ? 'Mengimpor Data...' : 'Pilih File JSON Paket'}</span>
+                <input
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      processImportFile(e.target.files[0]);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            {importStatus && (
+              <div
+                role={importStatus.ok ? 'status' : 'alert'}
+                className={`mt-3 p-3 rounded-xl text-xs font-medium flex items-center gap-2 ${
+                  importStatus.ok
+                    ? 'bg-emerald-50 text-emerald-900 border border-emerald-300'
+                    : 'bg-red-50 text-red-900 border border-red-300'
+                }`}
+              >
+                {importStatus.ok ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <Lock className="w-4 h-4 text-red-600 shrink-0" />
+                )}
+                <span>{importStatus.text}</span>
+              </div>
+            )}
           </div>
         </div>
       </motion.section>

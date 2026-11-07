@@ -10,6 +10,8 @@ import {
   Bot,
   Zap,
   ArrowRight,
+  Volume2,
+  Square,
 } from 'lucide-react';
 import type {
   LearningModule,
@@ -19,6 +21,7 @@ import type {
   SwarmMetrics,
 } from '../utils/edgeEngine';
 import { getSubjectTheme } from '../utils/subjectTheme';
+import { playIndonesianSpeech, stopSpeech } from '../utils/speechUtils';
 
 interface Props {
   modules: LearningModule[];
@@ -203,6 +206,15 @@ export const AiTutorGatewayView: React.FC<Props> = ({
   // Fast progressive typing reveal state for new responses
   const [revealedChars, setRevealedChars] = useState<number>(99999);
   const [isTypingEffect, setIsTypingEffect] = useState<boolean>(false);
+  const [isSpeakingAnswer, setIsSpeakingAnswer] = useState<boolean>(false);
+
+  useEffect(() => {
+    stopSpeech();
+    setIsSpeakingAnswer(false);
+    return () => {
+      stopSpeech();
+    };
+  }, [activeResponse]);
 
   useEffect(() => {
     if (!activeResponse?.answerMarkdown) return;
@@ -714,6 +726,40 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                       </span>
 
                       <div className="flex flex-wrap items-center gap-3 text-[11px] text-stone-700 tabular-nums">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isSpeakingAnswer) {
+                              stopSpeech();
+                              setIsSpeakingAnswer(false);
+                            } else if (activeResponse?.answerMarkdown) {
+                              setIsSpeakingAnswer(true);
+                              playIndonesianSpeech(
+                                activeResponse.answerMarkdown,
+                                undefined,
+                                () => setIsSpeakingAnswer(false)
+                              );
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                            isSpeakingAnswer
+                              ? 'bg-amber-500 text-white border-transparent shadow-2xs animate-pulse'
+                              : 'bg-white text-slate-800 border-slate-300 hover:border-sky-400'
+                          }`}
+                        >
+                          {isSpeakingAnswer ? (
+                            <>
+                              <Square className="w-3.5 h-3.5 fill-current" />
+                              <span>Hentikan Suara</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="w-3.5 h-3.5 text-sky-700" />
+                              <span>Dengarkan Jawaban</span>
+                            </>
+                          )}
+                        </button>
+                        <span aria-hidden="true">·</span>
                         <span>
                           Respons: <strong>{activeResponse.latencyMs} ms</strong>
                         </span>

@@ -379,6 +379,46 @@ export function setHostConfig(key: string, value: string): void {
   );
 }
 
+export function importSneakernetPackage(pkg: {
+  modules?: LearningModule[];
+  cacheEntries?: CacheEntry[];
+}): { modules: LearningModule[]; cacheEntries: CacheEntry[]; modulesCount: number; cacheCount: number } {
+  let modulesCount = 0;
+  let cacheCount = 0;
+
+  const tx = db.transaction(() => {
+    if (Array.isArray(pkg.modules)) {
+      pkg.modules.forEach((mod, idx) => {
+        if (mod && mod.id && mod.title && mod.subject) {
+          saveModuleToDb(mod, idx);
+          modulesCount++;
+        }
+      });
+    }
+
+    if (Array.isArray(pkg.cacheEntries)) {
+      pkg.cacheEntries.forEach((entry, idx) => {
+        if (entry && entry.id && entry.questionCanonical && entry.answerMarkdown) {
+          saveCacheEntryToDb(entry, idx);
+          cacheCount++;
+        }
+      });
+    }
+  });
+
+  tx();
+
+  const loadedModules = loadModulesFromDb();
+  const loadedCache = loadCacheEntriesFromDb();
+
+  return {
+    modules: loadedModules,
+    cacheEntries: loadedCache,
+    modulesCount,
+    cacheCount,
+  };
+}
+
 /**
  * Automatic database migration & initial seed if SQLite tables are empty.
  */

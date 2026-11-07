@@ -22,7 +22,10 @@ import {
   PenLine,
   Copy,
   Check,
+  Volume2,
+  Square,
 } from 'lucide-react';
+import { playIndonesianSpeech, stopSpeech } from '../utils/speechUtils';
 import {
   calculateQuizChallengeScore,
   computeStudentAchievements,
@@ -99,6 +102,17 @@ export const ModuleLibraryView: React.FC<Props> = ({
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
   const [heroImgFailed, setHeroImgFailed] = useState(false);
   const [failedModuleImgs, setFailedModuleImgs] = useState<Record<string, boolean>>({});
+
+  // Audio narration state (Task 5)
+  const [speakingChapterIndex, setSpeakingChapterIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    stopSpeech();
+    setSpeakingChapterIndex(null);
+    return () => {
+      stopSpeech();
+    };
+  }, [activeModuleId, activeSubTab]);
 
   // Chapter completion, guided exercise step reveals, and local student notes
   const [completedChapters, setCompletedChapters] = useState<Record<string, boolean>>(() => {
@@ -1293,6 +1307,40 @@ export const ModuleLibraryView: React.FC<Props> = ({
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (speakingChapterIndex === idx) {
+                                    stopSpeech();
+                                    setSpeakingChapterIndex(null);
+                                  } else {
+                                    setSpeakingChapterIndex(idx);
+                                    playIndonesianSpeech(
+                                      `${sec.heading}. ${sec.body}. Intisari: ${sec.keyTakeaway}`,
+                                      undefined,
+                                      () => setSpeakingChapterIndex(null)
+                                    );
+                                  }
+                                }}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap border ${
+                                  speakingChapterIndex === idx
+                                    ? 'bg-amber-500 text-white border-transparent shadow-xs animate-pulse'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:border-sky-300'
+                                }`}
+                              >
+                                {speakingChapterIndex === idx ? (
+                                  <>
+                                    <Square className="w-3.5 h-3.5 fill-current" />
+                                    <span>Hentikan Suara</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Volume2 className="w-3.5 h-3.5 text-sky-700" />
+                                    <span>Dengarkan Materi</span>
+                                  </>
+                                )}
+                              </button>
+
                               <motion.button
                                 type="button"
                                 whileTap={{ scale: 0.96 }}
