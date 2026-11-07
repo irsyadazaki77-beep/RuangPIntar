@@ -1,0 +1,6 @@
+{
+  "name": "RuangPintar Edge",
+  "description": "Platform Learning Management System (LMS) terdesentralisasi berbasis WebRTC P2P Data Channels dan Single-Gateway Cloud AI dengan cache lokal untuk pendidikan di wilayah 3T.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
