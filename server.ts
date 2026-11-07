@@ -29,6 +29,7 @@ import {
   insertTransferLogToDb,
   savePeersToDb,
   setHostConfig,
+  closeDatabase,
 } from './src/utils/db.ts';
 
 dotenv.config();
@@ -258,16 +259,46 @@ async function startServer() {
     res.json(getFullState());
   });
 
-  // POST Verify Teacher Host PIN
+  const failedPinAttempts = new Map<string, { count: number; lockedUntil: number }>();
+
+  // POST Verify Teacher Host PIN (dengan proteksi brute-force & cooldown)
   app.post('/api/host/verify-pin', (req, res) => {
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const record = failedPinAttempts.get(clientIp);
+
+    if (record && record.lockedUntil > now) {
+      const waitSec = Math.ceil((record.lockedUntil - now) / 1000);
+      res.status(429).json({
+        valid: false,
+        error: `Terlalu banyak percobaan PIN salah. Akses dikunci sementara selama ${waitSec} detik demi keamanan Simpul Guru.`,
+        retryAfter: waitSec,
+      });
+      return;
+    }
+
     const candidate = String(req.body?.pin || req.header('x-host-pin') || '').trim();
     if (candidate === hostPin) {
+      failedPinAttempts.delete(clientIp);
       res.json({ valid: true });
       return;
     }
+
+    const currentCount = (record?.count || 0) + 1;
+    if (currentCount >= 5) {
+      failedPinAttempts.set(clientIp, { count: currentCount, lockedUntil: now + 60 * 1000 });
+      res.status(429).json({
+        valid: false,
+        error: 'Terlalu banyak percobaan salah (5x). Simpul Guru dikunci sementara selama 60 detik.',
+        retryAfter: 60,
+      });
+      return;
+    }
+
+    failedPinAttempts.set(clientIp, { count: currentCount, lockedUntil: 0 });
     res.status(401).json({
       valid: false,
-      error: 'PIN Simpul Guru salah. Gunakan PIN default 1945 atau PIN yang telah diperbarui.',
+      error: `PIN Simpul Guru salah (percobaan ${currentCount}/5). Gunakan PIN default 1945 atau PIN yang telah diperbarui.`,
     });
   });
 
@@ -522,10 +553,12 @@ async function startServer() {
         });
 
         const systemInstruction =
-          `Anda adalah Tutor AI RuangPintar Edge yang berjalan pada server lokal Laptop Guru untuk membantu siswa SMA/SMK di wilayah 3T (Tertinggal, Terdepan, Terluar) Indonesia. ` +
-          `Konteks modul saat ini: "${selectedModule.title}" (${selectedModule.subject}). ` +
-          `Ringkasan modul: ${selectedModule.summary}. ` +
-          `Jawablah pertanyaan siswa dalam Bahasa Indonesia yang jelas, terstruktur, kontekstual dengan kondisi lapangan kepulauan/desa di Indonesia, dan sertakan rumus atau langkah praktis bila relevan.`;
+          `Anda adalah Tutor AI RuangPintar Edge yang beroperasi di Simpul Lokal (Edge Gateway) Laptop Guru untuk membantu siswa SMA/SMK di wilayah 3T (Tertinggal, Terdepan, Terluar) Indonesia.\n\n` +
+          `Konteks Modul Saat Ini:\n- Judul: "${selectedModule.title}"\n- Bidang Studi: ${selectedModule.subject} (${selectedModule.gradeLevel})\n- Ringkasan: ${selectedModule.summary}\n\n` +
+          `Prinsip Respon Pembelajaran:\n` +
+          `1. Efisien & Padat: Langsung ke inti materi tanpa kalimat basa-basi pembuka/penutup untuk menghemat kuota satelit.\n` +
+          `2. Kontekstual Wilayah 3T: Hubungkan konsep sains/teknik dengan analogi nyata di desa, kepulauan, dan pesisir Indonesia.\n` +
+          `3. Struktur Wajib: Bagi penjelasan menjadi 3 bagian: (a) Konsep Inti, (b) Rumus & Contoh Perhitungan Konkret bila ada, (c) Penerapan Lapangan di Daerah 3T.`;
 
         const geminiResponse = await ai.models.generateContent({
           model: 'gemini-3.8-flash',
@@ -787,6 +820,19 @@ async function startServer() {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`RuangPintar Edge Host Node listening on http://0.0.0.0:${PORT}`);
   });
+
+  const handleGracefulShutdown = (signal: string) => {
+    console.log(`\n[RuangPintar Edge] Menerima sinyal ${signal}. Menutup database SQLite dan server secara aman...`);
+    closeDatabase();
+    server.close(() => {
+      console.log('[RuangPintar Edge] Server dan koneksi database SQLite berhasil ditutup bersih.');
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 1500).unref();
+  };
+
+  process.on('SIGINT', () => handleGracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM'));
 }
 
 startServer();

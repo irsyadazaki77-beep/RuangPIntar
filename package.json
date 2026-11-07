@@ -1,22 +1,21 @@
 {
-  "name": "react-example",
+  "name": "ruang-pintar-edge",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Platform Learning Management System (LMS) terdesentralisasi berbasis WebRTC P2P Data Channels dan Single-Gateway Cloud AI dengan cache lokal untuk wilayah 3T.",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
-    "start": "node server.ts",
+    "start": "tsx server.ts",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
+    "test": "tsx --test src/utils/edgeEngine.test.ts",
+    "clean": "node -e \"try { fs.rmSync('dist', { recursive: true, force: true }); } catch {}\"",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^2.32.0",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/better-sqlite3": "^9.6.0",
-    "@types/ws": "^8.18.2",
-    "@vitejs/plugin-react": "^6.1.1",
     "better-sqlite3": "^13.0.3",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
@@ -29,14 +28,16 @@
     "ws": "^8.22.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "typescript": "^5.8.2"
   }
 }

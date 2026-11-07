@@ -450,3 +450,15 @@ export function ensureDatabaseSeeded(): {
     cloudQueriesCount: Number(cloudQueriesStr) || 4,
   };
 }
+
+
+export function closeDatabase(): void {
+  try {
+    if (db && db.open) {
+      db.pragma('wal_checkpoint(TRUNCATE)');
+      db.close();
+    }
+  } catch {
+    // Ignore error if already closed
+  }
+}

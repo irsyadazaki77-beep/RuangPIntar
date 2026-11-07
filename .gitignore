@@ -1,6 +1,7 @@
 node_modules/
 build/
 dist/
+dev-dist/
 coverage/
 .DS_Store
 *.log
@@ -10,3 +11,6 @@ coverage/
 *.db-shm
 *.db-wal
 .playwright-cli/
+.aistudio/
+.gemini/
+*.local

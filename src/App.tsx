@@ -339,8 +339,10 @@ export default function App() {
           return rtcPeersRef.current.get(remoteClientId)!;
         }
 
+        // Optimal for 3T regions: use empty iceServers when offline to avoid 5-10s Google STUN DNS timeout lag
+        const useStun = !isOfflineActive && gatewayTetheringOnline;
         const pc = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+          iceServers: useStun ? [{ urls: 'stun:stun.l.google.com:19302' }] : [],
         });
         rtcPeersRef.current.set(remoteClientId, pc);
 
