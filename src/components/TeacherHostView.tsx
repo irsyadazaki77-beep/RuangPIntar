@@ -283,6 +283,7 @@ export const TeacherHostView: React.FC<Props> = ({
   if (!isPinVerified) {
     return (
       <motion.div
+        key="host-pin-gate"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-lg mx-auto my-8"
@@ -385,6 +386,7 @@ export const TeacherHostView: React.FC<Props> = ({
 
   return (
     <motion.div
+      key="host-unlocked-dashboard"
       variants={hostContainerVariants}
       initial="hidden"
       animate="visible"

@@ -14,7 +14,10 @@ import {
   INITIAL_CACHE_ENTRIES,
 } from './seedData.ts';
 
-const DB_FILE = process.env.RUANGPINTAR_DB_PATH || path.resolve(process.cwd(), 'ruangpintar-edge.db');
+const rawDbPath = (process.env.RUANGPINTAR_DB_PATH || '').trim();
+const DB_FILE = /\.(db|sqlite|sqlite3)$/i.test(rawDbPath)
+  ? rawDbPath
+  : path.resolve(process.cwd(), 'ruangpintar-edge.db');
 
 const db = new Database(DB_FILE);
 db.pragma('journal_mode = WAL');
@@ -546,7 +549,9 @@ export function ensureDatabaseSeeded(): {
     savePeersToDb(INITIAL_PEERS);
   }
 
-  const hostPin = getHostConfig('host_pin', process.env.HOST_PIN || '1945');
+  const rawEnvPin = (process.env.HOST_PIN || '').trim();
+  const defaultPin = /^\d{4,8}$/.test(rawEnvPin) ? rawEnvPin : '1945';
+  const hostPin = getHostConfig('host_pin', defaultPin);
   setHostConfig('host_pin', hostPin);
 
   const tetheringStr = getHostConfig('gateway_tethering_online', 'true');

@@ -54,6 +54,18 @@ function base64ToUint8Array(b64: string): Uint8Array {
   return bytes;
 }
 
+async function safeParseJson(res: Response): Promise<Record<string, any>> {
+  try {
+    const text = await res.text();
+    if (!text || text.trim().startsWith('<')) {
+      return {};
+    }
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('pustaka');
   const [modules, setModules] = useState<LearningModule[]>(INITIAL_MODULES);
@@ -299,8 +311,8 @@ const [studentProfile, setStudentProfile] = useState<{
       try {
         const r = await fetch('/api/state');
         if (r.ok) {
-          const data = await r.json();
-          if (mounted && data) {
+          const data = await safeParseJson(r);
+          if (mounted && data && Object.keys(data).length > 0) {
             applyServerState(data);
           }
         }
@@ -315,7 +327,7 @@ const [studentProfile, setStudentProfile] = useState<{
             }),
           });
           if (syncRes.ok) {
-            const syncData = await syncRes.json();
+            const syncData = await safeParseJson(syncRes);
             if (mounted && syncData?.state) {
               applyServerState(syncData.state);
             }
@@ -519,7 +531,7 @@ const [studentProfile, setStudentProfile] = useState<{
         body: JSON.stringify({ moduleId, targetPeerId, chunksCount }),
       });
       if (response.ok) {
-        const data = await response.json();
+        const data = await safeParseJson(response);
         if (data.state) applyServerState(data.state);
 
         // Stream real binary ArrayBuffer frames over WebRTC RTCDataChannel and persist in IndexedDB
@@ -559,7 +571,7 @@ const [studentProfile, setStudentProfile] = useState<{
         body: JSON.stringify({ moduleId, targetPeerId }),
       });
       if (response.ok) {
-        const data = await response.json();
+        const data = await safeParseJson(response);
         if (data.state) {
           applyServerState(data.state);
         }
@@ -584,7 +596,7 @@ const [studentProfile, setStudentProfile] = useState<{
         body: JSON.stringify(payload),
       });
       if (!response.ok) return null;
-      const data = await response.json();
+      const data = await safeParseJson(response);
       if (data.state) applyServerState(data.state);
       if (data.result) {
         const isHit = data.result.source === 'LOCAL_CACHE';
@@ -600,16 +612,23 @@ const [studentProfile, setStudentProfile] = useState<{
     }
   };
 
-  const handleVerifyHostPin = async (pin: string): Promise<{ ok: boolean; error?: string }> => {
+  const handleVerifyHostPin = async (
+    pin: string
+  ): Promise<{ ok: boolean; error?: string; retryAfterSeconds?: number }> => {
     try {
       const response = await fetch('/api/host/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin: pin.trim() }),
       });
-      const data = await response.json();
+      const data = await safeParseJson(response);
       if (!response.ok || !data.valid) {
-        return { ok: false, error: data.error || 'PIN Simpul Guru tidak valid.' };
+        const retrySec = Number(data.retryAfterSeconds ?? data.retryAfter ?? 0) || undefined;
+        return {
+          ok: false,
+          error: data.error || 'PIN Simpul Guru tidak valid.',
+          retryAfterSeconds: retrySec,
+        };
       }
       const cleanPin = pin.trim();
       setVerifiedHostPin(cleanPin);
@@ -637,7 +656,7 @@ const [studentProfile, setStudentProfile] = useState<{
         },
         body: JSON.stringify({ currentPin, newPin }),
       });
-      const data = await response.json();
+      const data = await safeParseJson(response);
       if (!response.ok || !data.ok) {
         return { ok: false, error: data.error || 'Gagal memperbarui PIN.' };
       }
@@ -654,15 +673,16 @@ const [studentProfile, setStudentProfile] = useState<{
     }
   };
 
-const handleExportPackage = async () => {
+  const handleExportPackage = async () => {
     try {
       const pinHeader = verifiedHostPin || '';
       const res = await fetch('/api/host/export-package', {
         headers: { 'x-host-pin': pinHeader },
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error || 'Gagal mengekspor paket data.');
+        const data = await safeParseJson(res);
+        if (res.status === 401) handleLockHost();
+        setStatusBanner(data.error || 'Gagal mengekspor paket data Sneakernet.');
         return;
       }
       const blob = await res.blob();
@@ -674,8 +694,9 @@ const handleExportPackage = async () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      setStatusBanner('Paket data Sneakernet (.json) berhasil diunduh ke penyimpanan perangkat!');
     } catch (err: any) {
-      alert('Gagal mengekspor data: ' + (err?.message || 'Koneksi lokal terputus.'));
+      setStatusBanner('Gagal mengekspor data: ' + (err?.message || 'Koneksi lokal terputus.'));
     }
   };
 
@@ -692,12 +713,16 @@ const handleExportPackage = async () => {
         },
         body: JSON.stringify(pkg),
       });
-      const data = await res.json();
+      const data = await safeParseJson(res);
       if (!res.ok || !data.ok) {
+        if (res.status === 401) handleLockHost();
         return { ok: false, error: data.error || 'Gagal mengimpor paket data Sneakernet.' };
       }
       if (data.state) {
         applyServerState(data.state);
+      }
+      if (data.message) {
+        setStatusBanner(data.message);
       }
       return { ok: true, message: data.message };
     } catch (err: any) {
@@ -718,20 +743,24 @@ const handleExportPackage = async () => {
   };
 
   const handleToggleGatewayTethering = async () => {
-    const response = await fetch('/api/gateway/toggle', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-host-pin': verifiedHostPin || '',
-      },
-      body: JSON.stringify({ online: !gatewayTetheringOnline }),
-    });
-    if (response.ok) {
-      const data = await response.json();
-      if (data.state) applyServerState(data.state);
-    } else if (response.status === 401) {
-      handleLockHost();
-      setStatusBanner('Sesi PIN Simpul Guru berakhir. Silakan masukkan kembali PIN Simpul Guru.');
+    try {
+      const response = await fetch('/api/gateway/toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-host-pin': verifiedHostPin || '',
+        },
+        body: JSON.stringify({ online: !gatewayTetheringOnline }),
+      });
+      if (response.ok) {
+        const data = await safeParseJson(response);
+        if (data.state) applyServerState(data.state);
+      } else if (response.status === 401) {
+        handleLockHost();
+        setStatusBanner('Sesi PIN Simpul Guru berakhir. Silakan masukkan kembali PIN Simpul Guru.');
+      }
+    } catch {
+      setStatusBanner('Gagal menghubungi server Simpul Guru.');
     }
   };
 
@@ -746,22 +775,26 @@ const handleExportPackage = async () => {
     keyTakeaway: string;
     sizeMB: number;
   }): Promise<{ ok: boolean; error?: string }> => {
-    const response = await fetch('/api/modules', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-host-pin': verifiedHostPin || '',
-      },
-      body: JSON.stringify(payload),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      if (response.status === 401) handleLockHost();
-      return { ok: false, error: data.error || 'Gagal menyimpan modul.' };
+    try {
+      const response = await fetch('/api/modules', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-host-pin': verifiedHostPin || '',
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await safeParseJson(response);
+      if (!response.ok) {
+        if (response.status === 401) handleLockHost();
+        return { ok: false, error: data.error || 'Gagal menyimpan modul.' };
+      }
+      if (data.state) applyServerState(data.state);
+      if (data.module?.id) setActiveModuleId(data.module.id);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
     }
-    if (data.state) applyServerState(data.state);
-    if (data.module?.id) setActiveModuleId(data.module.id);
-    return { ok: true };
   };
 
   const handleSeedCacheEntry = async (payload: {
@@ -769,21 +802,25 @@ const handleExportPackage = async () => {
     questionCanonical: string;
     answerMarkdown: string;
   }): Promise<{ ok: boolean; error?: string }> => {
-    const response = await fetch('/api/cache/seed', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-host-pin': verifiedHostPin || '',
-      },
-      body: JSON.stringify(payload),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      if (response.status === 401) handleLockHost();
-      return { ok: false, error: data.error || 'Gagal menyimpan cache.' };
+    try {
+      const response = await fetch('/api/cache/seed', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-host-pin': verifiedHostPin || '',
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await safeParseJson(response);
+      if (!response.ok) {
+        if (response.status === 401) handleLockHost();
+        return { ok: false, error: data.error || 'Gagal menyimpan cache.' };
+      }
+      if (data.state) applyServerState(data.state);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
     }
-    if (data.state) applyServerState(data.state);
-    return { ok: true };
   };
 
   return (

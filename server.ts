@@ -1,5 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import http from 'http';
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer, WebSocket } from 'ws';
@@ -123,6 +124,23 @@ function buildCurriculumSynthesis(question: string, mod: LearningModule): {
   };
 }
 
+function compareStringsTimingSafe(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufB, bufB);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function verifyPinTimingSafe(candidate: string, actualPin: string): boolean {
+  const matchesPrimary = compareStringsTimingSafe(candidate, actualPin);
+  const envPin = (process.env.HOST_PIN || '').trim();
+  const matchesEnv = envPin.length > 0 ? compareStringsTimingSafe(candidate, envPin) : false;
+  return matchesPrimary || matchesEnv;
+}
+
 /**
  * Middleware: Requires valid `x-host-pin` header (or `hostPin` in request body)
  * to protect Teacher Host Node endpoints from unauthorized student toggling.
@@ -132,7 +150,7 @@ function requireHostPin(req: Request, res: Response, next: NextFunction): void {
   const bodyPin = typeof req.body?.hostPin === 'string' ? req.body.hostPin : undefined;
   const candidate = (headerPin || bodyPin || '').trim();
 
-  if (!candidate || candidate !== hostPin) {
+  if (!candidate || !verifyPinTimingSafe(candidate, hostPin)) {
     res.status(401).json({
       error:
         'Akses ditolak: PIN Simpul Guru (x-host-pin) tidak valid atau belum diotorisasi. Masukkan PIN Simpul Guru (default: 1945).',
@@ -350,17 +368,19 @@ async function startServer() {
     if (record && record.lockedUntil > now) {
       const waitSec = Math.ceil((record.lockedUntil - now) / 1000);
       res.status(429).json({
+        ok: false,
         valid: false,
         error: `Terlalu banyak percobaan PIN salah. Akses dikunci sementara selama ${waitSec} detik demi keamanan Simpul Guru.`,
         retryAfter: waitSec,
+        retryAfterSeconds: waitSec,
       });
       return;
     }
 
     const candidate = String(req.body?.pin || req.header('x-host-pin') || '').trim();
-    if (candidate === hostPin) {
+    if (candidate && verifyPinTimingSafe(candidate, hostPin)) {
       failedPinAttempts.delete(clientIp);
-      res.json({ valid: true });
+      res.json({ ok: true, valid: true });
       return;
     }
 
@@ -368,9 +388,11 @@ async function startServer() {
     if (currentCount >= 5) {
       failedPinAttempts.set(clientIp, { count: currentCount, lockedUntil: now + 60 * 1000 });
       res.status(429).json({
+        ok: false,
         valid: false,
         error: 'Terlalu banyak percobaan salah (5x). Simpul Guru dikunci sementara selama 60 detik.',
         retryAfter: 60,
+        retryAfterSeconds: 60,
       });
       return;
     }
@@ -922,7 +944,24 @@ async function startServer() {
   });
 
 
+  // Catch-all for any unmatched /api/* route so it always returns JSON instead of falling through to index.html ('<')
+  app.all('/api/*', (req, res) => {
+    res.status(404).json({
+      ok: false,
+      error: `Endpoint API tidak ditemukan: ${req.method} ${req.originalUrl}`,
+    });
+  });
+
   if (process.env.NODE_ENV !== 'production') {
+    // Serve a clean no-op / unregister JS response if browser requests stale dev service worker files
+    app.get(['/dev-sw.js', '/sw.js', '/registerSW.js', '/dev-dist/*'], (_req, res) => {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.send(
+        'if (typeof self !== "undefined" && self.registration) { self.registration.unregister(); }\n'
+      );
+    });
+
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: {
