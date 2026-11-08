@@ -1,3 +1,97 @@
+import { z } from 'zod';
+
+export const QuestionSubmissionSchema = z.object({
+  question: z.string().trim().min(5, 'Pertanyaan harus diisi minimal 5 karakter agar dapat diproses oleh gateway.'),
+  moduleId: z.string().trim().min(1, 'Pilih modul pembelajaran terkait terlebih dahulu.'),
+  askedByPeerName: z.string().trim().optional(),
+  forceCloudRefresh: z.boolean().optional(),
+});
+
+export const ModuleSubmissionSchema = z.object({
+  title: z.string().trim().min(4, 'Judul modul wajib diisi (minimal 4 karakter).'),
+  subject: z.string().trim().min(1, 'Mata pelajaran wajib dipilih.'),
+  gradeLevel: z.string().trim().optional(),
+  summary: z.string().trim().min(10, 'Ringkasan materi wajib diisi (minimal 10 karakter).'),
+  sectionHeading: z.string().trim().optional(),
+  sectionBody: z.string().trim().min(15, 'Isi materi utama wajib diisi (minimal 15 karakter).'),
+  formula: z.string().trim().optional(),
+  keyTakeaway: z.string().trim().optional(),
+  sizeMB: z.number().min(1, 'Ukuran paket modul harus berada di antara 1 MB hingga 500 MB.').max(500, 'Ukuran paket modul harus berada di antara 1 MB hingga 500 MB.'),
+});
+
+export const HostPinChangeSchema = z.object({
+  currentPin: z.string().trim().min(1, 'PIN saat ini wajib diisi.'),
+  newPin: z.string().trim().min(4, 'PIN baru harus terdiri dari 4 hingga 12 karakter/angka.').max(12, 'PIN baru harus terdiri dari 4 hingga 12 karakter/angka.'),
+});
+
+export const StudentSubmissionSchema = z.object({
+  id: z.string().min(1),
+  peerId: z.string().trim().min(1),
+  studentName: z.string().trim().min(1),
+  avatar: z.string().default('🐬 Lumba-lumba'),
+  moduleId: z.string().trim().min(1),
+  moduleTitle: z.string().trim().min(1),
+  quizScore: z.number().min(0),
+  totalQuestions: z.number().min(1),
+  passed: z.boolean(),
+  simulationCompleted: z.boolean().default(false),
+  timestamp: z.string(),
+  updatedMs: z.number(),
+});
+
+export const BinaryChunkPayloadSchema = z.object({
+  magic: z.literal('RPE1'),
+  moduleCode: z.string().min(1),
+  moduleId: z.string().min(1),
+  chunkIndex: z.number().min(0),
+  totalChunks: z.number().min(1),
+  chunkHash: z.string().min(1),
+  fromPeerId: z.string().min(1),
+  toPeerId: z.string().min(1),
+  contentPayload: z.string(),
+});
+
+export const SignalingMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('peer:identify'),
+    peerId: z.string().min(1),
+    studentName: z.string().min(1),
+    avatar: z.string().optional(),
+    deviceType: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('webrtc:offer'),
+    targetClientId: z.string().min(1),
+    sdp: z.any(),
+    fromClientId: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('webrtc:answer'),
+    targetClientId: z.string().min(1),
+    sdp: z.any(),
+    fromClientId: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('webrtc:ice'),
+    targetClientId: z.string().min(1),
+    candidate: z.any(),
+    fromClientId: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('webrtc:chunk-request'),
+    targetClientId: z.string().min(1),
+    moduleId: z.string().min(1),
+    chunkIndex: z.number().min(0),
+    fromClientId: z.string().optional(),
+  }),
+]);
+
+export type QuestionSubmissionInput = z.infer<typeof QuestionSubmissionSchema>;
+export type ModuleSubmissionInput = z.infer<typeof ModuleSubmissionSchema>;
+export type HostPinChangeInput = z.infer<typeof HostPinChangeSchema>;
+export type BinaryChunkPayloadData = z.infer<typeof BinaryChunkPayloadSchema>;
+export type SignalingMessageData = z.infer<typeof SignalingMessageSchema>;
+
 export type SimulationType =
   | 'microhydro'
   | 'mangrove'
@@ -484,16 +578,12 @@ export interface ValidationOutcome {
 }
 
 export function validateQuestionSubmission(question: string, moduleId: string): ValidationOutcome {
-  if (!question || question.trim().length < 5) {
+  const result = QuestionSubmissionSchema.safeParse({ question, moduleId });
+  if (!result.success) {
+    const firstIssue = result.error.issues[0];
     return {
       valid: false,
-      error: 'Pertanyaan harus diisi minimal 5 karakter agar dapat diproses oleh gateway.',
-    };
-  }
-  if (!moduleId || moduleId.trim().length === 0) {
-    return {
-      valid: false,
-      error: 'Pilih modul pembelajaran terkait terlebih dahulu.',
+      error: firstIssue?.message || 'Pertanyaan tidak valid.',
     };
   }
   return { valid: true };
@@ -506,22 +596,17 @@ export function validateModuleSubmission(input: {
   summary?: string;
   sectionHeading?: string;
   sectionBody?: string;
+  formula?: string;
+  keyTakeaway?: string;
   sizeMB?: number;
 }): ValidationOutcome {
-  if (!input.title || input.title.trim().length < 4) {
-    return { valid: false, error: 'Judul modul wajib diisi (minimal 4 karakter).' };
-  }
-  if (!input.subject || input.subject.trim().length === 0) {
-    return { valid: false, error: 'Mata pelajaran wajib dipilih.' };
-  }
-  if (!input.summary || input.summary.trim().length < 10) {
-    return { valid: false, error: 'Ringkasan materi wajib diisi (minimal 10 karakter).' };
-  }
-  if (!input.sectionBody || input.sectionBody.trim().length < 15) {
-    return { valid: false, error: 'Isi materi utama wajib diisi (minimal 15 karakter).' };
-  }
-  if (typeof input.sizeMB !== 'number' || Number.isNaN(input.sizeMB) || input.sizeMB <= 0 || input.sizeMB > 500) {
-    return { valid: false, error: 'Ukuran paket modul harus berada di antara 1 MB hingga 500 MB.' };
+  const result = ModuleSubmissionSchema.safeParse(input);
+  if (!result.success) {
+    const firstIssue = result.error.issues[0];
+    return {
+      valid: false,
+      error: firstIssue?.message || 'Format modul tidak valid.',
+    };
   }
   return { valid: true };
 }
@@ -1377,11 +1462,12 @@ export function validateHostPinChange(
       error: 'PIN Simpul Guru saat ini tidak sesuai.',
     };
   }
-  const cleanedNew = (newPinInput || '').trim();
-  if (cleanedNew.length < 4 || cleanedNew.length > 12) {
+  const result = HostPinChangeSchema.safeParse({ currentPin: currentPinInput, newPin: newPinInput });
+  if (!result.success) {
+    const firstIssue = result.error.issues[0];
     return {
       valid: false,
-      error: 'PIN baru harus terdiri dari 4 hingga 12 karakter/angka.',
+      error: firstIssue?.message || 'PIN baru tidak memenuhi kriteria keamanan.',
     };
   }
   return { valid: true };

@@ -68,29 +68,31 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
       aria-label="Simulasi Interaktif Pembangkit Listrik Mikrohidro"
       className="space-y-5"
     >
-      <div className="flex flex-col gap-3 pb-4 border-b border-[#e6e2d8]">
+      <div className="flex flex-col gap-3 pb-4 border-b border-slate-200">
         <div>
-          <p className="text-xs font-medium text-sky-800">
-            Laboratorium Virtual Hidup Tanpa Kuota · Fisika Energi Terbarukan
+          <p className="text-xs font-bold text-sky-800 flex items-center gap-1.5">
+            <span>🔬</span>
+            <span>Laboratorium Virtual Tanpa Kuota · Fisika Energi Terbarukan</span>
           </p>
-          <h3 className="text-base font-bold text-stone-900 mt-0.5">
-            Simulator Hidrodinamika Turbin Mikrohidro (PLTMH)
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
+            Simulator Aliran Sungai &amp; Turbin Pembangkit Mikrohidro (PLTMH)
           </h3>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        {/* Quick Guide / Learning Mission Tab Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div
             role="group"
-            aria-label="Tahapan Eksperimen Terpandu Mikrohidro"
-            className="flex items-center gap-1 p-1 bg-[#f4f1ea] rounded-lg"
+            aria-label="Pilihan Tahap Belajar Cepat"
+            className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl"
           >
             <button
               type="button"
               onClick={() => applyStage(1)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[40px] px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                 activeStage === 1
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
+                  ? 'bg-white text-sky-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Tahap 1: Aliran Normal
@@ -98,10 +100,10 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
             <button
               type="button"
               onClick={() => applyStage(2)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[40px] px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                 activeStage === 2
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
+                  ? 'bg-white text-sky-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Tahap 2: Musim Kemarau
@@ -109,60 +111,69 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
             <button
               type="button"
               onClick={() => applyStage(3)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[40px] px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                 activeStage === 3
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
+                  ? 'bg-white text-emerald-800 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Tahap 3: Optimasi Desa (Target Misi)
+              Tahap 3: Misi Desa (+150 XP)
             </button>
           </div>
 
           <button
             type="button"
             onClick={onTogglePlay}
-            className="px-3 py-1.5 text-xs font-semibold text-stone-800 bg-[#f4f1ea] hover:bg-[#e9e4d8] rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+            className="min-h-[40px] px-4 py-2 text-xs font-bold text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs active:scale-95"
           >
-            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            <span>{isPlaying ? 'Jeda Animasi' : 'Putar Animasi'}</span>
+            {isPlaying ? <Pause className="w-4 h-4 text-amber-600" /> : <Play className="w-4 h-4 text-emerald-600" />}
+            <span>{isPlaying ? 'Jeda Aliran' : 'Putar Aliran'}</span>
           </button>
         </div>
       </div>
 
+      {/* Prominent Learning Mission Box */}
       <div
-        className={`rounded-xl p-3.5 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+        className={`rounded-2xl p-4 sm:p-5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs ${
           mission.completed
-            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-            : 'surface-warm-recessed border-[#e6e2d8] text-stone-800'
+            ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-white border-emerald-300 text-emerald-950'
+            : 'bg-gradient-to-r from-sky-50/80 via-indigo-50/40 to-white border-sky-200 text-slate-800'
         }`}
       >
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-1.5 text-xs font-bold">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold">
             {mission.completed ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white flex items-center gap-1 shadow-2xs">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>MISI LAB TUNTAS (+150 XP)</span>
+              </span>
             ) : (
-              <Sparkles className="w-4 h-4 text-sky-700 shrink-0" />
+              <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white flex items-center gap-1 shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>PANDUAN CEPAT / MISI BELAJAR</span>
+              </span>
             )}
-            <span>
-              {mission.missionTitle} {mission.completed ? '— MISI TUNTAS (+150 XP)!' : ''}
-            </span>
+            <span className="text-slate-900 font-bold">{mission.missionTitle}</span>
           </div>
-          <p className="text-xs text-stone-600">{mission.targetDescription}</p>
+          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+            🎯 <strong>Petunjuk:</strong> {mission.targetDescription}
+          </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right font-mono text-xs tabular-nums">
-            <div className="font-semibold text-stone-900">{mission.currentProgressText}</div>
-            <div className="text-[11px] text-stone-500">Progres Misi: {mission.progressPct}%</div>
+          <div className="text-right text-xs">
+            <div className="font-bold text-slate-900">{mission.currentProgressText}</div>
+            <div className="text-[11px] text-slate-500 font-semibold">Progres: {mission.progressPct}%</div>
           </div>
-          <div className="w-24 h-2.5 bg-stone-200 rounded-full overflow-hidden">
+          <div className="w-24 sm:w-28 h-3 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
             <motion.div
               initial={false}
               animate={{ width: `${mission.progressPct}%` }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               className={`h-full rounded-full ${
-                mission.completed ? 'bg-emerald-600' : 'bg-sky-700'
+                mission.completed
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                  : 'bg-gradient-to-r from-sky-500 to-indigo-500'
               }`}
             />
           </div>
@@ -255,19 +266,26 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
               ELC 50Hz
             </text>
 
-            <path
-              d="M 400 145 Q 442 115 482 145"
-              fill="none"
-              stroke="#10b981"
-              strokeWidth="2.5"
-              strokeDasharray="6 4"
-              style={{
-                animation: isPlaying ? 'hydroDashFlow 0.7s linear infinite' : 'none',
-              }}
+            {/* Reactive Village Glow based on net generated power */}
+            <circle
+              cx="525"
+              cy="158"
+              r="48"
+              fill="#fde047"
+              opacity={Math.min(0.4, (hydroOut.netElectricalPowerKW / 15) * 0.4)}
             />
 
-            <rect x="478" y="128" width="94" height="60" fill="#064e3b" stroke="#10b981" strokeWidth="1.5" rx="4" />
-            <text x="525" y="145" textAnchor="middle" fill="#ecfdf5" fontSize="10" fontWeight="bold">
+            <rect
+              x="478"
+              y="128"
+              width="94"
+              height="60"
+              fill={hydroOut.netElectricalPowerKW > 8 ? '#065f46' : '#064e3b'}
+              stroke={hydroOut.netElectricalPowerKW > 8 ? '#34d399' : '#10b981'}
+              strokeWidth="2"
+              rx="6"
+            />
+            <text x="525" y="145" textAnchor="middle" fill="#ecfdf5" fontSize="11" fontWeight="bold">
               {hydroOut.netElectricalPowerKW} kW Listrik
             </text>
             {[0, 1, 2, 3, 4, 5].map((wIdx) => {
@@ -279,47 +297,48 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
                   y={152}
                   width="9"
                   height="11"
-                  rx="1.5"
+                  rx="2"
                   fill={isLit ? '#fde047' : '#065f46'}
-                  stroke="#047857"
-                  strokeWidth="0.8"
+                  stroke={isLit ? '#eab308' : '#047857'}
+                  strokeWidth="1"
                 />
               );
             })}
-            <text x="525" y="179" textAnchor="middle" fill="#a7f3d0" fontSize="9" fontFamily="monospace">
-              {hydroOut.housesPowered} Rumah Menyala
+            <text x="525" y="179" textAnchor="middle" fill="#a7f3d0" fontSize="10" fontFamily="monospace" fontWeight="bold">
+              💡 {hydroOut.housesPowered} Rumah Menyala
             </text>
           </svg>
 
-          <div className="grid grid-cols-3 gap-4 pt-3 border-t border-slate-800 text-xs">
+          <div className="grid grid-cols-3 gap-3 pt-3 border-t border-slate-800 text-xs">
             <div>
-              <span className="text-slate-400 block">Daya Hidrolik Teoritis</span>
-              <span className="text-base font-mono font-semibold text-white tabular-nums">
+              <span className="text-slate-400 block text-[11px]">Daya Teoritis</span>
+              <span className="text-sm sm:text-base font-bold text-white tabular-nums">
                 {hydroOut.theoreticalPowerKW} kW
               </span>
             </div>
             <div>
-              <span className="text-slate-400 block">Daya Listrik Bersih</span>
-              <span className="text-base font-mono font-semibold text-sky-400 tabular-nums">
+              <span className="text-slate-400 block text-[11px]">Daya Listrik Nyata</span>
+              <span className="text-sm sm:text-base font-bold text-sky-400 tabular-nums">
                 {hydroOut.netElectricalPowerKW} kW
               </span>
             </div>
             <div>
-              <span className="text-slate-400 block">Kapasitas Hunian (450 VA)</span>
-              <span className="text-base font-mono font-semibold text-emerald-400 tabular-nums">
-                {hydroOut.housesPowered} Rumah ({hydroOut.dailyEnergyKWh} kWh/hr)
+              <span className="text-slate-400 block text-[11px]">Desa Terlistriki</span>
+              <span className="text-sm sm:text-base font-bold text-emerald-400 tabular-nums">
+                {hydroOut.housesPowered} Rumah
               </span>
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-5 surface-warm-recessed p-5 flex flex-col justify-between space-y-4">
+        {/* Right: Sliders with Large Intuitive Human Labels */}
+        <div className="lg:col-span-5 bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-2xs">
           <div className="space-y-4">
             <div>
-              <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
-                <label htmlFor="slider-head">Tinggi Jatuh Efektif Air (Head H)</label>
-                <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {headMeters} meter
+              <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-800 mb-1.5 gap-1">
+                <label htmlFor="slider-head">Ketinggian Air Terjun (Head H)</label>
+                <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-900 text-[11px]">
+                  {headMeters} m · {headMeters >= 30 ? '🏔️ Sangat Tinggi' : headMeters >= 18 ? '⛰️ Sedang' : '🌊 Landai'}
                 </span>
               </div>
               <input
@@ -330,19 +349,19 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
                 step={1}
                 value={headMeters}
                 onChange={(e) => setHeadMeters(Number(e.target.value))}
-                className="w-full accent-sky-700 cursor-pointer"
+                className="w-full accent-sky-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
               />
-              <div className="flex justify-between text-[11px] text-stone-500 font-mono mt-0.5">
-                <span>5 m (Sungai Landai)</span>
-                <span>60 m (Jeram Curam)</span>
+              <div className="flex justify-between text-[11px] text-slate-500 font-semibold mt-1">
+                <span>5 m (Landai)</span>
+                <span>60 m (Curam)</span>
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
-                <label htmlFor="slider-flow">Debit Aliran Sungai (Flow Q)</label>
-                <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {flowLiters} Liter/detik ({(flowLiters / 1000).toFixed(3)} m³/s)
+              <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-800 mb-1.5 gap-1">
+                <label htmlFor="slider-flow">Kecepatan Aliran Air Sungai (Debit Q)</label>
+                <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-900 text-[11px]">
+                  {flowLiters} L/s ({(flowLiters / 1000).toFixed(2)} m³/s) · {flowLiters >= 80 ? '🌊 Sangat Deras' : flowLiters >= 50 ? '💧 Sedang' : '🍂 Pelan'}
                 </span>
               </div>
               <input
@@ -353,19 +372,19 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
                 step={5}
                 value={flowLiters}
                 onChange={(e) => setFlowLiters(Number(e.target.value))}
-                className="w-full accent-sky-700 cursor-pointer"
+                className="w-full accent-teal-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
               />
-              <div className="flex justify-between text-[11px] text-stone-500 font-mono mt-0.5">
+              <div className="flex justify-between text-[11px] text-slate-500 font-semibold mt-1">
                 <span>15 L/s (Kemarau)</span>
-                <span>150 L/s (Musim Hujan)</span>
+                <span>150 L/s (Banjir/Hujan)</span>
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
-                <label htmlFor="slider-eta">Efisiensi Total Turbin &amp; Generator (η)</label>
-                <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {efficiencyPct}%
+              <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-800 mb-1.5 gap-1">
+                <label htmlFor="slider-eta">Efisiensi Kualitas Turbin (η)</label>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[11px]">
+                  {efficiencyPct}% · {efficiencyPct >= 75 ? '⚡ Sangat Bagus' : '⚙️ Standar'}
                 </span>
               </div>
               <input
@@ -376,21 +395,25 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
                 step={1}
                 value={efficiencyPct}
                 onChange={(e) => setEfficiencyPct(Number(e.target.value))}
-                className="w-full accent-sky-700 cursor-pointer"
+                className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
               />
+              <div className="flex justify-between text-[11px] text-slate-500 font-semibold mt-1">
+                <span>45% (Turbin Kayu)</span>
+                <span>88% (Turbin Presisi)</span>
+              </div>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[#e2ddd2] flex items-center justify-between gap-3">
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Persamaan: <code className="font-mono text-stone-900">P = 9,81 × Q × H × η</code>
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3 text-xs">
+            <p className="text-slate-600 leading-relaxed text-[11px]">
+              Rumus Lapangan: <code className="font-bold text-slate-900">P = 9,81 × Q × H × η</code>
             </p>
             <button
               type="button"
               onClick={() => applyStage(1)}
-              className="px-3 py-1.5 text-xs font-medium text-stone-700 bg-white border border-[#e0dbd0] hover:bg-stone-50 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="min-h-[36px] px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
             >
-              Reset Parameter
+              Ulangi Posisi Awal
             </button>
           </div>
         </div>

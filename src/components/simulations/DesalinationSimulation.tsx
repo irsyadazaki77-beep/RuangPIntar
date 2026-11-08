@@ -124,13 +124,19 @@ export const DesalinationSimulation: React.FC<DesalinationSimulationProps> = ({
       </div>
 
       <div
-        className={`rounded-xl p-3.5 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+        className={`rounded-xl p-4 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
           mission.completed
-            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 ring-2 ring-emerald-400/30'
             : 'surface-warm-recessed border-[#e6e2d8] text-stone-800'
         }`}
       >
-        <div className="space-y-0.5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase bg-sky-100 text-sky-800 rounded-md">
+              🎯 PANDUAN CEPAT / MISI BELAJAR
+            </span>
+            <span className="text-[11px] text-stone-500 font-medium">Langkah Praktik</span>
+          </div>
           <div className="flex items-center gap-1.5 text-xs font-bold">
             {mission.completed ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -138,10 +144,10 @@ export const DesalinationSimulation: React.FC<DesalinationSimulationProps> = ({
               <Sparkles className="w-4 h-4 text-sky-700 shrink-0" />
             )}
             <span>
-              {mission.missionTitle} {mission.completed ? '— MISI TUNTAS (+150 XP)!' : ''}
+              {mission.missionTitle} {mission.completed ? '— 🎉 MISI TUNTAS (+150 XP)!' : ''}
             </span>
           </div>
-          <p className="text-xs text-stone-600">{mission.targetDescription}</p>
+          <p className="text-xs text-stone-600 leading-relaxed">{mission.targetDescription}</p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -259,9 +265,12 @@ export const DesalinationSimulation: React.FC<DesalinationSimulationProps> = ({
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
-                <label htmlFor="slider-collector">Luas Kolektor Basin Distilasi Surya</label>
+                <label htmlFor="slider-collector">Luas Kolektor Basin Surya</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {collectorAreaSqm} m²
+                  {collectorAreaSqm} m²{' '}
+                  <span className="text-[11px] font-normal text-sky-700">
+                    ({collectorAreaSqm >= 24 ? '☀️ Sangat Luas (Banyak Air)' : collectorAreaSqm >= 12 ? '☀️ Sedang' : '💧 Mini'})
+                  </span>
                 </span>
               </div>
               <input
@@ -272,15 +281,18 @@ export const DesalinationSimulation: React.FC<DesalinationSimulationProps> = ({
                 step={2}
                 value={collectorAreaSqm}
                 onChange={(e) => setCollectorAreaSqm(Number(e.target.value))}
-                className="w-full accent-sky-700 cursor-pointer"
+                className="w-full accent-sky-700 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
 
             <div>
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
-                <label htmlFor="slider-rad">Intensitas Radiasi Termal Harian</label>
+                <label htmlFor="slider-rad">Intensitas Panas Mentari Harian</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {solarRadiationKWh} kWh/m²/hari
+                  {solarRadiationKWh} kWh/m²/hari{' '}
+                  <span className="text-[11px] font-normal text-sky-700">
+                    ({solarRadiationKWh >= 5.5 ? '🔥 Sangat Terik (Uap Cepat)' : solarRadiationKWh >= 4.5 ? '☀️ Terang Biasa' : '☁️ Berawan'})
+                  </span>
                 </span>
               </div>
               <input
@@ -291,15 +303,18 @@ export const DesalinationSimulation: React.FC<DesalinationSimulationProps> = ({
                 step={0.2}
                 value={solarRadiationKWh}
                 onChange={(e) => setSolarRadiationKWh(Number(e.target.value))}
-                className="w-full accent-sky-700 cursor-pointer"
+                className="w-full accent-sky-700 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
 
             <div>
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
-                <label htmlFor="slider-biochar">Jumlah Tingkat Kolom Filter Biochar Kelapa</label>
+                <label htmlFor="slider-biochar">Jumlah Tingkat Filter Biochar Kelapa</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {biocharStages} tingkat adsorpsi
+                  {biocharStages} tingkat{' '}
+                  <span className="text-[11px] font-normal text-emerald-700">
+                    ({biocharStages >= 3 ? '🥥 Air Sangat Murni & Higienis' : '🥥 Penyaringan Standar'})
+                  </span>
                 </span>
               </div>
               <input
@@ -310,7 +325,7 @@ export const DesalinationSimulation: React.FC<DesalinationSimulationProps> = ({
                 step={1}
                 value={biocharStages}
                 onChange={(e) => setBiocharStages(Number(e.target.value))}
-                className="w-full accent-sky-700 cursor-pointer"
+                className="w-full accent-sky-700 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
           </div>

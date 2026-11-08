@@ -126,13 +126,19 @@ export const MangroveSimulation: React.FC<MangroveSimulationProps> = ({
       </div>
 
       <div
-        className={`rounded-xl p-3.5 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+        className={`rounded-xl p-4 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
           mission.completed
-            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 ring-2 ring-emerald-400/30'
             : 'surface-warm-recessed border-[#e6e2d8] text-stone-800'
         }`}
       >
-        <div className="space-y-0.5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase bg-emerald-100 text-emerald-800 rounded-md">
+              🎯 PANDUAN CEPAT / MISI BELAJAR
+            </span>
+            <span className="text-[11px] text-stone-500 font-medium">Langkah Praktik</span>
+          </div>
           <div className="flex items-center gap-1.5 text-xs font-bold">
             {mission.completed ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -140,10 +146,10 @@ export const MangroveSimulation: React.FC<MangroveSimulationProps> = ({
               <Sparkles className="w-4 h-4 text-emerald-700 shrink-0" />
             )}
             <span>
-              {mission.missionTitle} {mission.completed ? '— MISI TUNTAS (+150 XP)!' : ''}
+              {mission.missionTitle} {mission.completed ? '— 🎉 MISI TUNTAS (+150 XP)!' : ''}
             </span>
           </div>
-          <p className="text-xs text-stone-600">{mission.targetDescription}</p>
+          <p className="text-xs text-stone-600 leading-relaxed">{mission.targetDescription}</p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -305,7 +311,10 @@ export const MangroveSimulation: React.FC<MangroveSimulationProps> = ({
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
                 <label htmlFor="slider-belt">Lebar Sabuk Hutan Mangrove</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {beltWidth} meter
+                  {beltWidth} meter{' '}
+                  <span className="text-[11px] font-normal text-emerald-700">
+                    ({beltWidth >= 120 ? '🌲 Sangat Lebar (Benteng Kuat)' : beltWidth >= 60 ? '🌿 Cukup Rindang' : '🍂 Terlalu Sempit'})
+                  </span>
                 </span>
               </div>
               <input
@@ -316,7 +325,7 @@ export const MangroveSimulation: React.FC<MangroveSimulationProps> = ({
                 step={5}
                 value={beltWidth}
                 onChange={(e) => setBeltWidth(Number(e.target.value))}
-                className="w-full accent-emerald-600 cursor-pointer"
+                className="w-full accent-emerald-600 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
 
@@ -324,7 +333,10 @@ export const MangroveSimulation: React.FC<MangroveSimulationProps> = ({
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
                 <label htmlFor="slider-density">Kerapatan Pohon Rhizophora</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {treeDensity} pohon / 100 m²
+                  {treeDensity} pohon / 100 m²{' '}
+                  <span className="text-[11px] font-normal text-emerald-700">
+                    ({treeDensity >= 35 ? '🌳 Rimbun Padat' : treeDensity >= 20 ? '🌱 Sedang' : '🥀 Renggang'})
+                  </span>
                 </span>
               </div>
               <input
@@ -335,7 +347,7 @@ export const MangroveSimulation: React.FC<MangroveSimulationProps> = ({
                 step={2}
                 value={treeDensity}
                 onChange={(e) => setTreeDensity(Number(e.target.value))}
-                className="w-full accent-emerald-600 cursor-pointer"
+                className="w-full accent-emerald-600 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
 
@@ -343,7 +355,10 @@ export const MangroveSimulation: React.FC<MangroveSimulationProps> = ({
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
                 <label htmlFor="slider-coast">Panjang Garis Pantai Desa</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {coastLengthKm} km
+                  {coastLengthKm} km{' '}
+                  <span className="text-[11px] font-normal text-stone-600">
+                    ({coastLengthKm >= 2.5 ? '🏖️ Wilayah Pesisir Luas' : '🏝️ Pesisir Teluk Kecil'})
+                  </span>
                 </span>
               </div>
               <input
@@ -354,7 +369,7 @@ export const MangroveSimulation: React.FC<MangroveSimulationProps> = ({
                 step={0.5}
                 value={coastLengthKm}
                 onChange={(e) => setCoastLengthKm(Number(e.target.value))}
-                className="w-full accent-emerald-600 cursor-pointer"
+                className="w-full accent-emerald-600 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
           </div>

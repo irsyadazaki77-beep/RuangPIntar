@@ -63,29 +63,31 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
       aria-label="Simulasi Interaktif PLTS Off-Grid dan Baterai LiFePO4"
       className="space-y-5"
     >
-      <div className="flex flex-col gap-3 pb-4 border-b border-[#e6e2d8]">
+      <div className="flex flex-col gap-3 pb-4 border-b border-slate-200">
         <div>
-          <p className="text-xs font-medium text-amber-700">
-            Laboratorium Virtual Hidup Elektrifikasi Kepulauan · Teknik Energi Surya
+          <p className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
+            <span>☀️</span>
+            <span>Laboratorium Virtual Tanpa Kuota · Teknik Energi Surya Nusantara</span>
           </p>
-          <h3 className="text-base font-bold text-stone-900 mt-0.5">
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-0.5">
             Simulator PLTS Off-Grid Atap Sekolah &amp; Siklus Baterai LiFePO4
           </h3>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        {/* Quick Guide / Learning Mission Tab Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div
             role="group"
-            aria-label="Tahapan Eksperimen PLTS"
-            className="flex items-center gap-1 p-1 bg-[#f4f1ea] rounded-lg"
+            aria-label="Pilihan Tahap Belajar PLTS"
+            className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl"
           >
             <button
               type="button"
               onClick={() => applySolarStage(1)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[40px] px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                 activeStage === 1
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
+                  ? 'bg-white text-amber-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Tahap 1: Siang Cerah
@@ -93,10 +95,10 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
             <button
               type="button"
               onClick={() => applySolarStage(2)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[40px] px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                 activeStage === 2
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
+                  ? 'bg-white text-amber-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Tahap 2: Cuaca Berawan
@@ -104,60 +106,69 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
             <button
               type="button"
               onClick={() => applySolarStage(3)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`min-h-[40px] px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer active:scale-95 ${
                 activeStage === 3
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
+                  ? 'bg-white text-emerald-800 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Tahap 3: Kemandirian 24 Jam (Target Misi)
+              Tahap 3: Misi 24 Jam (+150 XP)
             </button>
           </div>
 
           <button
             type="button"
             onClick={onTogglePlay}
-            className="px-3 py-1.5 text-xs font-semibold text-stone-800 bg-[#f4f1ea] hover:bg-[#e9e4d8] rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+            className="min-h-[40px] px-4 py-2 text-xs font-bold text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs active:scale-95"
           >
-            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            <span>{isPlaying ? 'Jeda Animasi' : 'Putar Animasi'}</span>
+            {isPlaying ? <Pause className="w-4 h-4 text-amber-600" /> : <Play className="w-4 h-4 text-emerald-600" />}
+            <span>{isPlaying ? 'Jeda Aliran' : 'Putar Aliran'}</span>
           </button>
         </div>
       </div>
 
+      {/* Prominent Learning Mission Box */}
       <div
-        className={`rounded-xl p-3.5 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+        className={`rounded-2xl p-4 sm:p-5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs ${
           mission.completed
-            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-            : 'surface-warm-recessed border-[#e6e2d8] text-stone-800'
+            ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-white border-emerald-300 text-emerald-950'
+            : 'bg-gradient-to-r from-amber-50/80 via-orange-50/40 to-white border-amber-200 text-slate-800'
         }`}
       >
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-1.5 text-xs font-bold">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold">
             {mission.completed ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white flex items-center gap-1 shadow-2xs">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>MISI LAB TUNTAS (+150 XP)</span>
+              </span>
             ) : (
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-600 text-white flex items-center gap-1 shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>PANDUAN CEPAT / MISI BELAJAR</span>
+              </span>
             )}
-            <span>
-              {mission.missionTitle} {mission.completed ? '— MISI TUNTAS (+150 XP)!' : ''}
-            </span>
+            <span className="text-slate-900 font-bold">{mission.missionTitle}</span>
           </div>
-          <p className="text-xs text-stone-600">{mission.targetDescription}</p>
+          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+            🎯 <strong>Petunjuk:</strong> {mission.targetDescription}
+          </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right font-mono text-xs tabular-nums">
-            <div className="font-semibold text-stone-900">{mission.currentProgressText}</div>
-            <div className="text-[11px] text-stone-500">Progres Misi: {mission.progressPct}%</div>
+          <div className="text-right text-xs">
+            <div className="font-bold text-slate-900">{mission.currentProgressText}</div>
+            <div className="text-[11px] text-slate-500 font-semibold">Progres: {mission.progressPct}%</div>
           </div>
-          <div className="w-24 h-2.5 bg-stone-200 rounded-full overflow-hidden">
+          <div className="w-24 sm:w-28 h-3 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
             <motion.div
               initial={false}
               animate={{ width: `${mission.progressPct}%` }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               className={`h-full rounded-full ${
-                mission.completed ? 'bg-emerald-600' : 'bg-amber-600'
+                mission.completed
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                  : 'bg-gradient-to-r from-amber-500 to-orange-500'
               }`}
             />
           </div>
@@ -292,13 +303,14 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
           </div>
         </div>
 
-        <div className="lg:col-span-5 surface-warm-recessed p-5 flex flex-col justify-between space-y-4">
+        {/* Right: Sliders with Large Intuitive Human Labels */}
+        <div className="lg:col-span-5 bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-2xs">
           <div className="space-y-4">
             <div>
-              <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
+              <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-800 mb-1.5 gap-1">
                 <label htmlFor="slider-wp">Kapasitas Array Panel Surya (Wp)</label>
-                <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {panelCapacityWp} Wp
+                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[11px]">
+                  {panelCapacityWp} Wp · {panelCapacityWp >= 1600 ? '☀️ Banyak Panel (Luas)' : panelCapacityWp >= 1000 ? '🌤️ Sedang' : '⛅ Minimal'}
                 </span>
               </div>
               <input
@@ -309,15 +321,19 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
                 step={100}
                 value={panelCapacityWp}
                 onChange={(e) => setPanelCapacityWp(Number(e.target.value))}
-                className="w-full accent-amber-600 cursor-pointer"
+                className="w-full accent-amber-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
               />
+              <div className="flex justify-between text-[11px] text-slate-500 font-semibold mt-1">
+                <span>400 Wp (Kecil)</span>
+                <span>2800 Wp (Atap Penuh)</span>
+              </div>
             </div>
 
             <div>
-              <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
-                <label htmlFor="slider-psh">Lama Penyinaran Efektif (Peak Sun Hours)</label>
-                <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {peakSunHours} jam/hari
+              <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-800 mb-1.5 gap-1">
+                <label htmlFor="slider-psh">Penyinaran Mentari Efektif (PSH)</label>
+                <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-900 text-[11px]">
+                  {peakSunHours} jam · {peakSunHours >= 5.0 ? '☀️ Terik Mentari Tropis' : peakSunHours >= 3.8 ? '🌤️ Berawan Tipis' : '🌧️ Mendung/Hujan'}
                 </span>
               </div>
               <input
@@ -328,15 +344,19 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
                 step={0.2}
                 value={peakSunHours}
                 onChange={(e) => setPeakSunHours(Number(e.target.value))}
-                className="w-full accent-amber-600 cursor-pointer"
+                className="w-full accent-orange-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
               />
+              <div className="flex justify-between text-[11px] text-slate-500 font-semibold mt-1">
+                <span>2.5 jam (Mendung)</span>
+                <span>6.4 jam (Sangat Terik)</span>
+              </div>
             </div>
 
             <div>
-              <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
+              <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-800 mb-1.5 gap-1">
                 <label htmlFor="slider-batt">Kapasitas Bank Baterai LiFePO4</label>
-                <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {batteryCapacityKWh} kWh
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[11px]">
+                  {batteryCapacityKWh} kWh · {batteryCapacityKWh >= 6.0 ? '🔋 Cadangan 24 Jam Penuh' : '🪫 Cadangan Terbatas'}
                 </span>
               </div>
               <input
@@ -347,21 +367,25 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
                 step={0.5}
                 value={batteryCapacityKWh}
                 onChange={(e) => setBatteryCapacityKWh(Number(e.target.value))}
-                className="w-full accent-amber-600 cursor-pointer"
+                className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
               />
+              <div className="flex justify-between text-[11px] text-slate-500 font-semibold mt-1">
+                <span>2.0 kWh (3 Modul)</span>
+                <span>12.0 kWh (Rak Penuh)</span>
+              </div>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[#e2ddd2] flex items-center justify-between gap-3">
-            <p className="text-xs text-stone-600">
-              Rumus: <code className="font-mono text-stone-900">E = Wp × PSH × 0,82</code>
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3 text-xs">
+            <p className="text-slate-600 leading-relaxed text-[11px]">
+              Rumus Lapangan: <code className="font-bold text-slate-900">E = Wp × PSH × 0,82</code>
             </p>
             <button
               type="button"
               onClick={() => applySolarStage(1)}
-              className="px-3 py-1.5 text-xs font-medium text-stone-700 bg-white border border-[#e0dbd0] hover:bg-stone-50 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="min-h-[36px] px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
             >
-              Reset Parameter
+              Ulangi Posisi Awal
             </button>
           </div>
         </div>

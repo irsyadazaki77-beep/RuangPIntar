@@ -107,30 +107,28 @@ export const MeshTopologyView: React.FC<Props> = ({
         aria-label="Topologi Jaringan Mesh WebRTC P2P"
         className="bento-card overflow-hidden"
       >
-        <div className={`h-1.5 w-full ${activeTheme.ribbonGradient}`} />
+        <div className={`h-2 w-full ${activeTheme.ribbonGradient}`} />
         <div className="p-6 sm:p-7 space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-500">
-                <span className={`font-bold ${activeTheme.accentText}`}>
-                  Protokol: WebRTC SCTP DataChannel
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800">
+                  🤝 Teman Sekelas yang Terhubung
                 </span>
-                <span aria-hidden="true">·</span>
-                <span>Penjadwalan: Peer-First Rarest Chunk</span>
-                <span aria-hidden="true">·</span>
-                <span className="text-emerald-700 font-semibold">
-                  Kanal Terhubung: {Math.max(1, activeWebRtcChannelsCount)} Aktif
+                <span aria-hidden="true" className="text-slate-300">·</span>
+                <span className="text-emerald-700 font-bold">
+                  Terhubung ke Guru: Aktif ({Math.max(1, activeWebRtcChannelsCount)} Jalur)
                 </span>
               </div>
               <h1
                 className="text-xl sm:text-2xl font-bold text-slate-900"
                 style={{ textWrap: 'balance' }}
               >
-                Topologi Pertukaran Pecahan Data P2P &amp; Pencegahan Bottleneck Router
+                Teman Sekelas yang Terhubung — Berbagi Buku Tanpa Internet
               </h1>
-              <p className="text-xs sm:text-sm text-slate-600 max-w-3xl">
-                Peramban siswa yang telah mengunduh pecahan materi otomatis menjadi{' '}
-                <em>seeder peer</em> bagi perangkat teman sekelasnya melalui jaringan WiFi lokal.
+              <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
+                HP atau laptop siswa yang sudah memiliki materi otomatis menjadi penyedia buku bagi teman sekelasnya.
+                Semua siswa bisa belajar bersama dengan lancar tanpa perlu kuota internet!
               </p>
             </div>
 
@@ -138,15 +136,15 @@ export const MeshTopologyView: React.FC<Props> = ({
               <div>
                 <label
                   htmlFor="mesh-module-select"
-                  className="block text-[11px] font-semibold text-slate-600 mb-1"
+                  className="block text-[11px] font-bold text-slate-700 mb-1"
                 >
-                  Modul Aktif di Swarm
+                  Pilih Buku yang Dibagikan
                 </label>
                 <select
                   id="mesh-module-select"
                   value={selectedModuleId}
                   onChange={(e) => setSelectedModuleId(e.target.value)}
-                  className="px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-600"
+                  className="min-h-[42px] px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
                 >
                   {modules.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -159,15 +157,15 @@ export const MeshTopologyView: React.FC<Props> = ({
               <div>
                 <label
                   htmlFor="mesh-peer-select"
-                  className="block text-[11px] font-semibold text-slate-600 mb-1"
+                  className="block text-[11px] font-bold text-slate-700 mb-1"
                 >
-                  Target Perangkat Siswa Penerima
+                  Pilih Teman yang Dibantu
                 </label>
                 <select
                   id="mesh-peer-select"
                   value={selectedTargetPeerId}
                   onChange={(e) => setSelectedTargetPeerId(e.target.value)}
-                  className="px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-600"
+                  className="min-h-[42px] px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-600"
                 >
                   {studentPeers.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -389,30 +387,32 @@ export const MeshTopologyView: React.FC<Props> = ({
             >
               <div className="space-y-4">
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">
-                    Kendali Simulasi &amp; Eksekusi Transfer P2P Mesh
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <span>🤝</span>
+                    <span>Bantu Teman Melengkapi Buku</span>
                   </h2>
                   <p className="text-xs text-slate-600 leading-relaxed mt-1">
-                    Algoritma <strong>Peer-First Offloading</strong> mencari pecahan data di perangkat
-                    teman sekelas sebelum meminta ke laptop guru.
+                    Kirim bagian buku langsung dari HP kamu ke teman sekelas melalui WiFi sekolah tanpa kuota internet.
                   </p>
                 </div>
 
                 {/* Target Peer Status Block */}
-                <div className="bg-white/90 rounded-xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
+                <div className="bg-white/95 rounded-2xl p-4 border border-slate-200/90 space-y-3.5 shadow-2xs">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-900">{targetPeer?.name}</span>
-                    <span className="font-mono text-slate-500 tabular-nums">{targetPeer?.localIp}</span>
+                    <span className="font-bold text-slate-900 text-sm">👤 {targetPeer?.name}</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                      {targetPeer?.localIp}
+                    </span>
                   </div>
 
                   <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-mono tabular-nums">
-                      <span className="text-slate-600">Kelengkapan Pecahan Modul:</span>
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span className="text-slate-600">Buku di HP Teman:</span>
                       <span className={`font-bold ${activeTheme.accentText}`}>
-                        {targetHeldChunks.length} / {activeModule.totalChunks} ({targetPct}%)
+                        {targetHeldChunks.length} / {activeModule.totalChunks} Bagian ({targetPct}%)
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                       <div
                         style={{ width: `${targetPct}%` }}
                         className={`h-full rounded-full transition-all duration-300 ${activeTheme.progressGradient}`}
@@ -420,65 +420,64 @@ export const MeshTopologyView: React.FC<Props> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 pt-1 text-xs font-mono tabular-nums">
-                    <div>
-                      <span className="text-slate-500 block">Diunduh via Mesh:</span>
+                  <div className="grid grid-cols-2 gap-3 pt-1 text-xs">
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      <span className="text-slate-500 block text-[11px]">Diterima dari Teman:</span>
                       <strong className="text-slate-900 text-sm">{targetPeer?.downloadedMB} MB</strong>
                     </div>
-                    <div>
-                      <span className="text-slate-500 block">Dibagikan ke Teman:</span>
-                      <strong className="text-emerald-700 text-sm">{targetPeer?.uploadedMB} MB</strong>
+                    <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
+                      <span className="text-emerald-700 block text-[11px] font-semibold">Dibagikan ke Kelas:</span>
+                      <strong className="text-emerald-800 text-sm">{targetPeer?.uploadedMB} MB</strong>
                     </div>
                   </div>
                 </div>
 
-                {/* Action Controls */}
+                {/* Action Controls: Touch target >= 44-48px */}
                 <div className="space-y-2.5">
                   <motion.button
                     type="button"
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={{ scale: 0.95 }}
                     disabled={isSyncing}
                     onClick={() => onTriggerPeerTransfer(activeModule.id, selectedTargetPeerId, 4)}
-                    className={`w-full py-2.5 px-4 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTheme.primaryBtn}`}
+                    className="w-full min-h-[46px] py-2.5 px-4 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 bg-sky-600 hover:bg-sky-500 text-white shadow-xs"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Tarik 4 Pecahan Berikutnya dari Peer Tetangga (WebRTC)</span>
+                    <span>Kirim 4 Bagian Buku ke Teman (0 Kuota)</span>
                   </motion.button>
 
                   <div className="grid grid-cols-2 gap-2">
                     <motion.button
                       type="button"
-                      whileTap={{ scale: 0.98 }}
+                      whileTap={{ scale: 0.95 }}
                       disabled={isSyncing}
                       onClick={() => onTriggerPeerTransfer(activeModule.id, selectedTargetPeerId, 16)}
-                      className="py-2 px-3 text-xs font-semibold text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs"
+                      className="min-h-[44px] py-2 px-3 text-xs font-bold text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs active:scale-95"
                     >
-                      <Share2 className="w-3.5 h-3.5" />
-                      <span>Sinkronisasi Penuh 100%</span>
+                      <Share2 className="w-3.5 h-3.5 text-sky-600" />
+                      <span>Lengkapi 100%</span>
                     </motion.button>
 
                     <motion.button
                       type="button"
-                      whileTap={{ scale: 0.98 }}
+                      whileTap={{ scale: 0.95 }}
                       disabled={isSyncing}
                       onClick={() => onResetPeerChunks(activeModule.id, selectedTargetPeerId)}
-                      className="py-2 px-3 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs"
+                      className="min-h-[44px] py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs active:scale-95"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Kosongkan Pecahan Peer</span>
+                      <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Mulai Ulang</span>
                     </motion.button>
                   </div>
                 </div>
               </div>
 
               <div className="pt-4 border-t border-slate-200/80 text-xs text-slate-600 space-y-1">
-                <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                  <Wifi className={`w-4 h-4 ${activeTheme.accentText}`} />
-                  <span>Penghematan Beban Router Lokal: {metrics.routerBottleneckReductionPct}%</span>
+                <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                  <Wifi className="w-4 h-4 text-emerald-600" />
+                  <span>Hemat Jaringan Kelas: {metrics.routerBottleneckReductionPct}% Lebih Cepat</span>
                 </div>
-                <p>
-                  Total {metrics.peerToPeerOffloadedMB} MB data disajikan antar-perangkat siswa tanpa
-                  membebani kartu jaringan laptop guru.
+                <p className="text-[11px] leading-relaxed">
+                  Total {metrics.peerToPeerOffloadedMB} MB buku berhasil dibagikan langsung antar-HP siswa tanpa membebani laptop guru.
                 </p>
               </div>
             </div>

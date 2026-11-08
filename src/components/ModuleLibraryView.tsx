@@ -388,59 +388,54 @@ export const ModuleLibraryView: React.FC<Props> = ({
         className="bento-card overflow-hidden"
       >
         {/* Top Multi-Subject Tropical Ribbon */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 via-emerald-500 via-indigo-500 to-amber-500" />
+        <div className="h-2 w-full bg-gradient-to-r from-sky-500 via-emerald-500 via-indigo-500 to-amber-500" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
-          <div className="lg:col-span-8 p-6 sm:p-7 flex flex-col justify-between space-y-5 bg-gradient-to-br from-white via-sky-50/25 to-emerald-50/20">
-            <div className="space-y-2.5">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-mono">
-                <span className="text-sky-700 font-semibold">
-                  Simpul Aktif: 192.168.43.1 (Host Guru)
+          <div className="lg:col-span-8 p-6 sm:p-7 flex flex-col justify-between space-y-4 bg-gradient-to-br from-white via-sky-50/30 to-emerald-50/25">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                <span className="px-2.5 py-1 rounded-full bg-sky-100 text-sky-800 flex items-center gap-1">
+                  🏫 <span>Terhubung ke Guru (192.168.43.1)</span>
                 </span>
-                <span aria-hidden="true">·</span>
-                <span className="text-emerald-700 font-semibold">
-                  {modules.length} Modul Kurikulum 3T
+                <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                  📚 <span>{modules.length} Buku Pelajaran Siap</span>
                 </span>
-                <span aria-hidden="true">·</span>
-                <span className="text-indigo-700 font-semibold">
-                  6 Laboratorium Virtual Tanpa Kuota
+                <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
+                  🔬 <span>6 Lab Sains Tanpa Kuota</span>
                 </span>
               </div>
 
               <h1
-                className="text-2xl sm:text-[28px] font-bold tracking-tight text-slate-900 leading-[1.22]"
+                className="text-2xl sm:text-[28px] font-bold tracking-tight text-slate-900 leading-snug"
                 style={{ textWrap: 'balance' }}
               >
-                Eksplorasi Sains Kepulauan &amp; Distribusi Materi P2P Tanpa Kuota Internet
+                Petualangan Sains Kepulauan Nusantara — Belajar Bebas Kuota Internet
               </h1>
 
               <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
-                Pilih modul sesuai warna mata pelajaran, uji rumus interaktif langsung di dalam bab,
-                pelajari studi kasus nyata dari Alor hingga Natuna, dan kumpulkan XP untuk membuka
-                lencana ilmuwan muda 3T.
+                Buka buku pelajaran favoritmu, dengarkan narasi suara otomatis jika lelah membaca,
+                uji rumus di laboratorium virtual, dan kumpulkan bintang XP untuk menjadi ilmuwan cilik 3T!
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
               <motion.button
                 type="button"
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onNavigateTab('tutor')}
-                className="px-4 py-2.5 text-xs font-semibold text-white bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
+                className="min-h-[46px] px-4 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-xs active:scale-95"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Tanya Tutor AI (Cache 0 Kuota)</span>
+                <MessageSquare className="w-4 h-4" />
+                <span>Tanya Sahabat Belajar AI (0 Kuota)</span>
               </motion.button>
               <motion.button
                 type="button"
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onNavigateTab('mesh')}
-                className="px-4 py-2.5 text-xs font-semibold text-slate-800 bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs"
+                className="min-h-[46px] px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-800 bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/60 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs active:scale-95"
               >
-                <Share2 className="w-3.5 h-3.5 text-sky-600" />
-                <span>Inspeksi Topologi Mesh P2P</span>
+                <Share2 className="w-4 h-4 text-sky-600" />
+                <span>Lihat Teman Sekelas yang Terhubung</span>
               </motion.button>
             </div>
           </div>
@@ -474,50 +469,50 @@ export const ModuleLibraryView: React.FC<Props> = ({
         {/* Visual Learning Progress & Interactive XP Banner */}
         <div className="bg-slate-50/90 border-t border-slate-200/90 px-6 py-4 space-y-4">
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-center">
-            {/* Left 7 Cols: 4 Colorful Telemetry KPI Blocks */}
+            {/* Left 7 Cols: 4 Colorful Educational KPI Blocks */}
             <div className="xl:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-white border border-emerald-200/80 rounded-xl p-3 shadow-2xs">
-                <p className="text-[11px] font-medium text-slate-500">Kuota Siswa Dihemat</p>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-base font-bold font-mono text-emerald-700 tabular-nums">
+              <div className="bg-white border border-emerald-200 rounded-2xl p-3 shadow-2xs">
+                <p className="text-[11px] font-semibold text-slate-500">Kuota Dihemat</p>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className="text-base sm:text-lg font-bold text-emerald-700">
                     {metrics.ispQuotaSavedMB.toFixed(1)} MB
                   </span>
-                  <span className="text-[10px] text-emerald-600 font-semibold">0 Rp</span>
+                  <span className="text-[10px] text-emerald-600 font-bold">Gratis</span>
                 </div>
               </div>
 
-              <div className="bg-white border border-sky-200/80 rounded-xl p-3 shadow-2xs">
-                <p className="text-[11px] font-medium text-slate-500">Mesh Offload P2P</p>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-base font-bold font-mono text-sky-700 tabular-nums">
+              <div className="bg-white border border-sky-200 rounded-2xl p-3 shadow-2xs">
+                <p className="text-[11px] font-semibold text-slate-500">Buku Dibagi Teman</p>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className="text-base sm:text-lg font-bold text-sky-700">
                     {metrics.meshOffloadPercentage}%
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono tabular-nums">
+                  <span className="text-[10px] text-slate-500 font-medium">
                     {metrics.peerToPeerOffloadedMB} MB
                   </span>
                 </div>
               </div>
 
-              <div className="bg-white border border-teal-200/80 rounded-xl p-3 shadow-2xs">
-                <p className="text-[11px] font-medium text-slate-500">Efisiensi Cache AI</p>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-base font-bold font-mono text-teal-700 tabular-nums">
-                    {metrics.cacheHitRatioPct}% Hit
+              <div className="bg-white border border-teal-200 rounded-2xl p-3 shadow-2xs">
+                <p className="text-[11px] font-semibold text-slate-500">Jawaban AI di Kelas</p>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className="text-base sm:text-lg font-bold text-teal-700">
+                    {metrics.cacheHitRatioPct}% Instan
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono tabular-nums">
+                  <span className="text-[10px] text-slate-500 font-medium">
                     {metrics.totalCacheHits}× 0ms
                   </span>
                 </div>
               </div>
 
-              <div className="bg-white border border-indigo-200/80 rounded-xl p-3 shadow-2xs">
-                <p className="text-[11px] font-medium text-slate-500">Simpul Kelas Aktif</p>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="text-base font-bold font-mono text-indigo-700 tabular-nums">
-                    {metrics.totalPeers} Simpul
+              <div className="bg-white border border-indigo-200 rounded-2xl p-3 shadow-2xs">
+                <p className="text-[11px] font-semibold text-slate-500">Teman Sekelas Aktif</p>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className="text-base sm:text-lg font-bold text-indigo-700">
+                    {metrics.totalPeers} Murid
                   </span>
-                  <span className="text-[10px] text-slate-500">
-                    1 Guru · {metrics.studentPeersCount} Siswa
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    1 Guru
                   </span>
                 </div>
               </div>
@@ -723,15 +718,16 @@ export const ModuleLibraryView: React.FC<Props> = ({
           <div className="lg:col-span-4 bento-card p-5 space-y-4">
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-slate-900">
-                  01. Katalog &amp; Pencarian Lintas Konsep
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <span>🗺️</span>
+                  <span>01. Jalur Petualangan Belajar</span>
                 </h2>
-                <span className="text-xs font-mono text-slate-500 tabular-nums">
-                  {deepSearchMatches.length}/{modules.length} Modul
+                <span className="text-xs font-bold text-sky-800 bg-sky-100 px-2.5 py-0.5 rounded-full">
+                  {deepSearchMatches.length}/{modules.length} Buku
                 </span>
               </div>
-              <p className="text-xs text-slate-600">
-                Setiap kartu memiliki warna khas mata pelajaran. Cari judul, rumus, atau lokasi 3T.
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Pilih buku petualangan sains Nusantara. Dilengkapi estimasi waktu baca dan siap dipelajari tanpa kuota.
               </p>
             </div>
 
@@ -739,7 +735,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
             <div className="space-y-2">
               <div className="relative">
                 <label htmlFor="search-module-input" className="sr-only">
-                  Cari Modul, Rumus, atau Istilah Teknis
+                  Cari Buku, Rumus, atau Pelajaran
                 </label>
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
@@ -747,24 +743,24 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari rumus, istilah (mis. LiFePO4, Mamar, Biochar)..."
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-600 transition-all"
+                  placeholder="Cari buku, rumus, atau daerah (mis. LiFePO4, Alor)..."
+                  className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-600 transition-all min-h-[42px]"
                 />
               </div>
 
               {/* Quick Concept Search Prompts */}
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                <span className="text-slate-500 font-mono">Cepat:</span>
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-slate-500 font-semibold">Topik:</span>
                 {(['LiFePO4', 'ELC', 'Karbon Biru', 'Mamar', 'Biochar', 'Crux'] as const).map(
                   (kw) => (
                     <button
                       key={kw}
                       type="button"
                       onClick={() => setSearchQuery(searchQuery === kw ? '' : kw)}
-                      className={`px-2 py-0.5 rounded-md font-mono transition-colors cursor-pointer whitespace-nowrap ${
+                      className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                         searchQuery.toLowerCase() === kw.toLowerCase()
-                          ? 'bg-gradient-to-r from-sky-600 to-teal-600 text-white font-semibold shadow-2xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+                          ? 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-2xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
                       }`}
                     >
                       {kw}
@@ -796,15 +792,15 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     key={subj}
                     type="button"
                     onClick={() => setSubjectFilter(subj)}
-                    className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                    className={`min-h-[40px] px-3 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-95 shadow-2xs ${
                       isActiveSubj
                         ? subjTheme
                           ? subjTheme.activeTabGradient
                           : 'bg-slate-900 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/75 hover:text-slate-900'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
                     }`}
                   >
-                    {subj === 'ALL' ? 'Semua Mapel' : subj}
+                    {subj === 'ALL' ? 'Semua Buku' : subj}
                   </button>
                 );
               })}
@@ -813,8 +809,8 @@ export const ModuleLibraryView: React.FC<Props> = ({
             {/* Subject-Gradient Module Cards List */}
             {deepSearchMatches.length === 0 ? (
               <div className="surface-warm-recessed p-6 text-center space-y-2.5">
-                <p className="text-xs font-medium text-slate-700">
-                  Tidak ada modul, rumus, atau istilah yang cocok dengan &ldquo;
+                <p className="text-xs sm:text-sm font-semibold text-slate-700">
+                  Belum ada buku yang cocok dengan &ldquo;
                   {searchQuery || subjectFilter}&rdquo;.
                 </p>
                 <button
@@ -823,9 +819,9 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     setSubjectFilter('ALL');
                     setSearchQuery('');
                   }}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="min-h-[44px] px-4 py-2 text-xs font-bold text-white bg-sky-700 rounded-xl hover:bg-sky-800 transition-all cursor-pointer active:scale-95 shadow-xs"
                 >
-                  Tampilkan Semua Modul
+                  Tampilkan Semua Buku
                 </button>
               </div>
             ) : (
@@ -839,27 +835,28 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   const modChaptersDone = mod.sections.filter(
                     (_, sIdx) => completedChapters[`${mod.id}-${sIdx}`]
                   ).length;
+                  const estimatedMinutes = Math.max(4, mod.sections.length * 2);
 
                   return (
                     <article
                       key={mod.id}
                       onClick={() => onSelectModule(mod.id)}
-                      className={`rounded-xl overflow-hidden border transition-all cursor-pointer ${
+                      className={`rounded-2xl overflow-hidden border transition-all cursor-pointer active:scale-[0.98] ${
                         isSelected
-                          ? `${modTheme.selectedCardSurface} border-transparent`
+                          ? `${modTheme.selectedCardSurface} border-sky-400 ring-2 ring-sky-300/40 shadow-sm`
                           : 'bg-white border-slate-200/90 hover:border-slate-300 hover:shadow-xs'
                       }`}
                     >
                       {/* Subject Identity Gradient Ribbon */}
-                      <div className={`h-1.5 w-full ${modTheme.ribbonGradient}`} />
+                      <div className={`h-2 w-full ${modTheme.ribbonGradient}`} />
 
-                      <div className="p-3.5 space-y-2.5">
+                      <div className="p-4 space-y-3">
                         <div className="flex items-start gap-3">
-                          <div className="w-20 h-20 rounded-lg bg-slate-900 relative shrink-0 overflow-hidden border border-slate-200/70 group">
+                          <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-xl bg-slate-900 relative shrink-0 overflow-hidden border border-slate-200/70 group shadow-2xs">
                             {!imgFailed ? (
                               <img
                                 src={mod.imageUrl}
-                                alt={`Ilustrasi modul ${mod.title}`}
+                                alt={`Sampul buku modul ${mod.title}`}
                                 referrerPolicy="no-referrer"
                                 onError={() =>
                                   setFailedModuleImgs((prev) => ({ ...prev, [mod.id]: true }))
@@ -868,7 +865,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                               />
                             ) : (
                               <div
-                                className={`w-full h-full flex items-center justify-center ${modTheme.stepNumberClass} text-[10px] font-mono font-bold p-2 text-center`}
+                                className={`w-full h-full flex items-center justify-center ${modTheme.stepNumberClass} text-xs font-mono font-bold p-2 text-center`}
                               >
                                 {mod.code}
                               </div>
@@ -876,26 +873,29 @@ export const ModuleLibraryView: React.FC<Props> = ({
                           </div>
 
                           <div className="flex-1 min-w-0 space-y-1.5">
-                            <div className="flex items-center justify-between gap-1 text-[11px] font-mono tabular-nums">
-                              <span className={`font-bold truncate ${modTheme.accentText}`}>
-                                {mod.code} · {mod.subject}
+                            <div className="flex items-center justify-between gap-1 text-[11px] font-bold">
+                              <span className={`truncate ${modTheme.accentText}`}>
+                                {mod.subject}
                               </span>
-                              <span className="text-slate-500 shrink-0">{mod.sizeMB} MB</span>
+                              <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 shrink-0 flex items-center gap-0.5">
+                                <span>⏱️</span>
+                                <span>{estimatedMinutes} menit</span>
+                              </span>
                             </div>
 
-                            <h3 className="text-xs font-bold text-slate-900 leading-snug line-clamp-2">
+                            <h3 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2">
                               {mod.title}
                             </h3>
 
+                            {/* Chapter Progress & Read Bar */}
                             <div className="pt-0.5 space-y-1">
-                              <div className="flex items-center justify-between text-[10px] font-mono tabular-nums">
-                                <span className="text-slate-500">
-                                  {peerHeld.length}/{mod.totalChunks} pecahan · {modChaptersDone}/
-                                  {mod.sections.length} bab
+                              <div className="flex items-center justify-between text-[11px] text-slate-600 font-medium">
+                                <span>
+                                  📖 {modChaptersDone}/{mod.sections.length} Bab Selesai
                                 </span>
                                 <span className={`font-bold ${modTheme.accentText}`}>{pct}%</span>
                               </div>
-                              <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
+                              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60">
                                 <div
                                   style={{ width: `${pct}%` }}
                                   className={`h-full rounded-full transition-all duration-300 ${modTheme.progressGradient}`}
@@ -911,7 +911,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                             {matchedBadges.map((b, bIdx) => (
                               <div
                                 key={bIdx}
-                                className={`text-[11px] font-mono ${modTheme.softBg} ${modTheme.accentText} px-2.5 py-1 rounded-md flex items-center justify-between gap-2`}
+                                className={`text-[11px] ${modTheme.softBg} ${modTheme.accentText} px-2.5 py-1 rounded-lg flex items-center justify-between gap-2`}
                               >
                                 <span className="font-bold shrink-0">{b.category}:</span>
                                 <span className="truncate text-slate-700">{b.snippet}</span>
@@ -920,10 +920,18 @@ export const ModuleLibraryView: React.FC<Props> = ({
                           </div>
                         )}
 
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-[11px]">
-                          <span className="text-slate-500 truncate">{mod.schoolOrigin}</span>
+                        {/* Status bar: Ready vs Download Button */}
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                          <span className="text-slate-500 truncate text-[11px]">
+                            📍 {mod.schoolOrigin}
+                          </span>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            {pct < 100 && (
+                            {pct >= 100 ? (
+                              <span className="px-2.5 py-1 rounded-lg bg-emerald-100/90 text-emerald-800 font-bold text-[11px] flex items-center gap-1">
+                                <span>✓</span>
+                                <span>Buku Siap Dibaca</span>
+                              </span>
+                            ) : (
                               <button
                                 type="button"
                                 disabled={isSyncing}
@@ -932,18 +940,18 @@ export const ModuleLibraryView: React.FC<Props> = ({
                                   onSelectModule(mod.id);
                                   onSyncChunks(mod.id, 4);
                                 }}
-                                className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-colors flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer ${modTheme.softBg} ${modTheme.accentText}`}
+                                className="min-h-[40px] px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer bg-sky-600 hover:bg-sky-500 text-white shadow-2xs active:scale-95"
                               >
-                                <Download className="w-3 h-3" />
-                                <span>Unduh P2P</span>
+                                <Download className="w-3.5 h-3.5" />
+                                <span>Unduh (0 Kuota)</span>
                               </button>
                             )}
                             <span
-                              className={`font-bold ${
+                              className={`font-bold text-xs ${
                                 isSelected ? modTheme.accentText : 'text-slate-500'
                               }`}
                             >
-                              {isSelected ? 'Sedang Dibuka' : 'Pelajari →'}
+                              {isSelected ? 'Sedang Dibuka' : 'Buka →'}
                             </span>
                           </div>
                         </div>
@@ -1105,23 +1113,23 @@ export const ModuleLibraryView: React.FC<Props> = ({
                 <div
                   role="tablist"
                   aria-label="Jalur Belajar Terpandu Modul"
-                  className="grid grid-cols-1 sm:grid-cols-4 gap-1.5"
+                  className="grid grid-cols-2 sm:grid-cols-4 gap-1.5"
                 >
                   <button
                     type="button"
                     role="tab"
                     aria-selected={activeSubTab === 'materi'}
                     onClick={() => setActiveSubTab('materi')}
-                    className={`px-3 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                       activeSubTab === 'materi'
                         ? activeTheme.activeTabGradient
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-white/60'
                     }`}
                   >
-                    <FileText className="w-3.5 h-3.5 shrink-0" />
+                    <span>📖</span>
                     <span>
-                      1. Materi &amp; Kasus ({activeModuleCompletedChaptersCount}/
-                      {activeModule.sections.length} Bab)
+                      1. Buku Bacaan ({activeModuleCompletedChaptersCount}/
+                      {activeModule.sections.length})
                     </span>
                   </button>
 
@@ -1130,16 +1138,16 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     role="tab"
                     aria-selected={activeSubTab === 'simulasi'}
                     onClick={() => setActiveSubTab('simulasi')}
-                    className={`px-3 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                       activeSubTab === 'simulasi'
                         ? activeTheme.activeTabGradient
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-white/60'
                     }`}
                   >
-                    <Sliders className="w-3.5 h-3.5 shrink-0" />
+                    <span>🔬</span>
                     <span>
-                      2. Lab Simulasi{' '}
-                      {completedMissions[activeModule.simulationType] ? '(✓ Tuntas)' : '(+150 XP)'}
+                      2. Lab Eksperimen{' '}
+                      {completedMissions[activeModule.simulationType] ? '(✓ Selesai)' : '(+150 XP)'}
                     </span>
                   </button>
 
@@ -1148,15 +1156,15 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     role="tab"
                     aria-selected={activeSubTab === 'kuis'}
                     onClick={() => setActiveSubTab('kuis')}
-                    className={`px-3 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                       activeSubTab === 'kuis'
                         ? activeTheme.activeTabGradient
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-white/60'
                     }`}
                   >
-                    <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>🎯</span>
                     <span>
-                      3. Latihan &amp; Kuis ({activeModuleAnsweredQuizCount}/
+                      3. Kuis Seru ({activeModuleAnsweredQuizCount}/
                       {activeModule.checkpoints.length})
                     </span>
                   </button>
@@ -1173,10 +1181,10 @@ export const ModuleLibraryView: React.FC<Props> = ({
                         onNavigateTab('tutor');
                       }
                     }}
-                    className={`px-3 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${activeTheme.softBg} ${activeTheme.accentText} hover:opacity-90`}
+                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${activeTheme.softBg} ${activeTheme.accentText} border ${activeTheme.softBorder} hover:opacity-90`}
                   >
-                    <MessageSquare className="w-3.5 h-3.5 shrink-0" />
-                    <span>4. Diskusi AI 0-Kuota →</span>
+                    <span>🤖</span>
+                    <span>4. Tanya Sahabat AI →</span>
                   </button>
                 </div>
               </div>
@@ -1347,57 +1355,58 @@ export const ModuleLibraryView: React.FC<Props> = ({
                                     );
                                   }
                                 }}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap border ${
+                                className={`min-h-[44px] px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 shadow-2xs border ${
                                   speakingChapterIndex === idx
-                                    ? 'bg-amber-500 text-white border-transparent shadow-xs animate-pulse'
-                                    : 'bg-white text-slate-700 border-slate-200 hover:border-sky-300'
+                                    ? 'bg-amber-500 text-white border-transparent shadow-xs animate-pulse ring-2 ring-amber-300'
+                                    : 'bg-sky-50/90 text-sky-900 border-sky-200 hover:bg-sky-100'
                                 }`}
+                                title="Dengarkan pembacaan teks otomatis untuk bab ini"
                               >
                                 {speakingChapterIndex === idx ? (
                                   <>
-                                    <Square className="w-3.5 h-3.5 fill-current" />
+                                    <Square className="w-4 h-4 fill-current text-white" />
                                     <span>Hentikan Suara</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Volume2 className="w-3.5 h-3.5 text-sky-700" />
-                                    <span>Dengarkan Materi</span>
+                                    <Volume2 className="w-4 h-4 text-sky-700" />
+                                    <span>Dengarkan Suara Bab Ini</span>
                                   </>
                                 )}
                               </button>
 
                               <motion.button
                                 type="button"
-                                whileTap={{ scale: 0.96 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={() => handleToggleChapterComplete(activeModule.id, idx)}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap border ${
+                                className={`min-h-[44px] px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 border ${
                                   isChapterDone
-                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-xs'
-                                    : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40'
+                                    ? 'bg-emerald-600 text-white border-transparent shadow-xs'
+                                    : 'bg-white text-slate-800 border-emerald-300 hover:bg-emerald-50/60'
                                 }`}
                               >
-                                <BookmarkCheck className="w-3.5 h-3.5" />
+                                <BookmarkCheck className={`w-4 h-4 ${isChapterDone ? 'text-white' : 'text-emerald-600'}`} />
                                 <span>
                                   {isChapterDone
-                                    ? '✓ Bab Selesai Dipelajari'
-                                    : 'Tandai Bab Selesai (+25 XP)'}
+                                    ? '✓ Selesai Dipelajari'
+                                    : 'Tandai Selesai (+25 XP)'}
                                 </span>
                               </motion.button>
 
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const qPrompt = `Tolong jelaskan lebih mendalam tentang "${sec.heading.replace(/^\d+\.\s*/, '')}" beserta penerapan rumusnya pada modul ${activeModule.title}.`;
+                                  const qPrompt = `Tolong jelaskan lebih sederhana tentang "${sec.heading.replace(/^\d+\.\s*/, '')}" dan beri contoh sehari-hari pada modul ${activeModule.title}.`;
                                   if (onAskTutorWithPrompt) {
                                     onAskTutorWithPrompt(activeModule.id, qPrompt);
                                   } else {
                                     onNavigateTab('tutor');
                                   }
                                 }}
-                                className={`px-3 py-1.5 text-xs font-semibold ${activeTheme.softBg} ${activeTheme.accentText} border ${activeTheme.softBorder} rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap hover:opacity-90`}
+                                className={`min-h-[44px] px-3.5 py-2 text-xs sm:text-sm font-bold ${activeTheme.softBg} ${activeTheme.accentText} border ${activeTheme.softBorder} rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 hover:opacity-90`}
                               >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                                <span>Tanya Bab Ini ke AI</span>
+                                <MessageSquare className="w-4 h-4" />
+                                <span>Tanya Sahabat AI</span>
                               </button>
                             </div>
                           </div>

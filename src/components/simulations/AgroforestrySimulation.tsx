@@ -124,13 +124,19 @@ export const AgroforestrySimulation: React.FC<AgroforestrySimulationProps> = ({
       </div>
 
       <div
-        className={`rounded-xl p-3.5 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+        className={`rounded-xl p-4 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
           mission.completed
-            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 ring-2 ring-emerald-400/30'
             : 'surface-warm-recessed border-[#e6e2d8] text-stone-800'
         }`}
       >
-        <div className="space-y-0.5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase bg-emerald-100 text-emerald-800 rounded-md">
+              🎯 PANDUAN CEPAT / MISI BELAJAR
+            </span>
+            <span className="text-[11px] text-stone-500 font-medium">Langkah Praktik</span>
+          </div>
           <div className="flex items-center gap-1.5 text-xs font-bold">
             {mission.completed ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -138,10 +144,10 @@ export const AgroforestrySimulation: React.FC<AgroforestrySimulationProps> = ({
               <Sparkles className="w-4 h-4 text-emerald-700 shrink-0" />
             )}
             <span>
-              {mission.missionTitle} {mission.completed ? '— MISI TUNTAS (+150 XP)!' : ''}
+              {mission.missionTitle} {mission.completed ? '— 🎉 MISI TUNTAS (+150 XP)!' : ''}
             </span>
           </div>
-          <p className="text-xs text-stone-600">{mission.targetDescription}</p>
+          <p className="text-xs text-stone-600 leading-relaxed">{mission.targetDescription}</p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -249,9 +255,12 @@ export const AgroforestrySimulation: React.FC<AgroforestrySimulationProps> = ({
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
-                <label htmlFor="slider-canopy">Tutupan Tajuk Agroforestri (Lontar-Kelor)</label>
+                <label htmlFor="slider-canopy">Tutupan Tajuk Pohon (Lontar &amp; Kelor)</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {canopyCoverPct}%
+                  {canopyCoverPct}%{' '}
+                  <span className="text-[11px] font-normal text-emerald-700">
+                    ({canopyCoverPct >= 65 ? '🌳 Hutan Rimbun Lestari' : canopyCoverPct >= 40 ? '🌿 Cukup Teduh' : '🍂 Terlalu Gersang'})
+                  </span>
                 </span>
               </div>
               <input
@@ -262,7 +271,7 @@ export const AgroforestrySimulation: React.FC<AgroforestrySimulationProps> = ({
                 step={5}
                 value={canopyCoverPct}
                 onChange={(e) => setCanopyCoverPct(Number(e.target.value))}
-                className="w-full accent-emerald-600 cursor-pointer"
+                className="w-full accent-emerald-600 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
 
@@ -270,7 +279,10 @@ export const AgroforestrySimulation: React.FC<AgroforestrySimulationProps> = ({
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
                 <label htmlFor="slider-terrace">Jumlah Teras Batu Kontur (Sengkedan)</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {stoneTerraceCount} jalur teras
+                  {stoneTerraceCount} jalur{' '}
+                  <span className="text-[11px] font-normal text-emerald-700">
+                    ({stoneTerraceCount >= 12 ? '🧱 Teras Tangguh (Resapan Maksimal)' : stoneTerraceCount >= 6 ? '🧱 Cukup' : '🧱 Minim Teras'})
+                  </span>
                 </span>
               </div>
               <input
@@ -281,7 +293,7 @@ export const AgroforestrySimulation: React.FC<AgroforestrySimulationProps> = ({
                 step={1}
                 value={stoneTerraceCount}
                 onChange={(e) => setStoneTerraceCount(Number(e.target.value))}
-                className="w-full accent-emerald-600 cursor-pointer"
+                className="w-full accent-emerald-600 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
 
@@ -289,7 +301,10 @@ export const AgroforestrySimulation: React.FC<AgroforestrySimulationProps> = ({
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
                 <label htmlFor="slider-rain">Curah Hujan Tahunan Kepulauan</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {rainfallMmPerYr} mm/tahun
+                  {rainfallMmPerYr} mm/tahun{' '}
+                  <span className="text-[11px] font-normal text-stone-600">
+                    ({rainfallMmPerYr >= 1000 ? '🌧️ Hujan Tropis Cukup' : rainfallMmPerYr >= 700 ? '🌤️ Kering Sedang' : '☀️ Sabana Sangat Kering'})
+                  </span>
                 </span>
               </div>
               <input
@@ -300,7 +315,7 @@ export const AgroforestrySimulation: React.FC<AgroforestrySimulationProps> = ({
                 step={50}
                 value={rainfallMmPerYr}
                 onChange={(e) => setRainfallMmPerYr(Number(e.target.value))}
-                className="w-full accent-emerald-600 cursor-pointer"
+                className="w-full accent-emerald-600 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
           </div>

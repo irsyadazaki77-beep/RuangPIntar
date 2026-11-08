@@ -122,13 +122,19 @@ export const NavigationSimulation: React.FC<NavigationSimulationProps> = ({
       </div>
 
       <div
-        className={`rounded-xl p-3.5 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+        className={`rounded-xl p-4 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
           mission.completed
-            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 ring-2 ring-emerald-400/30'
             : 'surface-warm-recessed border-[#e6e2d8] text-stone-800'
         }`}
       >
-        <div className="space-y-0.5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase bg-sky-100 text-sky-800 rounded-md">
+              🎯 PANDUAN CEPAT / MISI BELAJAR
+            </span>
+            <span className="text-[11px] text-stone-500 font-medium">Langkah Praktik</span>
+          </div>
           <div className="flex items-center gap-1.5 text-xs font-bold">
             {mission.completed ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -136,10 +142,10 @@ export const NavigationSimulation: React.FC<NavigationSimulationProps> = ({
               <Sparkles className="w-4 h-4 text-sky-700 shrink-0" />
             )}
             <span>
-              {mission.missionTitle} {mission.completed ? '— MISI TUNTAS (+150 XP)!' : ''}
+              {mission.missionTitle} {mission.completed ? '— 🎉 MISI TUNTAS (+150 XP)!' : ''}
             </span>
           </div>
-          <p className="text-xs text-stone-600">{mission.targetDescription}</p>
+          <p className="text-xs text-stone-600 leading-relaxed">{mission.targetDescription}</p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -256,9 +262,12 @@ export const NavigationSimulation: React.FC<NavigationSimulationProps> = ({
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
-                <label htmlFor="slider-boat">Kecepatan Kapal Terhadap Air (v_kapal)</label>
+                <label htmlFor="slider-boat">Kecepatan Mesin Kapal (v_kapal)</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {boatSpeedKnots} knot
+                  {boatSpeedKnots} knot{' '}
+                  <span className="text-[11px] font-normal text-sky-700">
+                    ({boatSpeedKnots >= 12 ? '⚡ Laju Cepat' : boatSpeedKnots >= 8 ? '⛵ Normal' : '🛶 Lambat'})
+                  </span>
                 </span>
               </div>
               <input
@@ -269,7 +278,7 @@ export const NavigationSimulation: React.FC<NavigationSimulationProps> = ({
                 step={0.5}
                 value={boatSpeedKnots}
                 onChange={(e) => setBoatSpeedKnots(Number(e.target.value))}
-                className="w-full accent-sky-700 cursor-pointer"
+                className="w-full accent-sky-700 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
 
@@ -277,7 +286,10 @@ export const NavigationSimulation: React.FC<NavigationSimulationProps> = ({
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
                 <label htmlFor="slider-current">Kecepatan Arus Samping Selat (v_arus)</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {currentSpeedKnots} knot
+                  {currentSpeedKnots} knot{' '}
+                  <span className="text-[11px] font-normal text-sky-700">
+                    ({currentSpeedKnots >= 3.5 ? '🌊 Arus Deras Monsun' : currentSpeedKnots >= 2 ? '🌊 Arus Sedang' : '💧 Arus Tenang'})
+                  </span>
                 </span>
               </div>
               <input
@@ -288,7 +300,7 @@ export const NavigationSimulation: React.FC<NavigationSimulationProps> = ({
                 step={0.5}
                 value={currentSpeedKnots}
                 onChange={(e) => setCurrentSpeedKnots(Number(e.target.value))}
-                className="w-full accent-sky-700 cursor-pointer"
+                className="w-full accent-sky-700 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
 
@@ -296,7 +308,10 @@ export const NavigationSimulation: React.FC<NavigationSimulationProps> = ({
               <div className="flex justify-between text-xs font-medium text-stone-700 mb-1.5">
                 <label htmlFor="slider-strait">Lebar Selat Antarpulau (Jarak d)</label>
                 <span className="font-mono font-semibold text-stone-900 tabular-nums">
-                  {straitWidthNm} Mil Laut (NM)
+                  {straitWidthNm} Mil Laut (NM){' '}
+                  <span className="text-[11px] font-normal text-stone-600">
+                    ({straitWidthNm >= 16 ? '🏝️ Selat Luas Antar-Pulau' : '🚤 Selat Dekat'})
+                  </span>
                 </span>
               </div>
               <input
@@ -307,7 +322,7 @@ export const NavigationSimulation: React.FC<NavigationSimulationProps> = ({
                 step={1}
                 value={straitWidthNm}
                 onChange={(e) => setStraitWidthNm(Number(e.target.value))}
-                className="w-full accent-sky-700 cursor-pointer"
+                className="w-full accent-sky-700 cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
             </div>
           </div>

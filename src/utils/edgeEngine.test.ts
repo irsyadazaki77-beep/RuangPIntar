@@ -415,3 +415,114 @@ test('calculateGradebookSummary aggregates student quiz scores and simulation ba
   assert.equal(summary.passRatePercent, 50);
   assert.equal(summary.simulationsCompletedCount, 1);
 });
+
+test('chunk integrity verification detects tampered bytes and corrupt payloads', async () => {
+  const {
+    encodeBinaryChunkPayload,
+    decodeBinaryChunkPayload,
+    computeDeterministicChunkHash,
+  } = await import('./edgeEngine');
+  const { INITIAL_MODULES } = await import('./seedData');
+
+  const testModule = INITIAL_MODULES[0];
+  const chunkIndex = 0;
+  const originalPayload = testModule.sections[0].body;
+
+  const validHash = computeDeterministicChunkHash(testModule.id, chunkIndex, originalPayload);
+  assert.equal(typeof validHash, 'string');
+  assert.equal(validHash.startsWith('chk-'), true);
+
+  // Tampered payload must produce different hash
+  const tamperedPayload = originalPayload + ' [TAMPERED DATA INJECTION]';
+  const tamperedHash = computeDeterministicChunkHash(testModule.id, chunkIndex, tamperedPayload);
+  assert.notEqual(validHash, tamperedHash);
+
+  // Binary payload encoding and decoding verification
+  const binaryFrame = encodeBinaryChunkPayload(testModule, chunkIndex, 'host-guru', 'peer-siswa-01');
+  const decodedValid = decodeBinaryChunkPayload(binaryFrame);
+  assert.notEqual(decodedValid, null);
+  assert.equal(decodedValid?.valid, true);
+  assert.equal(decodedValid?.moduleId, testModule.id);
+  assert.equal(decodedValid?.chunkIndex, 0);
+
+  // Tamper with binary frame bytes (flip header byte in magic marker)
+  const corruptedFrame = new Uint8Array(binaryFrame);
+  corruptedFrame[0] = 0x58; // Replace 'R' with 'X'
+  const decodedCorrupt = decodeBinaryChunkPayload(corruptedFrame);
+  assert.equal(decodedCorrupt, null);
+});
+
+test('zod runtime validation schemas enforce strict contracts', async () => {
+  const {
+    QuestionSubmissionSchema,
+    ModuleSubmissionSchema,
+    HostPinChangeSchema,
+    StudentSubmissionSchema,
+    BinaryChunkPayloadSchema,
+  } = await import('./edgeEngine');
+
+  // Question submission schema
+  const validQuestion = QuestionSubmissionSchema.safeParse({
+    question: 'Bagaimana prinsip kerja turbin air mikrohidro?',
+    moduleId: 'mod-fisika-01',
+  });
+  assert.equal(validQuestion.success, true);
+
+  const invalidQuestion = QuestionSubmissionSchema.safeParse({
+    question: 'apa',
+    moduleId: '',
+  });
+  assert.equal(invalidQuestion.success, false);
+
+  // Module submission schema
+  const invalidModule = ModuleSubmissionSchema.safeParse({
+    title: 'abc',
+    subject: '',
+    sizeMB: 9999, // exceeds max 500 MB
+  });
+  assert.equal(invalidModule.success, false);
+
+  // Host PIN change schema
+  const invalidPin = HostPinChangeSchema.safeParse({
+    currentPin: '',
+    newPin: '12', // too short (< 4)
+  });
+  assert.equal(invalidPin.success, false);
+
+  const validPin = HostPinChangeSchema.safeParse({
+    currentPin: '1945',
+    newPin: '2026',
+  });
+  assert.equal(validPin.success, true);
+
+  // Student submission schema
+  const validSubmission = StudentSubmissionSchema.safeParse({
+    id: 'sub-test-1',
+    peerId: 'peer-siswa-05',
+    studentName: 'Hendrikus',
+    avatar: '🐬 Lumba-lumba',
+    moduleId: 'mod-fisika-01',
+    moduleTitle: 'Fisika Mikrohidro',
+    quizScore: 90,
+    totalQuestions: 2,
+    passed: true,
+    simulationCompleted: true,
+    timestamp: '09:00 WITA',
+    updatedMs: Date.now(),
+  });
+  assert.equal(validSubmission.success, true);
+
+  // Binary chunk payload schema
+  const validChunkPayload = BinaryChunkPayloadSchema.safeParse({
+    magic: 'RPE1',
+    moduleCode: 'FIS-01',
+    moduleId: 'mod-1',
+    chunkIndex: 0,
+    totalChunks: 16,
+    chunkHash: 'chk-abc-00',
+    fromPeerId: 'host-guru',
+    toPeerId: 'peer-01',
+    contentPayload: 'sample curriculum content',
+  });
+  assert.equal(validChunkPayload.success, true);
+});

@@ -28,15 +28,20 @@ if not exist ".env" (
 )
 
 :: 3. Tampilkan IP Lokal Laptop Guru untuk panduan siswa
-echo [*] Memeriksa alamat IP lokal laptop guru...
-for /f "tokens=4" %%a in ('route print ^| findstr 0.0.0.0.*0.0.0.0') do (
+echo [*] Memeriksa alamat IP lokal LAN laptop guru...
+set LOCAL_IP=192.168.43.1
+for /f "tokens=4" %%a in ('route print 2^>nul ^| findstr 0.0.0.0.*0.0.0.0') do (
     set LOCAL_IP=%%a
 )
+
 echo.
-echo [INFO] Beritahukan siswa di kelas untuk membuka alamat ini di HP mereka:
-echo        -----------------------------------------------
-echo        URL Kelas: http://%LOCAL_IP%:3000
-echo        -----------------------------------------------
+echo ================================================================
+echo [INFO] PANDUAN KONEKSI SISWA DI RUANG KELAS:
+echo ================================================================
+echo   1. Alamat IP LAN   : http://%LOCAL_IP%:3000
+echo   2. Zero-Config mDNS: http://ruangpintar.local:3000
+echo   3. Kode QR Kelas   : Buka panel guru untuk menampilkan QR
+echo ================================================================
 echo.
 
 :: 4. Buka browser otomatis setelah 2 detik

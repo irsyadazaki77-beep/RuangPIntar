@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Volume2,
   Square,
+  CheckCircle2,
 } from 'lucide-react';
 import type {
   LearningModule,
@@ -640,25 +641,28 @@ export const AiTutorGatewayView: React.FC<Props> = ({
 
         {/* RIGHT PANEL (8 cols): Clean Warm Conversational Workspace & Bottom Composer */}
         <div className="lg:col-span-8 bento-card p-6 sm:p-7 flex flex-col justify-between space-y-6">
-          {/* Top Conversation Security Header */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-[#e6e2d8]">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#f4f1ea] flex items-center justify-center">
-                <Bot className="w-4 h-4 text-sky-800" />
+          {/* Top Conversation Header: Kakak Belajar / Sahabat RuangPintar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 via-indigo-600 to-teal-500 text-white flex items-center justify-center font-bold text-xl shadow-xs">
+                🧑‍🏫
               </div>
               <div>
-                <h2 className="text-sm font-bold text-stone-900">
-                  Ruang Diskusi Tutor AI Satu Pintu
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <span>Sahabat Belajar AI</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Kakak Belajar Kelas
+                  </span>
                 </h2>
-                <p className="text-[11px] text-stone-500">
-                  Gateway Lokal: 192.168.43.1 · Dijawab dari Cache Lokal atau Gemini Cloud
+                <p className="text-xs text-slate-500">
+                  Simpul Guru: 192.168.43.1 · Jawaban Resmi Disetujui Guru &amp; Bebas Kuota
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-800 bg-emerald-50/80 border border-emerald-200 px-2.5 py-1 rounded-md">
-              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-              <span>API Key Terkunci di Server Guru</span>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl shadow-2xs">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Aman &amp; Terverifikasi Guru</span>
             </div>
           </div>
 
@@ -674,17 +678,17 @@ export const AiTutorGatewayView: React.FC<Props> = ({
               >
                 {/* Student Question Bubble */}
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center shrink-0 mt-0.5">
-                    <User className="w-4 h-4" />
+                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0 mt-0.5 shadow-2xs">
+                    🐬
                   </div>
-                  <div className="flex-1 surface-warm-recessed rounded-2xl rounded-tl-xs p-4 space-y-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-500">
+                  <div className="flex-1 bg-slate-100 rounded-2xl rounded-tl-xs p-4 space-y-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 font-semibold">
                       <span>
-                        Ditanyakan oleh <strong className="text-stone-800">{activeResponse.askedByPeerName}</strong>
+                        Ditanyakan oleh <strong className="text-slate-900">{activeResponse.askedByPeerName}</strong>
                       </span>
                       <span className="font-mono tabular-nums">{activeResponse.timestamp}</span>
                     </div>
-                    <h3 className="text-base font-bold text-stone-900 leading-snug">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
                       &ldquo;{activeResponse.question}&rdquo;
                     </h3>
                   </div>
@@ -693,39 +697,37 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                 {/* AI Gateway Response Bubble + Streamlined Telemetry Header */}
                 <div className="flex items-start gap-3">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 font-bold text-base shadow-2xs ${
                       activeResponse.source === 'LOCAL_CACHE'
-                        ? 'bg-emerald-700 text-white'
-                        : 'bg-sky-700 text-white'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-sky-600 text-white'
                     }`}
                   >
-                    <Zap className="w-4 h-4" />
+                    🧑‍🏫
                   </div>
 
-                  <div className="flex-1 border border-[#e6e2d8] rounded-2xl rounded-tl-xs overflow-hidden bg-white">
+                  <div className="flex-1 border border-slate-200 rounded-2xl rounded-tl-xs overflow-hidden bg-white shadow-2xs">
                     {/* Compact Telemetry Ribbon */}
                     <div
-                      className={`px-4 py-2.5 border-b flex flex-wrap items-center justify-between gap-3 text-xs font-mono ${
+                      className={`px-4 py-3 border-b flex flex-wrap items-center justify-between gap-3 text-xs ${
                         activeResponse.source === 'LOCAL_CACHE'
-                          ? 'bg-emerald-50/70 border-emerald-200/80'
-                          : 'bg-sky-50/70 border-sky-200/80'
+                          ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-white border-emerald-200'
+                          : 'bg-gradient-to-r from-sky-50 via-indigo-50 to-white border-sky-200'
                       }`}
                     >
-                      <span
-                        className={`font-bold ${
-                          activeResponse.source === 'LOCAL_CACHE'
-                            ? 'text-emerald-800'
-                            : 'text-sky-800'
-                        }`}
-                      >
-                        {activeResponse.source === 'LOCAL_CACHE'
-                          ? '● CACHE LOKAL SIMPUL GURU (0 DETIK · 0 KUOTA)'
-                          : activeResponse.source === 'CLOUD_GEMINI_GATEWAY'
-                          ? '▲ SATU PINTU CLOUD GEMINI → TERSIMPAN KE CACHE'
-                          : '◆ SINTESIS KURIKULUM EDGE LOKAL → TERSIMPAN KE CACHE'}
-                      </span>
+                      {activeResponse.source === 'LOCAL_CACHE' ? (
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-2xs">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-100" />
+                          <span>✓ Jawaban Resmi Disetujui Guru (Memori Kelas · 0 Kuota)</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-600 text-white font-bold text-xs shadow-2xs">
+                          <Zap className="w-4 h-4 text-sky-100" />
+                          <span>Jawaban Baru dari Guru (Otomatis Masuk Cache Kelas)</span>
+                        </div>
+                      )}
 
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-stone-700 tabular-nums">
+                      <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-700 font-semibold tabular-nums">
                         <button
                           type="button"
                           onClick={() => {
@@ -851,20 +853,49 @@ export const AiTutorGatewayView: React.FC<Props> = ({
             )}
           </AnimatePresence>
 
-          {/* Bottom Docked Question Composer Form */}
+          {/* Bottom Docked Question Composer Form with Starter Prompts */}
           <form
             onSubmit={handleSubmit}
-            className="pt-4 border-t border-[#e6e2d8] space-y-3"
+            className="pt-4 border-t border-slate-200 space-y-3"
             noValidate
           >
-            <div className="flex items-center justify-between">
+            {/* Quick Starter Prompts Chips */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                <span>💡</span>
+                <span>Pertanyaan Cepat Sesuai Bab:</span>
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  'Jelaskan bagian ini lebih sederhana untuk saya',
+                  'Beri contoh penerapan sehari-hari di desa',
+                  'Bagaimana cara menghitung rumus utama di bab ini?',
+                  'Apa yang harus diperhatikan agar aman di lapangan?',
+                ].map((promptText) => (
+                  <button
+                    key={promptText}
+                    type="button"
+                    disabled={isAsking}
+                    onClick={() => {
+                      setQuestionText(promptText);
+                      handleQuickPrompt(promptText, selectedModuleId);
+                    }}
+                    className="min-h-[36px] px-3 py-1.5 text-xs font-semibold bg-sky-50 text-sky-800 hover:bg-sky-100 hover:text-sky-950 border border-sky-200 rounded-xl transition-all cursor-pointer active:scale-95 shadow-2xs text-left"
+                  >
+                    {promptText}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
               <label
                 htmlFor="student-question-textarea"
-                className="text-xs font-semibold text-stone-800"
+                className="text-xs font-bold text-slate-800"
               >
-                Ketik Pertanyaan Siswa ke Gateway Lokal Guru
+                Ketik Pertanyaan Siswa ke Kakak Belajar (Simpul Guru):
               </label>
-              <span className="text-[11px] font-mono text-stone-500">
+              <span className="text-[11px] font-mono text-slate-500">
                 Pengirim: {selectedStudentName.split(' ')[0]}
               </span>
             </div>
@@ -878,25 +909,25 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                   setQuestionText(e.target.value);
                   if (validationError) setValidationError(null);
                 }}
-                placeholder="Contoh: Bagaimana cara menghitung daya listrik mikrohidro dari debit sungai dan tinggi jatuh air?"
-                className="flex-1 p-3 text-xs sm:text-sm bg-[#faf8f5] border border-[#d6d1c4] rounded-xl text-stone-900 placeholder:text-stone-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                placeholder="Tanyakan rumus, konsep sains, atau cara kerja alat (mis. Bagaimana turbin air bekerja?)"
+                className="flex-1 p-3 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-600 transition-all min-h-[50px]"
               />
 
               <motion.button
                 type="submit"
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.95 }}
                 disabled={isAsking}
-                className="px-5 py-3 bg-sky-700 hover:bg-sky-800 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
+                className="min-h-[46px] px-5 py-3 bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-xs active:scale-95"
               >
-                <Send className="w-3.5 h-3.5" />
+                <Send className="w-4 h-4" />
                 <span>
-                  {isAsking ? 'Memproses...' : 'Kirim Pertanyaan'}
+                  {isAsking ? 'Memproses...' : 'Tanya Kakak Belajar'}
                 </span>
               </motion.button>
             </div>
 
             {validationError && (
-              <p role="alert" className="text-xs font-medium text-red-600">
+              <p role="alert" className="text-xs font-semibold text-rose-600">
                 {validationError}
               </p>
             )}

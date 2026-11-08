@@ -28,6 +28,7 @@ import {
   type StudentSubmission,
 } from '../utils/edgeEngine';
 import { getSubjectTheme } from '../utils/subjectTheme';
+import { HostQrConnector } from './HostQrConnector';
 
 interface Props {
   modules: LearningModule[];
@@ -547,6 +548,9 @@ export const TeacherHostView: React.FC<Props> = ({
           </div>
         </div>
       </motion.section>
+
+      {/* Zero-Config Connectivity: Dynamic LAN IP QR Code & Camera Scanner */}
+      <HostQrConnector className="mb-6" />
 
       {/* Two-Column Structured Forms: Publish P2P Module (7 cols) + Pre-warm Local Cache (5 cols) */}
       <motion.section
