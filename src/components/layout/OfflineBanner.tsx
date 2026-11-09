@@ -3,7 +3,7 @@ import { Sparkles, Wifi } from 'lucide-react';
 import { useMeshNetwork } from '../../context/MeshNetworkContext';
 
 export const OfflineBanner: React.FC = () => {
-  const { isOfflineActive, simulatedOfflineMode, setSimulatedOfflineMode } = useMeshNetwork();
+  const { isOfflineActive, openQrScanner } = useMeshNetwork();
 
   if (!isOfflineActive) return null;
 
@@ -25,16 +25,16 @@ export const OfflineBanner: React.FC = () => {
             </span>
           </span>
         </div>
-        {simulatedOfflineMode && (
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={() => setSimulatedOfflineMode(false)}
-            className="min-h-[36px] px-3.5 py-1 text-xs font-semibold bg-white/20 hover:bg-white/30 text-white rounded-lg border border-white/30 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 shrink-0"
+            onClick={openQrScanner}
+            className="min-h-[36px] px-3.5 py-1 text-xs font-bold bg-white text-sky-900 hover:bg-sky-50 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 shrink-0"
           >
-            <Wifi className="w-3.5 h-3.5" />
-            <span>Hubungkan ke Guru</span>
+            <span>📷</span>
+            <span>Hubungkan ke Guru (Scan QR)</span>
           </button>
-        )}
+        </div>
       </div>
     </div>
   );

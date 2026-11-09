@@ -309,11 +309,12 @@ export const ModuleLibraryView: React.FC<Props> = ({
     if (!activeModule) return;
     const answerKey = `${activeModule.id}-${questionIdx}`;
     const alreadyAnswered = typeof selectedAnswers[answerKey] === 'number';
-
-    setSelectedAnswers((prev) => ({
-      ...prev,
+    const nextAnswers = {
+      ...selectedAnswers,
       [answerKey]: optionIdx,
-    }));
+    };
+
+    setSelectedAnswers(nextAnswers);
 
     const isCorrect = optionIdx === correctIndex;
     if (!alreadyAnswered) {
@@ -341,19 +342,22 @@ export const ModuleLibraryView: React.FC<Props> = ({
       } else {
         triggerXpCelebration(0, 'Belum tepat — simak pembahasan rumus di bawah soal.');
       }
-      if (onSyncStudentSubmission && activeModule) {
-        const currentCorrect = quizCorrectCount + (isCorrect ? 1 : 0);
-        const total = activeModule.checkpoints.length;
-        const scorePercent = Math.round((currentCorrect / Math.max(1, total)) * 100);
-        onSyncStudentSubmission({
-          moduleId: activeModule.id,
-          moduleTitle: activeModule.title,
-          quizScore: scorePercent,
-          totalQuestions: total,
-          passed: scorePercent >= 70,
-          simulationCompleted: Boolean(completedMissions[activeModule.simulationType]),
-        });
-      }
+    }
+
+    if (onSyncStudentSubmission && (!alreadyAnswered || isCorrect)) {
+      const total = Math.max(1, activeModule.checkpoints.length);
+      const moduleCorrectCount = activeModule.checkpoints.filter(
+        (cp, idx) => nextAnswers[`${activeModule.id}-${idx}`] === cp.correctIndex
+      ).length;
+      const scorePercent = Math.min(100, Math.round((moduleCorrectCount / total) * 100));
+      onSyncStudentSubmission({
+        moduleId: activeModule.id,
+        moduleTitle: activeModule.title,
+        quizScore: scorePercent,
+        totalQuestions: total,
+        passed: scorePercent >= 70,
+        simulationCompleted: Boolean(completedMissions[activeModule.simulationType]),
+      });
     }
   };
 
@@ -509,7 +513,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                 <p className="text-[11px] font-semibold text-slate-500">Teman Sekelas Aktif</p>
                 <div className="flex items-baseline gap-1 mt-0.5">
                   <span className="text-base sm:text-lg font-bold text-indigo-700">
-                    {metrics.totalPeers} Murid
+                    {metrics.studentPeersCount} Murid
                   </span>
                   <span className="text-[10px] text-slate-500 font-medium">
                     1 Guru
@@ -1681,6 +1685,19 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     } else {
                       onNavigateTab('tutor');
                     }
+                  }}
+                  onResetQuiz={() => {
+                    if (!activeModule) return;
+                    setSelectedAnswers((prev) => {
+                      const next = { ...prev };
+                      activeModule.checkpoints.forEach((_, qIdx) => {
+                        delete next[`${activeModule.id}-${qIdx}`];
+                      });
+                      return next;
+                    });
+                  }}
+                  onNextChapter={() => {
+                    setActiveSubTab('simulasi');
                   }}
                 />
               )}

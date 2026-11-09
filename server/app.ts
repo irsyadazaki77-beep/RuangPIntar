@@ -26,6 +26,7 @@ export async function createApp(
   app.use('/api', generalApiLimiter);
 
   // Mount modular route groups
+  app.use('/api/auth', authRouter);
   app.use('/api/host', authRouter);
   app.use('/api/tutor', aiRouter);
   app.use('/api/cache', aiRouter);

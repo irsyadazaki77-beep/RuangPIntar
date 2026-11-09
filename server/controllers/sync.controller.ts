@@ -250,6 +250,37 @@ export class SyncController {
     );
 
     const modules = classroomState.getModules();
+    const subjectSimMap: Record<
+      string,
+      { sim: LearningModule['simulationType']; fallbackImg: string }
+    > = {
+      'Teknik Energi': {
+        sim: 'solar',
+        fallbackImg:
+          modules.find((m) => m.subject === 'Teknik Energi')?.imageUrl ||
+          '/src/assets/images/module_solar_lifepo4_1794013783706.jpg',
+      },
+      'Biologi Pesisir': {
+        sim: 'mangrove',
+        fallbackImg:
+          modules.find((m) => m.subject === 'Biologi Pesisir')?.imageUrl ||
+          '/src/assets/images/module_mangrove_biology_1793880031385.jpg',
+      },
+      'Matematika Maritim': {
+        sim: 'navigation',
+        fallbackImg:
+          modules.find((m) => m.subject === 'Matematika Maritim')?.imageUrl ||
+          '/src/assets/images/module_archipelago_navigation_1793880031828.jpg',
+      },
+      'Fisika Terapan': {
+        sim: 'microhydro',
+        fallbackImg:
+          modules.find((m) => m.subject === 'Fisika Terapan')?.imageUrl ||
+          '/src/assets/images/module_microhydro_physics_1793880029053.jpg',
+      },
+    };
+    const matchedMeta = subjectSimMap[subject] || subjectSimMap['Fisika Terapan'];
+
     const newModule: LearningModule = {
       id: `mod-${Date.now()}`,
       code: `MOD-3T-${String(modules.length + 1).padStart(2, '0')}`,
@@ -263,7 +294,7 @@ export class SyncController {
       chunkSizeKB,
       chunkHashes,
       mediaType: 'Modul Teks & Diagram',
-      imageUrl: '/src/assets/images/module_microhydro_physics_1793880029053.jpg',
+      imageUrl: matchedMeta.fallbackImg,
       summary: summary.trim(),
       sections: [
         {
@@ -273,7 +304,7 @@ export class SyncController {
           keyTakeaway: keyTakeaway.trim(),
         },
       ],
-      simulationType: 'microhydro',
+      simulationType: matchedMeta.sim,
       checkpoints: [
         {
           question: `Apa tujuan utama dari penerapan materi "${title.trim()}" pada komunitas sekolah 3T?`,

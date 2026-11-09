@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Play, Pause, CheckCircle2, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Play, Pause, CheckCircle2, Sparkles, Award } from 'lucide-react';
 import {
   calculateSolarPvOutput,
   evaluateSimulationMission,
 } from '../../utils/edgeEngine';
+import { playMissionCompleteSound } from '../../utils/soundEffects';
 
 interface SolarPvSimulationProps {
   isPlaying: boolean;
@@ -18,9 +19,12 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
   onMissionComplete,
 }) => {
   const [activeStage, setActiveStage] = useState<number>(1);
-  const [panelCapacityWp, setPanelCapacityWp] = useState<number>(1200);
-  const [peakSunHours, setPeakSunHours] = useState<number>(5.0);
-  const [batteryCapacityKWh, setBatteryCapacityKWh] = useState<number>(5.0);
+  const [panelCapacityWp, setPanelCapacityWp] = useState<number>(1800);
+  const [peakSunHours, setPeakSunHours] = useState<number>(5.2);
+  const [batteryCapacityKWh, setBatteryCapacityKWh] = useState<number>(7.5);
+  const [tiltAngleDeg, setTiltAngleDeg] = useState<number>(14);
+  const [surfaceCleanlinessPct, setSurfaceCleanlinessPct] = useState<number>(92);
+  const soundPlayedRef = useRef<boolean>(false);
 
   const solarOut = calculateSolarPvOutput({
     panelCapacityWp,
@@ -28,31 +32,57 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
     batteryCapacityKWh,
   });
 
+  // Calculate photovoltaic angle and optical cleanliness efficiencies (FASE 4)
+  const tiltDeviation = Math.abs(tiltAngleDeg - 12);
+  const tiltFactor = Math.max(0.65, 1 - (tiltDeviation / 45) * 0.3);
+  const cleanlinessFactor = surfaceCleanlinessPct / 100;
+  const systemEfficiencyPct = Math.min(95, Math.round(92 * tiltFactor * cleanlinessFactor));
+  const effectiveHarvestKWh = Number((solarOut.dailyHarvestKWh * (systemEfficiencyPct / 82)).toFixed(2));
+
+  const missionTargetEfficiency = 85;
+  const isMissionSuccess = systemEfficiencyPct >= missionTargetEfficiency && effectiveHarvestKWh >= 6.5;
+
   const mission = evaluateSimulationMission('solar', {
-    dailyHarvestKWh: solarOut.dailyHarvestKWh,
+    dailyHarvestKWh: effectiveHarvestKWh,
     autonomyHours: solarOut.autonomyHours,
   });
 
-  React.useEffect(() => {
-    if (mission.completed && onMissionComplete) {
-      onMissionComplete();
+  const isCompleted = isMissionSuccess || mission.completed;
+
+  useEffect(() => {
+    if (isCompleted) {
+      if (!soundPlayedRef.current) {
+        soundPlayedRef.current = true;
+        playMissionCompleteSound();
+      }
+      if (onMissionComplete) {
+        onMissionComplete();
+      }
+    } else {
+      soundPlayedRef.current = false;
     }
-  }, [mission.completed, onMissionComplete]);
+  }, [isCompleted, onMissionComplete]);
 
   const applySolarStage = (stage: number) => {
     setActiveStage(stage);
     if (stage === 1) {
-      setPanelCapacityWp(1200);
-      setPeakSunHours(5.0);
-      setBatteryCapacityKWh(5.0);
-    } else if (stage === 2) {
-      setPanelCapacityWp(800);
-      setPeakSunHours(3.2);
-      setBatteryCapacityKWh(3.0);
-    } else {
       setPanelCapacityWp(1800);
-      setPeakSunHours(5.4);
+      setPeakSunHours(5.2);
       setBatteryCapacityKWh(7.5);
+      setTiltAngleDeg(14);
+      setSurfaceCleanlinessPct(92);
+    } else if (stage === 2) {
+      setPanelCapacityWp(1000);
+      setPeakSunHours(3.5);
+      setBatteryCapacityKWh(4.0);
+      setTiltAngleDeg(38);
+      setSurfaceCleanlinessPct(65);
+    } else {
+      setPanelCapacityWp(2200);
+      setPeakSunHours(5.6);
+      setBatteryCapacityKWh(9.0);
+      setTiltAngleDeg(12);
+      setSurfaceCleanlinessPct(98);
     }
   };
 
@@ -127,52 +157,78 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
         </div>
       </div>
 
-      {/* Prominent Learning Mission Box */}
+      {/* Prominent Learning Mission Box (Scaffolded Learning - FASE 4) */}
       <div
-        className={`rounded-2xl p-4 sm:p-5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs ${
-          mission.completed
+        className={`rounded-2xl p-5 border transition-all space-y-3.5 shadow-2xs ${
+          isCompleted
             ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-white border-emerald-300 text-emerald-950'
-            : 'bg-gradient-to-r from-amber-50/80 via-orange-50/40 to-white border-amber-200 text-slate-800'
+            : 'bg-gradient-to-r from-amber-50/90 via-orange-50/40 to-white border-amber-200 text-slate-800'
         }`}
       >
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold">
-            {mission.completed ? (
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white flex items-center gap-1 shadow-2xs">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>MISI LAB TUNTAS (+150 XP)</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white flex items-center gap-1 shadow-2xs">
+                <span>🎯</span>
+                <span>Misi Sains Hari Ini</span>
               </span>
-            ) : (
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-600 text-white flex items-center gap-1 shadow-2xs">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>PANDUAN CEPAT / MISI BELAJAR</span>
-              </span>
-            )}
-            <span className="text-slate-900 font-bold">{mission.missionTitle}</span>
+              <span className="text-slate-900 font-bold">Misi Efisiensi &amp; Panen PLTS 24 Jam</span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              🎯 <strong>Misi:</strong> Sesuaikan sudut panel fotovoltaik dan kebersihan permukaan kaca agar efisiensi mencapai minimal 85% serta panen surya mencapai minimal 6,5 kWh/hari!
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-            🎯 <strong>Petunjuk:</strong> {mission.targetDescription}
-          </p>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="text-right text-xs">
+              <div className="font-bold text-slate-900">
+                Efisiensi: {systemEfficiencyPct}% · Panen: {effectiveHarvestKWh} kWh/hr
+              </div>
+              <div className="text-[11px] text-slate-500 font-semibold">
+                Target: ≥85% Efisiensi &amp; ≥6,5 kWh
+              </div>
+            </div>
+            <div className="w-24 sm:w-28 h-3 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
+              <motion.div
+                initial={false}
+                animate={{ width: `${Math.min(100, Math.round((systemEfficiencyPct / 85) * 100))}%` }}
+                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                className={`h-full rounded-full ${
+                  isCompleted
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                }`}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right text-xs">
-            <div className="font-bold text-slate-900">{mission.currentProgressText}</div>
-            <div className="text-[11px] text-slate-500 font-semibold">Progres: {mission.progressPct}%</div>
-          </div>
-          <div className="w-24 sm:w-28 h-3 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
+        {/* Animated Success Badge & 2-Sentence Scientific Explanation */}
+        <AnimatePresence>
+          {isCompleted && (
             <motion.div
-              initial={false}
-              animate={{ width: `${mission.progressPct}%` }}
-              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className={`h-full rounded-full ${
-                mission.completed
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                  : 'bg-gradient-to-r from-amber-500 to-orange-500'
-              }`}
-            />
-          </div>
-        </div>
+              initial={{ opacity: 0, y: 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.98 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-2 pt-2 border-t border-emerald-200/80"
+            >
+              <div className="flex items-center gap-2 p-2.5 bg-emerald-100/90 border border-emerald-300/90 rounded-xl text-emerald-950 font-bold text-xs sm:text-sm shadow-2xs">
+                <span className="text-lg">🎉</span>
+                <span>Misi Berhasil! Listrik Desa Menyala Stabil!</span>
+              </div>
+              <div className="p-3 bg-white/95 rounded-xl border border-emerald-200 text-xs text-emerald-900 leading-relaxed space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-emerald-950">
+                  <span>💡</span>
+                  <span>Penjelasan Ilmiah: Mengapa Kombinasi Parameter Ini Menghasilkan Daya Optimal?</span>
+                </div>
+                <p>
+                  Sudut kemiringan panel fotovoltaik yang tepat memastikan sinar foton matahari datang tegak lurus (90°) terhadap permukaan sel surya, memaksimalkan absorpsi foton dan eksitasi elektron silikon. Dipadukan dengan permukaan kaca yang bersih bebas debu dan kerak air, refleksi dan hamburan optik terminimalisir sehingga efisiensi konversi sistem fotovoltaik mencapai performa puncak di atas 85%.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -374,11 +430,68 @@ export const SolarPvSimulation: React.FC<SolarPvSimulationProps> = ({
                 <span>12.0 kWh (Rak Penuh)</span>
               </div>
             </div>
+
+            {/* FASE 4: Sudut Kemiringan Panel Fotovoltaik */}
+            <div>
+              <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-800 mb-1.5 gap-1">
+                <label htmlFor="slider-tilt">Sudut Kemiringan Panel (° Derajat)</label>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] ${tiltDeviation <= 5 ? 'bg-emerald-100 text-emerald-900 font-bold' : 'bg-amber-100 text-amber-900'}`}>
+                  {tiltAngleDeg}° · {tiltDeviation <= 5 ? '📐 Sudut Optimal Khatulistiwa' : '⚠️ Refleksi Meningkat'}
+                </span>
+              </div>
+              <input
+                id="slider-tilt"
+                type="range"
+                min={0}
+                max={45}
+                step={1}
+                value={tiltAngleDeg}
+                onChange={(e) => setTiltAngleDeg(Number(e.target.value))}
+                className="w-full accent-amber-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+              />
+              <div className="flex justify-between text-[11px] text-slate-500 font-semibold mt-1">
+                <span>0° (Datar)</span>
+                <span>12°-15° (Optimal)</span>
+                <span>45° (Curam)</span>
+              </div>
+            </div>
+
+            {/* FASE 4: Kebersihan Permukaan Kaca Sel Surya */}
+            <div>
+              <div className="flex flex-wrap items-center justify-between text-xs font-bold text-slate-800 mb-1.5 gap-1">
+                <label htmlFor="slider-clean">Kebersihan Permukaan Kaca Panel</label>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] ${surfaceCleanlinessPct >= 85 ? 'bg-emerald-100 text-emerald-900 font-bold' : 'bg-rose-100 text-rose-900'}`}>
+                  {surfaceCleanlinessPct}% · {surfaceCleanlinessPct >= 85 ? '✨ Bersih Bebas Debu' : '🌫️ Tertutup Debu/Kerak'}
+                </span>
+              </div>
+              <input
+                id="slider-clean"
+                type="range"
+                min={50}
+                max={100}
+                step={2}
+                value={surfaceCleanlinessPct}
+                onChange={(e) => setSurfaceCleanlinessPct(Number(e.target.value))}
+                className="w-full accent-teal-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+              />
+              <div className="flex justify-between text-[11px] text-slate-500 font-semibold mt-1">
+                <span>50% (Sangat Berdebu)</span>
+                <span>100% (Kristal Bersih)</span>
+              </div>
+            </div>
+
+            {/* Efficiency Summary Pill */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-600 font-semibold">Efisiensi Sistem Nyata:</span>
+              <span className={`font-bold ${systemEfficiencyPct >= 85 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {systemEfficiencyPct}% {systemEfficiencyPct >= 85 ? '✓ (Target ≥85% Tercapai)' : '(Target ≥85%)'}
+              </span>
+            </div>
           </div>
 
           <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3 text-xs">
             <p className="text-slate-600 leading-relaxed text-[11px]">
-              Rumus Lapangan: <code className="font-bold text-slate-900">E = Wp × PSH × 0,82</code>
+              Rumus: <code className="font-bold text-slate-900">E = Wp × PSH × η_sistem ({systemEfficiencyPct}%)</code>
             </p>
             <button
               type="button"

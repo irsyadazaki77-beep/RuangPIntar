@@ -97,14 +97,29 @@ export class WebSocketHandler {
           const msg = JSON.parse(String(raw));
 
           if (msg.type === 'peer:identify' && msg.peerId && msg.studentName) {
+            const peerIdStr = String(msg.peerId);
+            const studentNameStr = String(msg.studentName).trim();
             const currentMeta = this.clients.get(ws);
             if (currentMeta) {
-              currentMeta.peerId = String(msg.peerId);
+              currentMeta.peerId = peerIdStr;
             }
+
+            // Ephemeral test peers should not mutate or persist into production SQLite state
+            if (peerIdStr === 'peer-test-unit') {
+              this.broadcastState();
+              return;
+            }
+
             const peers = classroomState.getPeers();
-            const existingPeer = peers.find((p) => p.id === msg.peerId);
+            const existingPeer = peers.find((p) => p.id === peerIdStr);
             if (existingPeer) {
-              existingPeer.name = String(msg.studentName);
+              if (peerIdStr === 'peer-siswa-05') {
+                existingPeer.name = studentNameStr.includes('Peer 05')
+                  ? studentNameStr
+                  : `${studentNameStr} (Perangkat Anda · Peer 05)`;
+              } else {
+                existingPeer.name = studentNameStr;
+              }
               if (
                 msg.deviceType === 'Laptop Guru (Host Node)' ||
                 msg.deviceType === 'Laptop Siswa' ||
@@ -116,8 +131,8 @@ export class WebSocketHandler {
               existingPeer.rtcStatus = 'DataChannel Terhubung';
             } else {
               const newPeer: PeerNode = {
-                id: String(msg.peerId),
-                name: String(msg.studentName),
+                id: peerIdStr,
+                name: studentNameStr,
                 deviceType:
                   msg.deviceType === 'Laptop Guru (Host Node)' || msg.deviceType === 'Laptop Siswa'
                     ? msg.deviceType

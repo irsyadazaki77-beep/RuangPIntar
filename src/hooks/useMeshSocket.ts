@@ -5,11 +5,31 @@ import {
 import {
   saveBinaryChunkRecord,
   loadClientDownloadedChunks,
+  saveCustomHostUrl,
+  loadCustomHostUrl,
 } from '../utils/clientStorage';
 import {
   useMeshNetwork,
   STUDENT_PEER_ID,
 } from '../context/MeshNetworkContext';
+
+export function parseHostAddress(input: string): { httpBaseUrl: string; wsUrl: string; hostWithPort: string } {
+  let clean = input.trim();
+  clean = clean.replace(/^https?:\/\//i, '');
+  clean = clean.replace(/\/.*$/, ''); // strip paths
+  if (!clean.includes(':')) {
+    const defaultPort = (typeof window !== 'undefined' && window.location.port) ? window.location.port : '3000';
+    clean = `${clean}:${defaultPort}`;
+  }
+  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const httpScheme = isHttps ? 'https:' : 'http:';
+  const wsScheme = isHttps ? 'wss:' : 'ws:';
+  return {
+    httpBaseUrl: `${httpScheme}//${clean}`,
+    wsUrl: `${wsScheme}//${clean}/ws`,
+    hostWithPort: clean,
+  };
+}
 
 async function safeParseJson(res: Response): Promise<Record<string, any>> {
   try {
@@ -32,7 +52,18 @@ export function useMeshSocket() {
     setPeers,
     setActiveWebRtcChannelsCount,
     setLastBinaryPacketInfo,
+    setStatusBanner,
+    setSimulatedOfflineMode,
+    setCustomHostUrl,
   } = useMeshNetwork();
+
+  const [activeHost, setActiveHost] = useState<string>(() => {
+    const saved = loadCustomHostUrl();
+    if (saved) {
+      return parseHostAddress(saved).hostWithPort;
+    }
+    return typeof window !== 'undefined' ? window.location.host : 'localhost:3000';
+  });
 
   const [socketConnected, setSocketConnected] = useState<boolean>(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -40,6 +71,54 @@ export function useMeshSocket() {
   const dataChannelsRef = useRef<Map<string, RTCDataChannel>>(new Map());
   const backoffRef = useRef<number>(1000);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
+
+  const reconnectToHost = useCallback(
+    async (newHostUrl: string): Promise<boolean> => {
+      try {
+        const parsed = parseHostAddress(newHostUrl);
+        saveCustomHostUrl(parsed.httpBaseUrl);
+        setCustomHostUrl(parsed.httpBaseUrl);
+        setSimulatedOfflineMode(false);
+        setActiveHost(parsed.hostWithPort);
+
+        if (wsRef.current) {
+          try {
+            wsRef.current.close();
+          } catch {
+            // Ignore close error
+          }
+        }
+
+        try {
+          const res = await fetch(`${parsed.httpBaseUrl}/api/state`);
+          if (res.ok) {
+            const data = await safeParseJson(res);
+            if (data && Object.keys(data).length > 0) {
+              applyServerState(data);
+            }
+          }
+        } catch {
+          try {
+            const res = await fetch('/api/state');
+            if (res.ok) {
+              const data = await safeParseJson(res);
+              if (data) applyServerState(data);
+            }
+          } catch {
+            // Suppress fallback error
+          }
+        }
+
+        setStatusBanner(`Berhasil terhubung ke Laptop Guru! (${parsed.hostWithPort})`);
+        return true;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Format URL simpul guru tidak valid';
+        setStatusBanner(`Gagal menghubungkan ke simpul guru: ${msg}`);
+        return false;
+      }
+    },
+    [applyServerState, setCustomHostUrl, setSimulatedOfflineMode, setStatusBanner]
+  );
 
   /**
    * Processes an incoming raw binary frame received over WebSocket or RTCDataChannel
@@ -220,8 +299,8 @@ export function useMeshSocket() {
 
     void initClientStorage();
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const parsedHost = parseHostAddress(activeHost);
+    const wsUrl = parsedHost.wsUrl;
 
     const connectWebSocket = () => {
       if (!mounted) return;
@@ -407,6 +486,7 @@ export function useMeshSocket() {
       rtcPeersRef.current.clear();
     };
   }, [
+    activeHost,
     applyServerState,
     gatewayTetheringOnline,
     handleIncomingBinaryChunk,
@@ -420,5 +500,7 @@ export function useMeshSocket() {
     socketConnected,
     transmitBinaryViaWebRtcDataChannel,
     handleIncomingBinaryChunk,
+    reconnectToHost,
+    activeHost,
   };
 }

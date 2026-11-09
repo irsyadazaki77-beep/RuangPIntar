@@ -37,5 +37,7 @@ export const config: ServerConfig = {
 export const SECURITY_CONSTANTS = {
   MAX_PIN_ATTEMPTS: 5,
   LOCKOUT_DURATION_MS: 60 * 1000, // 60 seconds
+  SESSION_DURATION_MS: 8 * 60 * 60 * 1000, // 8 hours (1 school day session)
   MAX_REQUEST_BODY_SIZE: '2mb',
 } as const;
+

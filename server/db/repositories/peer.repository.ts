@@ -10,12 +10,14 @@ interface PeerRow {
 export class PeerRepository {
   static saveAll(peersList: PeerNode[]): void {
     const db = getDatabase();
+    const clearStmt = db.prepare('DELETE FROM peer_nodes');
     const stmt = db.prepare(`
       INSERT OR REPLACE INTO peer_nodes (id, peer_json, sort_order)
       VALUES (@id, @peer_json, @sort_order)
     `);
 
     const tx = db.transaction((items: PeerNode[]) => {
+      clearStmt.run();
       items.forEach((p, idx) => {
         stmt.run({
           id: p.id,

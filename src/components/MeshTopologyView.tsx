@@ -291,8 +291,13 @@ export const MeshTopologyView: React.FC<Props> = ({
                   )}
 
                 {/* Render All Peers */}
-                {peers.map((p) => {
-                  const pos = nodePositions[p.id] || { x: 350, y: 200, shortLabel: p.name };
+                {peers.map((p, idx) => {
+                  const fallbackAngle = (idx * Math.PI * 2) / Math.max(1, peers.length);
+                  const pos = nodePositions[p.id] || {
+                    x: Math.round(350 + Math.cos(fallbackAngle) * 180),
+                    y: Math.round(210 + Math.sin(fallbackAngle) * 95),
+                    shortLabel: p.name.slice(0, 24),
+                  };
                   const heldCount = (p.moduleChunks[activeModule?.id || ''] || []).length;
                   const total = activeModule?.totalChunks || 16;
                   const isHost = p.role === 'HOST';

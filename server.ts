@@ -26,6 +26,15 @@ async function startServer(): Promise<void> {
     console.log(`  * Zero-Config mDNS : http://${config.mdnsHost}:${PORT}`);
     console.log(`  * WebSockets & P2P : ws://${HOST}:${PORT}/ws`);
     console.log(`================================================================\n`);
+
+    // Peringatan Keamanan Default PIN (FASE 1)
+    const activePin = config.hostPin;
+    const isDefaultOrEmpty = !process.env.HOST_PIN || activePin === '1945';
+    if (isDefaultOrEmpty) {
+      console.warn(`\x1b[41m\x1b[37m\x1b[1m [PERINGATAN KEAMANAN SIMPUL GURU] \x1b[0m`);
+      console.warn(`\x1b[33m\x1b[1m⚠️  SIMPUL GURU MENGGUNAKAN PIN DEFAULT '1945' ATAU HOST_PIN BELUM DISETEL DI .ENV!\x1b[0m`);
+      console.warn(`\x1b[33m   Segera perbarui PIN melalui menu 'Ruang Guru' demi keamanan materi dan kontrol kelas.\x1b[0m\n`);
+    }
   });
 
   // Start mDNS/Bonjour zero-config discovery

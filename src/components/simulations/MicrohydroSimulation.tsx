@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Play, Pause, CheckCircle2, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Play, Pause, CheckCircle2, Sparkles, Award } from 'lucide-react';
 import {
   calculateMicrohydroOutput,
   evaluateSimulationMission,
 } from '../../utils/edgeEngine';
+import { playMissionCompleteSound } from '../../utils/soundEffects';
 
 interface MicrohydroSimulationProps {
   isPlaying: boolean;
@@ -21,6 +22,7 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
   const [headMeters, setHeadMeters] = useState<number>(22);
   const [flowLiters, setFlowLiters] = useState<number>(65);
   const [efficiencyPct, setEfficiencyPct] = useState<number>(75);
+  const soundPlayedRef = useRef<boolean>(false);
 
   const hydroOut = calculateMicrohydroOutput({
     headMeters,
@@ -33,9 +35,17 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
     housesPowered: hydroOut.housesPowered,
   });
 
-  React.useEffect(() => {
-    if (mission.completed && onMissionComplete) {
-      onMissionComplete();
+  useEffect(() => {
+    if (mission.completed) {
+      if (!soundPlayedRef.current) {
+        soundPlayedRef.current = true;
+        playMissionCompleteSound();
+      }
+      if (onMissionComplete) {
+        onMissionComplete();
+      }
+    } else {
+      soundPlayedRef.current = false;
     }
   }, [mission.completed, onMissionComplete]);
 
@@ -132,52 +142,74 @@ export const MicrohydroSimulation: React.FC<MicrohydroSimulationProps> = ({
         </div>
       </div>
 
-      {/* Prominent Learning Mission Box */}
+      {/* Prominent Learning Mission Box (Scaffolded Learning - FASE 4) */}
       <div
-        className={`rounded-2xl p-4 sm:p-5 border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs ${
+        className={`rounded-2xl p-5 border transition-all space-y-3.5 shadow-2xs ${
           mission.completed
             ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-white border-emerald-300 text-emerald-950'
-            : 'bg-gradient-to-r from-sky-50/80 via-indigo-50/40 to-white border-sky-200 text-slate-800'
+            : 'bg-gradient-to-r from-sky-50/90 via-indigo-50/40 to-white border-sky-200 text-slate-800'
         }`}
       >
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold">
-            {mission.completed ? (
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white flex items-center gap-1 shadow-2xs">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>MISI LAB TUNTAS (+150 XP)</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white flex items-center gap-1 shadow-2xs">
+                <span>🎯</span>
+                <span>Misi Sains Hari Ini</span>
               </span>
-            ) : (
-              <span className="px-2.5 py-0.5 rounded-full bg-sky-600 text-white flex items-center gap-1 shadow-2xs">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>PANDUAN CEPAT / MISI BELAJAR</span>
-              </span>
-            )}
-            <span className="text-slate-900 font-bold">{mission.missionTitle}</span>
+              <span className="text-slate-900 font-bold">{mission.missionTitle}</span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+              🎯 <strong>Misi:</strong> Atur debit air dan kemiringan/ketinggian pipa pesat (head) hingga daya listrik desa mencapai minimal 14,0 kW (menerangi ≥ 31 rumah &amp; sekolah)!
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-            🎯 <strong>Petunjuk:</strong> {mission.targetDescription}
-          </p>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="text-right text-xs">
+              <div className="font-bold text-slate-900">{mission.currentProgressText}</div>
+              <div className="text-[11px] text-slate-500 font-semibold">Progres: {mission.progressPct}%</div>
+            </div>
+            <div className="w-24 sm:w-28 h-3 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
+              <motion.div
+                initial={false}
+                animate={{ width: `${mission.progressPct}%` }}
+                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                className={`h-full rounded-full ${
+                  mission.completed
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                    : 'bg-gradient-to-r from-sky-500 to-indigo-500'
+                }`}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right text-xs">
-            <div className="font-bold text-slate-900">{mission.currentProgressText}</div>
-            <div className="text-[11px] text-slate-500 font-semibold">Progres: {mission.progressPct}%</div>
-          </div>
-          <div className="w-24 sm:w-28 h-3 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
+        {/* Animated Success Badge & 2-Sentence Scientific Explanation */}
+        <AnimatePresence>
+          {mission.completed && (
             <motion.div
-              initial={false}
-              animate={{ width: `${mission.progressPct}%` }}
-              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className={`h-full rounded-full ${
-                mission.completed
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                  : 'bg-gradient-to-r from-sky-500 to-indigo-500'
-              }`}
-            />
-          </div>
-        </div>
+              initial={{ opacity: 0, y: 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.98 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-2 pt-2 border-t border-emerald-200/80"
+            >
+              <div className="flex items-center gap-2 p-2.5 bg-emerald-100/90 border border-emerald-300/90 rounded-xl text-emerald-950 font-bold text-xs sm:text-sm shadow-2xs">
+                <span className="text-lg">🎉</span>
+                <span>Misi Berhasil! Listrik Desa Menyala Stabil!</span>
+              </div>
+              <div className="p-3 bg-white/95 rounded-xl border border-emerald-200 text-xs text-emerald-900 leading-relaxed space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-emerald-950">
+                  <span>💡</span>
+                  <span>Penjelasan Ilmiah: Mengapa Kombinasi Parameter Ini Menghasilkan Daya Optimal?</span>
+                </div>
+                <p>
+                  Ketinggian pipa jatuh (head) yang tinggi melipatgandakan energi potensial gravitasi (Ep = m·g·h) yang diubah menjadi energi kinetik air berkecepatan tinggi saat menumbuk sudu turbin. Dipadukan dengan debit air sungai yang terjaga dan efisiensi generator di atas 75%, turbin menghasilkan daya listrik bersih optimal yang stabil tanpa fluktuasi tegangan untuk desa.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">

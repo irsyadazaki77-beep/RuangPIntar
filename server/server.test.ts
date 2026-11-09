@@ -143,3 +143,106 @@ test('server REST API and WebSocket integration test', async () => {
     closeDatabase();
   }
 });
+
+test('FASE 5: Session token authentication, rate limiting, and protected route authorization test', async () => {
+  const server = http.createServer();
+  const app = await createApp(server, { skipVite: true });
+  server.on('request', app);
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+
+  const address = server.address();
+  assert.notEqual(address, null);
+  const port = typeof address === 'object' && address ? address.port : 3000;
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    // 1. Test POST /api/auth/login with correct PIN -> 200 and session token
+    const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: '1945' }),
+    });
+    assert.equal(loginRes.status, 200);
+    const loginData = await loginRes.json();
+    assert.equal(loginData.success, true);
+    assert.equal(typeof loginData.token, 'string');
+    assert.equal(loginData.token.length >= 32, true);
+    assert.equal(typeof loginData.expiresAt, 'number');
+    const validToken = loginData.token;
+
+    // 2. Test access to protected endpoint with valid Bearer token -> 200
+    const protectedWithTokenRes = await fetch(`${baseUrl}/api/gateway/toggle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${validToken}`,
+      },
+      body: JSON.stringify({ online: true }),
+    });
+    assert.equal(protectedWithTokenRes.status, 200);
+    const toggleData = await protectedWithTokenRes.json();
+    assert.equal(toggleData.ok, true);
+
+    // 3. Test access to protected endpoint without Bearer token -> 401
+    const protectedNoTokenRes = await fetch(`${baseUrl}/api/gateway/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ online: false }),
+    });
+    assert.equal(protectedNoTokenRes.status, 401);
+
+    // 4. Test POST /api/auth/login with wrong PIN -> 401
+    const wrongLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: '9999-wrong' }),
+    });
+    assert.equal(wrongLoginRes.status, 401);
+    const wrongData = await wrongLoginRes.json();
+    assert.equal(wrongData.success, false);
+
+    // 5. Test brute force lockout / 429 rate limiter on /api/auth/login
+    let reached429 = false;
+    for (let i = 0; i < 15; i++) {
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: `brute-wrong-${i}` }),
+      });
+      if (res.status === 429) {
+        reached429 = true;
+        break;
+      }
+    }
+    assert.equal(reached429, true);
+
+    // 6. Test POST /api/auth/logout to revoke token
+    const logoutRes = await fetch(`${baseUrl}/api/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${validToken}`,
+      },
+    });
+    assert.equal(logoutRes.status, 200);
+    const logoutData = await logoutRes.json();
+    assert.equal(logoutData.success, true);
+
+    // 7. Test protected endpoint after token is revoked -> must return 401
+    const postLogoutRes = await fetch(`${baseUrl}/api/gateway/toggle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${validToken}`,
+      },
+      body: JSON.stringify({ online: true }),
+    });
+    assert.equal(postLogoutRes.status, 401);
+  } finally {
+    server.close();
+    closeDatabase();
+  }
+});

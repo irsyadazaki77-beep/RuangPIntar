@@ -9,6 +9,35 @@ const IDB_VERSION = 1;
 const STORE_CHUNKS_META = 'peer_chunks_meta';
 const STORE_BINARY_BLOBS = 'binary_chunks';
 const LS_FALLBACK_KEY = 'ruangpintar_edge_peer_chunks_v1';
+export const CUSTOM_HOST_URL_STORAGE_KEY = 'ruangpintar_custom_host_url';
+
+export function saveCustomHostUrl(url: string): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    const cleanUrl = url.trim().replace(/\/+$/, '');
+    window.localStorage.setItem(CUSTOM_HOST_URL_STORAGE_KEY, cleanUrl);
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+export function loadCustomHostUrl(): string | null {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    return window.localStorage.getItem(CUSTOM_HOST_URL_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function clearCustomHostUrl(): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.removeItem(CUSTOM_HOST_URL_STORAGE_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 export interface StoredBinaryChunkRecord {
   key: string; // `${moduleId}:${chunkIndex}`

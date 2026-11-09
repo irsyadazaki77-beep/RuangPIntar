@@ -90,6 +90,12 @@ interface MeshNetworkContextType {
   tutorPromptDraft: string | null;
   setTutorPromptDraft: (prompt: string | null) => void;
   applyServerState: (data: ServerStatePayload) => void;
+  isQrScannerOpen: boolean;
+  setIsQrScannerOpen: (open: boolean) => void;
+  openQrScanner: () => void;
+  closeQrScanner: () => void;
+  customHostUrl: string | null;
+  setCustomHostUrl: (url: string | null) => void;
 }
 
 const MeshNetworkContext = createContext<MeshNetworkContextType | undefined>(undefined);
@@ -111,15 +117,30 @@ export const MeshNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [lastBinaryPacketInfo, setLastBinaryPacketInfo] = useState<string | null>(null);
   const [tutorPromptDraft, setTutorPromptDraft] = useState<string | null>(null);
   const [simulatedOfflineMode, setSimulatedOfflineMode] = useState<boolean>(false);
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState<boolean>(false);
+  const [customHostUrl, setCustomHostUrl] = useState<string | null>(null);
+
+  const openQrScanner = useCallback(() => setIsQrScannerOpen(true), []);
+  const closeQrScanner = useCallback(() => setIsQrScannerOpen(false), []);
 
   const [studentProfile, setStudentProfile] = useState<StudentProfile>(() => {
     try {
       const saved = window.localStorage.getItem(STUDENT_PROFILE_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved) as StudentProfile;
+        const normalizedPeerId =
+          parsed.peerId && /^peer-siswa-0[1-5]$/.test(parsed.peerId)
+            ? parsed.peerId
+            : STUDENT_PEER_ID;
+        return {
+          peerId: normalizedPeerId,
+          studentName: parsed.studentName || 'Hendrikus D.',
+          avatar: parsed.avatar || '🐬 Lumba-lumba',
+        };
+      }
     } catch {}
-    const randId = `peer-siswa-${Math.random().toString(36).slice(2, 6)}`;
     return {
-      peerId: randId,
+      peerId: STUDENT_PEER_ID,
       studentName: 'Hendrikus D.',
       avatar: '🐬 Lumba-lumba',
     };
@@ -193,6 +214,12 @@ export const MeshNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
       tutorPromptDraft,
       setTutorPromptDraft,
       applyServerState,
+      isQrScannerOpen,
+      setIsQrScannerOpen,
+      openQrScanner,
+      closeQrScanner,
+      customHostUrl,
+      setCustomHostUrl,
     }),
     [
       activeTab,
@@ -216,6 +243,10 @@ export const MeshNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
       isOfflineActive,
       tutorPromptDraft,
       applyServerState,
+      isQrScannerOpen,
+      openQrScanner,
+      closeQrScanner,
+      customHostUrl,
     ]
   );
 

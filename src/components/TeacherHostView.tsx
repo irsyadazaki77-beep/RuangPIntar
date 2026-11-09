@@ -407,8 +407,9 @@ export const TeacherHostView: React.FC<Props> = ({
               <span aria-hidden="true">·</span>
               <span>Database: SQLite Persisten (WAL)</span>
               <span aria-hidden="true">·</span>
-              <span className="text-emerald-700 font-semibold">
-                Otorisasi PIN Guru: Terverifikasi (x-host-pin)
+              <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Sesi Guru Aktif (Bearer Token 8 Jam)</span>
               </span>
             </div>
             <h1
@@ -932,6 +933,107 @@ export const TeacherHostView: React.FC<Props> = ({
           </div>
         </div>
       </motion.section>
+
+      {/* 04. Buku Nilai & Capaian Eksperimen Siswa (Sinkronisasi Luring/Daring) */}
+      {(() => {
+        const gradebook = calculateGradebookSummary(submissions);
+        return (
+          <motion.section
+            variants={hostItemVariants}
+            aria-label="Buku Nilai dan Capaian Eksperimen Siswa"
+            className="bento-card p-6 sm:p-7 space-y-5"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e6e2d8]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700 shrink-0">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-stone-900">
+                    04. Buku Nilai &amp; Capaian Eksperimen Siswa (Real-Time SQLite)
+                  </h2>
+                  <p className="text-xs text-stone-600 mt-0.5">
+                    Rekaman skor kuis dan penyelesaian misi laboratorium virtual yang disinkronkan otomatis dari perangkat siswa.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 text-xs font-mono tabular-nums">
+                <span className="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 font-semibold flex items-center gap-1.5">
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Rata-rata Kelas: {gradebook.averageScore}%</span>
+                </span>
+                <span className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5" />
+                  <span>Lab Tuntas: {gradebook.simulationsCompletedCount} Misi</span>
+                </span>
+              </div>
+            </div>
+
+            {submissions.length === 0 ? (
+              <div className="surface-warm-recessed p-5 rounded-2xl text-center space-y-1.5">
+                <p className="text-xs font-semibold text-stone-800">
+                  Belum Ada Pengumpulan Kuis atau Misi Lab Baru pada Sesi Ini
+                </p>
+                <p className="text-[11px] text-stone-600 max-w-xl mx-auto">
+                  Saat siswa mengerjakan Kuis Seru atau menuntaskan Misi Laboratorium Virtual di tab{' '}
+                  <strong>Petualangan Belajar</strong>, nilai mereka akan langsung tampil di sini secara real-time.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#e6e2d8] text-[11px] font-mono text-stone-500">
+                      <th className="py-2.5 pr-3">Siswa &amp; Simpul</th>
+                      <th className="py-2.5 px-3">Modul Pembelajaran</th>
+                      <th className="py-2.5 px-3 text-right">Skor Kuis</th>
+                      <th className="py-2.5 px-3 text-center">Status Lab</th>
+                      <th className="py-2.5 pl-3 text-right">Waktu Sinkronisasi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#ece8df] text-xs">
+                    {submissions.map((sub) => (
+                      <tr key={sub.id} className="hover:bg-[#faf8f5] transition-colors">
+                        <td className="py-3 pr-3">
+                          <div className="font-semibold text-stone-900">
+                            {sub.avatar} {sub.studentName}
+                          </div>
+                          <div className="text-[11px] font-mono text-stone-500">{sub.peerId}</div>
+                        </td>
+                        <td className="py-3 px-3 font-medium text-stone-800">{sub.moduleTitle}</td>
+                        <td className="py-3 px-3 text-right font-mono font-bold tabular-nums">
+                          <span
+                            className={
+                              sub.passed ? 'text-emerald-700' : 'text-amber-700'
+                            }
+                          >
+                            {sub.quizScore}% ({sub.passed ? 'Lulus' : 'Remedial'})
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono text-[11px]">
+                          {sub.simulationCompleted ? (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
+                              ✓ Lab Selesai
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
+                              Proses Baca
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 pl-3 text-right font-mono text-stone-500 tabular-nums">
+                          {sub.timestamp}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </motion.section>
+        );
+      })()}
     </motion.div>
   );
 };

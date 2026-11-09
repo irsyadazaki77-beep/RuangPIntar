@@ -1,9 +1,14 @@
+import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import {
   verifyPinTimingSafe,
   getCurrentHostPin,
+  extractBearerToken,
 } from '../middleware/authMiddleware.js';
-import { HostConfigRepository } from '../db/repositories/config.repository.js';
+import {
+  HostConfigRepository,
+  HostSessionRepository,
+} from '../db/repositories/config.repository.js';
 import {
   exportSneakernetPackage,
   importSneakernetPackage,
@@ -17,6 +22,89 @@ import { SECURITY_CONSTANTS } from '../config/env.js';
 const failedPinAttempts = new Map<string, { count: number; lockedUntil: number }>();
 
 export class AuthController {
+  /**
+   * POST /api/auth/login
+   * Authenticates teacher PIN and issues a secure 8-hour session token.
+   */
+  public static login(req: Request, res: Response): void {
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const record = failedPinAttempts.get(clientIp);
+
+    if (record && record.lockedUntil > now) {
+      const waitSec = Math.ceil((record.lockedUntil - now) / 1000);
+      res.status(429).json({
+        success: false,
+        ok: false,
+        error: `Terlalu banyak percobaan PIN salah. Akses login dikunci sementara selama ${waitSec} detik demi keamanan Simpul Guru.`,
+        retryAfter: waitSec,
+        retryAfterSeconds: waitSec,
+      });
+      return;
+    }
+
+    const candidate = String(req.body?.pin || '').trim();
+    if (candidate && verifyPinTimingSafe(candidate)) {
+      failedPinAttempts.delete(clientIp);
+
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const session = HostSessionRepository.create(rawToken);
+
+      res.status(200).json({
+        success: true,
+        ok: true,
+        token: session.token,
+        expiresAt: session.expiresAt,
+      });
+      return;
+    }
+
+    const currentCount = (record?.count || 0) + 1;
+    if (currentCount >= SECURITY_CONSTANTS.MAX_PIN_ATTEMPTS) {
+      failedPinAttempts.set(clientIp, {
+        count: currentCount,
+        lockedUntil: now + SECURITY_CONSTANTS.LOCKOUT_DURATION_MS,
+      });
+      res.status(429).json({
+        success: false,
+        ok: false,
+        error: `Terlalu banyak percobaan salah (${SECURITY_CONSTANTS.MAX_PIN_ATTEMPTS}x). Simpul Guru dikunci sementara selama 60 detik.`,
+        retryAfter: 60,
+        retryAfterSeconds: 60,
+      });
+      return;
+    }
+
+    failedPinAttempts.set(clientIp, { count: currentCount, lockedUntil: 0 });
+    res.status(401).json({
+      success: false,
+      ok: false,
+      error: `PIN Simpul Guru salah (percobaan ${currentCount}/${SECURITY_CONSTANTS.MAX_PIN_ATTEMPTS}). Gunakan PIN default 1945 atau PIN yang telah diperbarui.`,
+    });
+  }
+
+  /**
+   * POST /api/auth/logout
+   * Revokes the active session token.
+   */
+  public static logout(req: Request, res: Response): void {
+    const token =
+      extractBearerToken(req) ||
+      (typeof req.body?.token === 'string' ? req.body.token : null) ||
+      req.header('x-session-token') ||
+      '';
+
+    if (token) {
+      HostSessionRepository.revoke(token);
+    }
+
+    res.json({
+      success: true,
+      ok: true,
+      message: 'Sesi Simpul Guru berhasil dicabut.',
+    });
+  }
+
   public static verifyPin(req: Request, res: Response): void {
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
     const now = Date.now();

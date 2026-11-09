@@ -135,6 +135,28 @@ export function ensureDatabaseSeeded(): {
 
   if (PeerRepository.count() === 0) {
     PeerRepository.saveAll(INITIAL_PEERS);
+  } else {
+    const loadedPeers = PeerRepository.loadAll();
+    const canonicalIds = new Set(INITIAL_PEERS.map((p) => p.id));
+    const filteredPeers = loadedPeers.filter((p) => {
+      if (p.id === 'peer-test-unit') return false;
+      if (p.id.startsWith('peer-siswa-') && !canonicalIds.has(p.id)) return false;
+      return true;
+    });
+
+    // Ensure all canonical peers exist and peer-siswa-05 retains seat suffix
+    const finalPeers: PeerNode[] = INITIAL_PEERS.map((initPeer) => {
+      const existing = filteredPeers.find((p) => p.id === initPeer.id);
+      if (!existing) return initPeer;
+      if (existing.id === 'peer-siswa-05' && existing.name === 'Hendrikus D.') {
+        existing.name = 'Hendrikus D. (Perangkat Anda · Peer 05)';
+      }
+      return existing;
+    });
+
+    if (finalPeers.length !== loadedPeers.length) {
+      PeerRepository.saveAll(finalPeers);
+    }
   }
 
   const hostPin = HostConfigRepository.get('host_pin', config.hostPin);

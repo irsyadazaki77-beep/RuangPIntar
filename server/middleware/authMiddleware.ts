@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
-import { HostConfigRepository } from '../db/repositories/config.repository.js';
+import {
+  HostConfigRepository,
+  HostSessionRepository,
+} from '../db/repositories/config.repository.js';
 import { config } from '../config/env.js';
 
 export function compareStringsTimingSafe(a: string, b: string): boolean {
@@ -25,21 +28,40 @@ export function verifyPinTimingSafe(candidate: string, actualPin = getCurrentHos
 }
 
 /**
- * Middleware: Requires valid `x-host-pin` header (or `hostPin` in request body)
+ * Extracts Bearer token from Authorization header
+ */
+export function extractBearerToken(req: Request): string | null {
+  const authHeader = req.header('authorization') || req.header('Authorization');
+  if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+  return null;
+}
+
+/**
+ * Middleware: Requires valid Bearer Session Token (preferred) or valid `x-host-pin` header
  * to protect Teacher Host Node endpoints from unauthorized student modification.
  */
 export function requireHostPin(req: Request, res: Response, next: NextFunction): void {
+  // 1. Prioritize Session Token (Bearer <token>)
+  const bearerToken = extractBearerToken(req);
+  if (bearerToken && HostSessionRepository.isValid(bearerToken)) {
+    return next();
+  }
+
+  // 2. Fallback: Validate direct PIN header/body (for backward compatibility during migration)
   const headerPin = req.header('x-host-pin');
   const bodyPin = typeof req.body?.hostPin === 'string' ? req.body.hostPin : undefined;
   const candidate = (headerPin || bodyPin || '').trim();
 
-  if (!candidate || !verifyPinTimingSafe(candidate)) {
-    res.status(401).json({
-      ok: false,
-      error:
-        'Akses ditolak: PIN Simpul Guru (x-host-pin) tidak valid atau belum diotorisasi. Masukkan PIN Simpul Guru (default: 1945).',
-    });
-    return;
+  if (candidate && verifyPinTimingSafe(candidate)) {
+    return next();
   }
-  next();
+
+  res.status(401).json({
+    ok: false,
+    success: false,
+    error:
+      'Akses ditolak: Sesi Simpul Guru tidak valid atau telah kedaluwarsa. Silakan login kembali dengan PIN Guru (default: 1945).',
+  });
 }

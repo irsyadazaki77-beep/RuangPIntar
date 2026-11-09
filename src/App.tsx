@@ -16,6 +16,7 @@ import { ModuleLibraryView } from './components/ModuleLibraryView';
 import { MeshTopologyView } from './components/MeshTopologyView';
 import { AiTutorGatewayView } from './components/AiTutorGatewayView';
 import { TeacherHostView } from './components/TeacherHostView';
+import { QrScannerModal } from './components/QrScannerModal';
 import { stopSpeech } from './utils/speechUtils';
 import {
   encodeBinaryChunkPayload,
@@ -52,6 +53,7 @@ function MainLayout() {
     transferHistory,
     cacheEntries,
     recentQueries,
+    submissions,
     metrics,
     gatewayTetheringOnline,
     activeModuleId,
@@ -66,10 +68,13 @@ function MainLayout() {
     setTutorPromptDraft,
     applyServerState,
     studentProfile,
+    isOfflineActive,
+    isQrScannerOpen,
+    closeQrScanner,
   } = useMeshNetwork();
 
   // Lifecycle socket and WebRTC hook
-  const { transmitBinaryViaWebRtcDataChannel } = useMeshSocket();
+  const { transmitBinaryViaWebRtcDataChannel, reconnectToHost } = useMeshSocket();
 
   // Teacher Host operations hook
   const {
@@ -85,12 +90,56 @@ function MainLayout() {
   } = useTeacherHost();
 
   // Offline sync hook
-  useOfflineSync();
+  const { queueSubmission } = useOfflineSync();
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     stopSpeech();
   }, [activeTab]);
+
+  const handleSyncStudentSubmission = async (payload: {
+    moduleId: string;
+    moduleTitle: string;
+    quizScore: number;
+    totalQuestions: number;
+    passed: boolean;
+    simulationCompleted: boolean;
+  }) => {
+    const activePeerId = studentProfile.peerId || STUDENT_PEER_ID;
+    const submissionPayload = {
+      id: `sub-${activePeerId}-${payload.moduleId}`,
+      peerId: activePeerId,
+      studentName: studentProfile.studentName,
+      avatar: studentProfile.avatar,
+      ...payload,
+      timestamp: `${new Date().toLocaleTimeString('id-ID', { hour12: false })} WITA`,
+      updatedMs: Date.now(),
+    };
+
+    if (isOfflineActive) {
+      await queueSubmission(submissionPayload);
+      setStatusBanner(
+        '📥 Mode Luring: Capaian kuis & eksperimen disimpan di perangkat dan akan disinkronkan otomatis ke Guru.'
+      );
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/students/sync-submission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submissionPayload),
+      });
+      if (response.ok) {
+        const data = await safeParseJson(response);
+        if (data.state) applyServerState(data.state);
+      } else {
+        await queueSubmission(submissionPayload);
+      }
+    } catch {
+      await queueSubmission(submissionPayload);
+    }
+  };
 
   const handleSyncChunks = async (
     moduleId: string,
@@ -247,6 +296,7 @@ function MainLayout() {
                   setActiveTab('tutor');
                 }}
                 isSyncing={isSyncing}
+                onSyncStudentSubmission={handleSyncStudentSubmission}
               />
             )}
 
@@ -286,6 +336,7 @@ function MainLayout() {
                 modules={modules}
                 cacheEntries={cacheEntries}
                 metrics={metrics}
+                submissions={submissions}
                 gatewayTetheringOnline={gatewayTetheringOnline}
                 isPinVerified={isPinVerified}
                 onVerifyPin={handleVerifyHostPin}
@@ -301,6 +352,12 @@ function MainLayout() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      <QrScannerModal
+        isOpen={isQrScannerOpen}
+        onClose={closeQrScanner}
+        onConnect={reconnectToHost}
+      />
 
       <AppFooter />
     </div>

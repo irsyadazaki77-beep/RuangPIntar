@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Lightbulb,
@@ -10,9 +10,19 @@ import {
   Sparkles,
   RotateCcw,
   BookOpen,
+  Volume2,
+  VolumeX,
+  Star,
+  Award,
 } from 'lucide-react';
 import type { LearningModule } from '../../utils/edgeEngine';
 import type { SubjectVisualTheme } from '../../utils/subjectTheme';
+import {
+  playSuccessSound,
+  playRetrySound,
+  isAudioMuted,
+  toggleAudioMuted,
+} from '../../utils/soundEffects';
 
 export interface ModuleQuizCardProps {
   activeModule: LearningModule;
@@ -27,6 +37,8 @@ export interface ModuleQuizCardProps {
   onToggleRevealAllSteps: (exerciseId: string, totalSteps: number, currentlyAllRevealed: boolean) => void;
   onRevealNextStep: (exerciseId: string, totalSteps: number) => void;
   onAskTutorAboutQuiz: () => void;
+  onResetQuiz?: () => void;
+  onNextChapter?: () => void;
 }
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E'];
@@ -44,7 +56,10 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
   onToggleRevealAllSteps,
   onRevealNextStep,
   onAskTutorAboutQuiz,
+  onResetQuiz,
+  onNextChapter,
 }) => {
+  const [muted, setMuted] = useState<boolean>(() => isAudioMuted());
   const totalQuestions = activeModule.checkpoints.length;
   let answeredCount = 0;
   let correctCount = 0;
@@ -169,26 +184,46 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* Mute Audio Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setMuted(toggleAudioMuted())}
+            className="min-h-[40px] px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+            title={muted ? 'Aktifkan efek suara' : 'Bisukan efek suara'}
+          >
+            {muted ? (
+              <>
+                <VolumeX className="w-4 h-4 text-slate-400" />
+                <span>Suara: Senyap</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-4 h-4 text-emerald-600" />
+                <span>Suara: Aktif</span>
+              </>
+            )}
+          </button>
+
           {!isTimedQuizMode ? (
             <button
               type="button"
               onClick={onStartTimedChallenge}
-              className="min-h-[44px] px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer shadow-xs active:scale-95"
+              className="min-h-[40px] px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer shadow-xs active:scale-95"
             >
               <Timer className="w-4 h-4" />
               <span>Mulai Tantangan 30 Detik</span>
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-3.5 py-2 rounded-xl tabular-nums flex items-center gap-1.5 min-h-[44px]">
+              <span className="font-mono text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-3.5 py-2 rounded-xl tabular-nums flex items-center gap-1.5 min-h-[40px]">
                 <Zap className="w-4 h-4 text-amber-600" />
                 <span>Sisa Waktu: {remainingSeconds} dtk</span>
               </span>
               <button
                 type="button"
                 onClick={onExitTimedChallenge}
-                className="min-h-[44px] px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
+                className="min-h-[40px] px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
               >
                 Mode Santai
               </button>
@@ -236,8 +271,8 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
                 {cp.question}
               </p>
 
-              {/* Large Options with A, B, C, D */}
-              <div className="space-y-2.5">
+              {/* Large Options with A, B, C, D (min-h-[56px] for touch accessibility) */}
+              <div className="space-y-3">
                 {cp.options.map((opt, oIdx) => {
                   const isThisChosen = chosen === oIdx;
                   const letter = OPTION_LETTERS[oIdx] || `${oIdx + 1}`;
@@ -262,17 +297,27 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
                     <motion.button
                       key={oIdx}
                       type="button"
+                      whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => onSelectQuizOption(qIdx, oIdx, cp.correctIndex)}
-                      className={`w-full text-left p-3 sm:p-3.5 min-h-[52px] rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 active:scale-95 ${optionStyle}`}
+                      onClick={() => {
+                        onSelectQuizOption(qIdx, oIdx, cp.correctIndex);
+                        if (oIdx === cp.correctIndex) {
+                          playSuccessSound();
+                        } else {
+                          playRetrySound();
+                        }
+                      }}
+                      className={`w-full text-left p-3.5 sm:p-4 min-h-[56px] rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${optionStyle}`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3.5 min-w-0">
                         <span
-                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs ${letterStyle}`}
+                          className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl border flex items-center justify-center font-bold text-sm sm:text-base shrink-0 shadow-2xs ${letterStyle}`}
                         >
                           {letter}
                         </span>
-                        <span className="text-xs sm:text-sm leading-snug break-words">{opt}</span>
+                        <span className="text-xs sm:text-sm font-medium leading-snug break-words text-slate-800">
+                          {opt}
+                        </span>
                       </div>
 
                       {isThisChosen && (
@@ -283,14 +328,14 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
                             className="font-bold text-xs shrink-0 px-2.5 py-1 rounded-lg"
                           >
                             {isCorrect ? (
-                              <span className="text-emerald-700 flex items-center gap-1">
+                              <span className="text-emerald-700 flex items-center gap-1 font-bold">
                                 <span>✓</span>
                                 <span className="hidden sm:inline">Tepat Sekali!</span>
                               </span>
                             ) : (
-                              <span className="text-amber-800 flex items-center gap-1">
+                              <span className="text-amber-800 flex items-center gap-1 font-bold">
                                 <span>💡</span>
-                                <span className="hidden sm:inline">Coba Pahami Rumus</span>
+                                <span className="hidden sm:inline">Coba Lagi</span>
                               </span>
                             )}
                           </motion.span>
@@ -339,12 +384,12 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
         })}
       </div>
 
-      {/* Completion Encouragement & Score Summary Card */}
+      {/* Completion Encouragement & Score Summary Card with Visual Stars & Friendly Actions (FASE 3) */}
       {answeredCount > 0 && (
         <motion.section
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-white via-sky-50/40 to-emerald-50/30 border border-sky-200/90 rounded-2xl p-6 sm:p-7 space-y-4 shadow-sm"
+          className="bg-gradient-to-br from-white via-sky-50/40 to-emerald-50/30 border border-sky-200/90 rounded-2xl p-6 sm:p-7 space-y-5 shadow-sm"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
@@ -358,7 +403,7 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
               </div>
               <p className="text-xs sm:text-sm text-slate-600">
                 {scorePercent >= 70
-                  ? 'Pemahaman konsepmu sangat baik! Terus tingkatkan eksperimen di laboratorium.'
+                  ? 'Pemahaman konsepmu sangat baik! Terus tingkatkan eksperimen di laboratorium virtual.'
                   : 'Bagus sudah mencoba! Kamu bisa membaca ulang materi bab untuk memperkuat konsep.'}
               </p>
             </div>
@@ -374,6 +419,67 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
                   {correctCount}/{answeredCount}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Star Rating & Visual Recap Banner */}
+          <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-50/90 via-white to-sky-50/90 rounded-2xl border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                {/* Visual Stars Rating (1-3 stars) */}
+                <div className="flex items-center gap-1 text-2xl sm:text-3xl" aria-label={`Rating ${scorePercent === 100 ? 3 : scorePercent >= 70 ? 2 : 1} Bintang`}>
+                  {[1, 2, 3].map((starIdx) => {
+                    const starsEarned = scorePercent === 100 ? 3 : scorePercent >= 70 ? 2 : 1;
+                    const isEarned = starIdx <= starsEarned;
+                    return (
+                      <span
+                        key={starIdx}
+                        className={isEarned ? 'text-amber-400 drop-shadow-xs' : 'text-slate-300'}
+                      >
+                        ★
+                      </span>
+                    );
+                  })}
+                </div>
+                <span className="text-xs sm:text-sm font-bold text-slate-900 ml-1">
+                  {scorePercent === 100
+                    ? '3 Bintang: Sempurna! Pemahaman Luar Biasa'
+                    : scorePercent >= 70
+                    ? '2 Bintang: Hebat Sekali! Tinggal Sedikit Lagi'
+                    : '1 Bintang: Terus Semangat! Ayo Coba Lagi'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600">
+                {scorePercent === 100
+                  ? 'Selamat! Semua pertanyaan berhasil kamu jawab dengan benar tanpa cela.'
+                  : scorePercent >= 70
+                  ? 'Hasil yang sangat bagus! Kamu bisa mencoba lagi sekali untuk menyempurnakan 3 bintang penuh.'
+                  : 'Tetap semangat! Pelajari kembali rumus dan penjelasan di atas untuk mendapatkan bintang maksimal.'}
+              </p>
+            </div>
+
+            {/* Friendly Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {scorePercent < 100 && onResetQuiz && (
+                <button
+                  type="button"
+                  onClick={onResetQuiz}
+                  className="min-h-[42px] px-4 py-2 text-xs font-bold text-amber-950 bg-amber-100/90 hover:bg-amber-200 border border-amber-300 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Coba Lagi untuk Dapat 3 Bintang</span>
+                </button>
+              )}
+              {onNextChapter && (
+                <button
+                  type="button"
+                  onClick={onNextChapter}
+                  className="min-h-[42px] px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                >
+                  <span>Lanjut ke Bab Berikutnya</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 

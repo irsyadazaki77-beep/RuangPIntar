@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useMeshNetwork } from '../context/MeshNetworkContext';
 
-const HOST_PIN_STORAGE_KEY = 'ruangpintar_verified_host_pin';
+const HOST_SESSION_TOKEN_KEY = 'ruangpintar_host_session_token';
+const HOST_SESSION_EXPIRY_KEY = 'ruangpintar_host_session_expires_at';
 
 async function safeParseJson(res: Response): Promise<Record<string, any>> {
   try {
@@ -23,33 +24,57 @@ export function useTeacherHost() {
     setActiveModuleId,
   } = useMeshNetwork();
 
-  const [verifiedHostPin, setVerifiedHostPin] = useState<string | null>(() => {
+  const [sessionToken, setSessionToken] = useState<string | null>(() => {
     try {
-      return window.sessionStorage.getItem(HOST_PIN_STORAGE_KEY);
+      const token = window.sessionStorage.getItem(HOST_SESSION_TOKEN_KEY);
+      const expiresAt = Number(window.sessionStorage.getItem(HOST_SESSION_EXPIRY_KEY) || 0);
+      if (token && (!expiresAt || expiresAt > Date.now())) {
+        return token;
+      }
+      window.sessionStorage.removeItem(HOST_SESSION_TOKEN_KEY);
+      window.sessionStorage.removeItem(HOST_SESSION_EXPIRY_KEY);
+      return null;
     } catch {
       return null;
     }
   });
 
-  const handleLockHost = useCallback(() => {
-    setVerifiedHostPin(null);
+  const handleLockHost = useCallback(async () => {
+    const currentToken = sessionToken;
+    setSessionToken(null);
     try {
-      window.sessionStorage.removeItem(HOST_PIN_STORAGE_KEY);
+      window.sessionStorage.removeItem(HOST_SESSION_TOKEN_KEY);
+      window.sessionStorage.removeItem(HOST_SESSION_EXPIRY_KEY);
     } catch {
       // Ignore storage errors
     }
-  }, []);
+
+    if (currentToken) {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${currentToken}`,
+          },
+          body: JSON.stringify({ token: currentToken }),
+        });
+      } catch {
+        // Suppress network errors during logout
+      }
+    }
+  }, [sessionToken]);
 
   const handleVerifyHostPin = useCallback(
     async (pin: string): Promise<{ ok: boolean; error?: string; retryAfterSeconds?: number }> => {
       try {
-        const response = await fetch('/api/host/verify-pin', {
+        const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pin: pin.trim() }),
         });
         const data = await safeParseJson(response);
-        if (!response.ok || !data.valid) {
+        if (!response.ok || !data.token) {
           const retrySec = Number(data.retryAfterSeconds ?? data.retryAfter ?? 0) || undefined;
           return {
             ok: false,
@@ -57,10 +82,14 @@ export function useTeacherHost() {
             retryAfterSeconds: retrySec,
           };
         }
-        const cleanPin = pin.trim();
-        setVerifiedHostPin(cleanPin);
+
+        const token = String(data.token).trim();
+        const expiresAt = Number(data.expiresAt) || Date.now() + 8 * 3600 * 1000;
+
+        setSessionToken(token);
         try {
-          window.sessionStorage.setItem(HOST_PIN_STORAGE_KEY, cleanPin);
+          window.sessionStorage.setItem(HOST_SESSION_TOKEN_KEY, token);
+          window.sessionStorage.setItem(HOST_SESSION_EXPIRY_KEY, String(expiresAt));
         } catch {
           // Ignore storage errors
         }
@@ -72,6 +101,17 @@ export function useTeacherHost() {
     []
   );
 
+  const getAuthHeaders = useCallback(
+    (extraHeaders: Record<string, string> = {}) => {
+      const headers: Record<string, string> = { ...extraHeaders };
+      if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+      }
+      return headers;
+    },
+    [sessionToken]
+  );
+
   const handleChangeHostPin = useCallback(
     async (
       currentPin: string,
@@ -80,52 +120,49 @@ export function useTeacherHost() {
       try {
         const response = await fetch('/api/host/change-pin', {
           method: 'POST',
-          headers: {
+          headers: getAuthHeaders({
             'Content-Type': 'application/json',
-            'x-host-pin': verifiedHostPin || currentPin,
-          },
+            'x-host-pin': currentPin,
+          }),
           body: JSON.stringify({ currentPin, newPin }),
         });
         const data = await safeParseJson(response);
         if (!response.ok || !data.ok) {
+          if (response.status === 401) {
+            void handleLockHost();
+          }
           return { ok: false, error: data.error || 'Gagal memperbarui PIN.' };
         }
-        const cleanNew = newPin.trim();
-        setVerifiedHostPin(cleanNew);
-        try {
-          window.sessionStorage.setItem(HOST_PIN_STORAGE_KEY, cleanNew);
-        } catch {
-          // Ignore storage errors
-        }
+        // Re-authenticate session with new PIN to refresh token
+        await handleVerifyHostPin(newPin);
         return { ok: true, message: data.message };
       } catch {
         return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
       }
     },
-    [verifiedHostPin]
+    [getAuthHeaders, handleLockHost, handleVerifyHostPin]
   );
 
   const handleToggleGatewayTethering = useCallback(async () => {
     try {
       const response = await fetch('/api/gateway/toggle', {
         method: 'POST',
-        headers: {
+        headers: getAuthHeaders({
           'Content-Type': 'application/json',
-          'x-host-pin': verifiedHostPin || '',
-        },
+        }),
         body: JSON.stringify({ online: !gatewayTetheringOnline }),
       });
       if (response.ok) {
         const data = await safeParseJson(response);
         if (data.state) applyServerState(data.state);
       } else if (response.status === 401) {
-        handleLockHost();
-        setStatusBanner('Sesi PIN Simpul Guru berakhir. Silakan masukkan kembali PIN Simpul Guru.');
+        await handleLockHost();
+        setStatusBanner('Sesi Simpul Guru berakhir. Silakan login kembali dengan PIN Guru.');
       }
     } catch {
       setStatusBanner('Gagal menghubungi server Simpul Guru.');
     }
-  }, [applyServerState, gatewayTetheringOnline, handleLockHost, setStatusBanner, verifiedHostPin]);
+  }, [applyServerState, gatewayTetheringOnline, getAuthHeaders, handleLockHost, setStatusBanner]);
 
   const handlePublishModule = useCallback(
     async (payload: {
@@ -142,15 +179,14 @@ export function useTeacherHost() {
       try {
         const response = await fetch('/api/modules', {
           method: 'POST',
-          headers: {
+          headers: getAuthHeaders({
             'Content-Type': 'application/json',
-            'x-host-pin': verifiedHostPin || '',
-          },
+          }),
           body: JSON.stringify(payload),
         });
         const data = await safeParseJson(response);
         if (!response.ok) {
-          if (response.status === 401) handleLockHost();
+          if (response.status === 401) await handleLockHost();
           return { ok: false, error: data.error || 'Gagal menyimpan modul.' };
         }
         if (data.state) applyServerState(data.state);
@@ -160,7 +196,7 @@ export function useTeacherHost() {
         return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
       }
     },
-    [applyServerState, handleLockHost, setActiveModuleId, verifiedHostPin]
+    [applyServerState, getAuthHeaders, handleLockHost, setActiveModuleId]
   );
 
   const handleSeedCacheEntry = useCallback(
@@ -172,15 +208,14 @@ export function useTeacherHost() {
       try {
         const response = await fetch('/api/cache/seed', {
           method: 'POST',
-          headers: {
+          headers: getAuthHeaders({
             'Content-Type': 'application/json',
-            'x-host-pin': verifiedHostPin || '',
-          },
+          }),
           body: JSON.stringify(payload),
         });
         const data = await safeParseJson(response);
         if (!response.ok) {
-          if (response.status === 401) handleLockHost();
+          if (response.status === 401) await handleLockHost();
           return { ok: false, error: data.error || 'Gagal menyimpan cache.' };
         }
         if (data.state) applyServerState(data.state);
@@ -189,18 +224,17 @@ export function useTeacherHost() {
         return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
       }
     },
-    [applyServerState, handleLockHost, verifiedHostPin]
+    [applyServerState, getAuthHeaders, handleLockHost]
   );
 
   const handleExportPackage = useCallback(async () => {
     try {
-      const pinHeader = verifiedHostPin || '';
       const res = await fetch('/api/host/export-package', {
-        headers: { 'x-host-pin': pinHeader },
+        headers: getAuthHeaders(),
       });
       if (!res.ok) {
         const data = await safeParseJson(res);
-        if (res.status === 401) handleLockHost();
+        if (res.status === 401) await handleLockHost();
         setStatusBanner(data.error || 'Gagal mengekspor paket data Sneakernet.');
         return;
       }
@@ -218,23 +252,21 @@ export function useTeacherHost() {
       const msg = err instanceof Error ? err.message : 'Koneksi lokal terputus.';
       setStatusBanner('Gagal mengekspor data: ' + msg);
     }
-  }, [handleLockHost, setStatusBanner, verifiedHostPin]);
+  }, [getAuthHeaders, handleLockHost, setStatusBanner]);
 
   const handleImportPackage = useCallback(
     async (pkg: unknown): Promise<{ ok: boolean; error?: string; message?: string }> => {
       try {
-        const pinHeader = verifiedHostPin || '';
         const res = await fetch('/api/host/import-package', {
           method: 'POST',
-          headers: {
+          headers: getAuthHeaders({
             'Content-Type': 'application/json',
-            'x-host-pin': pinHeader,
-          },
+          }),
           body: JSON.stringify(pkg),
         });
         const data = await safeParseJson(res);
         if (!res.ok || !data.ok) {
-          if (res.status === 401) handleLockHost();
+          if (res.status === 401) await handleLockHost();
           return { ok: false, error: data.error || 'Gagal mengimpor paket data Sneakernet.' };
         }
         if (data.state) {
@@ -252,12 +284,13 @@ export function useTeacherHost() {
         };
       }
     },
-    [applyServerState, handleLockHost, setStatusBanner, verifiedHostPin]
+    [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]
   );
 
   return {
-    verifiedHostPin,
-    isPinVerified: Boolean(verifiedHostPin),
+    sessionToken,
+    verifiedHostPin: sessionToken,
+    isPinVerified: Boolean(sessionToken),
     handleVerifyHostPin,
     handleChangeHostPin,
     handleLockHost,
@@ -268,3 +301,4 @@ export function useTeacherHost() {
     handleImportPackage,
   };
 }
+
