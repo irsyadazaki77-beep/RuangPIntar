@@ -17,7 +17,7 @@ export interface ServerConfig {
   rateLimitMaxRequests: number;
 }
 
-const PIN_REGEX = /^\d{4,8}$/;
+const PIN_REGEX = /^[a-zA-Z0-9_-]{4,16}$/;
 
 export function formatEphemeralPinBanner(generatedPin: string): string {
   return [
@@ -28,7 +28,7 @@ export function formatEphemeralPinBanner(generatedPin: string): string {
     `║ PIN Sementara Sesi Ini :  [ ${generatedPin} ]                             ║`,
     '║                                                                  ║',
     '║ Gunakan PIN 6 digit di atas untuk masuk ke panel Ruang Guru,     ║',
-    '║ atau atur HOST_PIN=(4-8 digit angka) pada berkas .env Anda.      ║',
+    '║ atau atur HOST_PIN=(4-16 karakter) pada berkas .env Anda.        ║',
     '╚══════════════════════════════════════════════════════════════════╝',
   ].join('\n');
 }
@@ -45,7 +45,7 @@ export function resolveHostPin(
 
   if (nodeEnv === 'production') {
     const fatalMsg =
-      '[FATAL CONFIG ERROR] Variabel lingkungan HOST_PIN belum disetel atau formatnya tidak valid (wajib 4-8 digit angka). ' +
+      '[FATAL CONFIG ERROR] Variabel lingkungan HOST_PIN belum disetel atau formatnya tidak valid (wajib 4-16 karakter alfanumerik). ' +
       'Demi keamanan produksi Simpul Guru, proses booting dihentikan. Silakan setel HOST_PIN di berkas .env (contoh: HOST_PIN=482910).';
     console.error(`\n❌ ${fatalMsg}\n`);
     throw new Error(fatalMsg);
@@ -56,6 +56,21 @@ export function resolveHostPin(
   return { hostPin: randomPin, isEphemeralPin: true };
 }
 
+function resolvePort(): number {
+  const portArgIndex = process.argv.indexOf('--port');
+  if (portArgIndex !== -1 && process.argv[portArgIndex + 1]) {
+    const parsedCliPort = Number(process.argv[portArgIndex + 1]);
+    if (Number.isInteger(parsedCliPort) && parsedCliPort > 0) {
+      return parsedCliPort;
+    }
+  }
+  const envPort = Number(process.env.PORT);
+  if (Number.isInteger(envPort) && envPort > 0) {
+    return envPort;
+  }
+  return 3000;
+}
+
 const rawDbPath = (process.env.RUANGPINTAR_DB_PATH || '').trim();
 const defaultDbFile = path.resolve(process.cwd(), 'ruangpintar-edge.db');
 const resolvedDbPath = /\.(db|sqlite|sqlite3)$/i.test(rawDbPath) ? rawDbPath : defaultDbFile;
@@ -64,7 +79,7 @@ const activeNodeEnv = process.env.NODE_ENV || 'development';
 const { hostPin, isEphemeralPin } = resolveHostPin(process.env.HOST_PIN, activeNodeEnv);
 
 export const config: ServerConfig = {
-  port: Number(process.env.PORT) || 3000,
+  port: resolvePort(),
   host: '0.0.0.0',
   nodeEnv: activeNodeEnv,
   hostPin,
