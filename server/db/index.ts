@@ -159,7 +159,9 @@ export function ensureDatabaseSeeded(): {
     }
   }
 
-  const hostPin = HostConfigRepository.get('host_pin', config.hostPin);
+  const storedHostPin = HostConfigRepository.get('host_pin', config.hostPin);
+  const hostPin =
+    storedHostPin === '1945' && config.hostPin !== '1945' ? config.hostPin : storedHostPin;
   HostConfigRepository.set('host_pin', hostPin);
 
   const tetheringStr = HostConfigRepository.get('gateway_tethering_online', 'true');

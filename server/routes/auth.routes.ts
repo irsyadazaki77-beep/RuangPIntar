@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller.js';
 import { requireHostPin } from '../middleware/authMiddleware.js';
-import { pinVerificationLimiter } from '../middleware/rateLimiter.js';
+import {
+  pinVerificationLimiter,
+  packageTransferLimiter,
+} from '../middleware/rateLimiter.js';
 
 export const authRouter = Router();
 
-// Session Token Authentication (FASE 1)
+// Session Token Authentication
 authRouter.post('/login', pinVerificationLimiter, AuthController.login);
 authRouter.post('/logout', AuthController.logout);
 
@@ -13,6 +16,28 @@ authRouter.post('/logout', AuthController.logout);
 authRouter.post('/verify-pin', pinVerificationLimiter, AuthController.verifyPin);
 
 // Protected Teacher Host Operations
-authRouter.post('/change-pin', requireHostPin, AuthController.changePin);
-authRouter.get('/export-package', requireHostPin, AuthController.exportPackage);
-authRouter.post('/import-package', requireHostPin, AuthController.importPackage);
+authRouter.post(
+  '/change-pin',
+  pinVerificationLimiter,
+  requireHostPin,
+  AuthController.changePin
+);
+authRouter.get(
+  '/export-package',
+  packageTransferLimiter,
+  requireHostPin,
+  AuthController.exportPackage
+);
+authRouter.post(
+  '/export-package',
+  packageTransferLimiter,
+  requireHostPin,
+  AuthController.exportPackage
+);
+authRouter.post(
+  '/import-package',
+  packageTransferLimiter,
+  requireHostPin,
+  AuthController.importPackage
+);
+

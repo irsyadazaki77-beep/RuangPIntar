@@ -8,10 +8,23 @@ import {
   type LearningModule,
   type ChunkTransferEvent,
   type StudentSubmission,
+  type CacheEntry,
 } from '../../src/utils/edgeEngine.js';
 import { classroomState, formatTimeWITA } from '../state/classroomState.js';
-import { QuizRepository } from '../db/index.js';
+import {
+  QuizRepository,
+  exportSneakernetPackage,
+  importSneakernetPackage,
+} from '../db/index.js';
 import { config } from '../config/env.js';
+import {
+  ProgressSyncSchema,
+  TransferPackageSchema,
+  ClientChunksSyncSchema,
+  type ProgressSyncPayload,
+  type TransferPackagePayload,
+  type ClientChunksSyncPayload,
+} from '../schemas/sync.schema.js';
 
 export class SyncController {
   public static getState(_req: Request, res: Response): void {
@@ -19,49 +32,54 @@ export class SyncController {
   }
 
   public static syncSubmission(req: Request, res: Response): void {
-    const {
-      peerId,
-      studentName,
-      avatar,
-      moduleId,
-      moduleTitle,
+    const parsed: ProgressSyncPayload =
+      (req.validatedBody as ProgressSyncPayload | undefined) ??
+      ProgressSyncSchema.parse(req.body);
+
+    const effectivePeerId = parsed.peerId || parsed.studentId;
+    const effectiveStudentName = parsed.studentName || parsed.studentId;
+    const totalQuestions = parsed.totalQuestions ?? 1;
+    const quizScore =
+      parsed.quizScore ?? Math.round((parsed.score / 100) * totalQuestions);
+    const passed = parsed.passed ?? parsed.score >= 70;
+    const simulationCompleted =
+      parsed.simulationCompleted ?? parsed.completedChapters.length > 0;
+
+    const sub: StudentSubmission = {
+      id: `sub-${effectivePeerId}-${parsed.moduleId}`,
+      peerId: effectivePeerId,
+      studentName: effectiveStudentName,
+      avatar: parsed.avatar || '🐬 Lumba-lumba',
+      moduleId: parsed.moduleId,
+      moduleTitle: parsed.moduleTitle || parsed.moduleId,
       quizScore,
       totalQuestions,
       passed,
       simulationCompleted,
-    } = req.body || {};
-
-    if (!peerId || !studentName || !moduleId) {
-      res.status(400).json({ ok: false, error: 'Data pengumpulan nilai tidak lengkap.' });
-      return;
-    }
-
-    const sub: StudentSubmission = {
-      id: `sub-${peerId}-${moduleId}`,
-      peerId: String(peerId).trim(),
-      studentName: String(studentName).trim(),
-      avatar: String(avatar || '🐬 Lumba-lumba').trim(),
-      moduleId: String(moduleId).trim(),
-      moduleTitle: String(moduleTitle || moduleId).trim(),
-      quizScore: Number(quizScore) || 0,
-      totalQuestions: Number(totalQuestions) || 1,
-      passed: Boolean(passed),
-      simulationCompleted: Boolean(simulationCompleted),
-      timestamp: formatTimeWITA(),
-      updatedMs: Date.now(),
+      timestamp:
+        typeof parsed.timestamp === 'string'
+          ? parsed.timestamp
+          : formatTimeWITA(),
+      updatedMs:
+        typeof parsed.timestamp === 'number' ? parsed.timestamp : Date.now(),
     };
 
     QuizRepository.saveSubmission(sub);
     classroomState.broadcastState();
-    res.json({ ok: true, submission: sub, state: classroomState.getFullState() });
+    res.json({
+      ok: true,
+      success: true,
+      submission: sub,
+      state: classroomState.getFullState(),
+    });
   }
 
   public static syncClientChunks(req: Request, res: Response): void {
-    const { peerId = 'peer-siswa-05', moduleChunks } = req.body || {};
-    if (!moduleChunks || typeof moduleChunks !== 'object') {
-      res.status(400).json({ ok: false, error: 'Data pecahan modul klien tidak valid.' });
-      return;
-    }
+    const parsed: ClientChunksSyncPayload =
+      (req.validatedBody as ClientChunksSyncPayload | undefined) ??
+      ClientChunksSyncSchema.parse(req.body);
+
+    const { peerId, moduleChunks } = parsed;
 
     const peers = classroomState.getPeers();
     const targetPeer = peers.find((p) => p.id === peerId);
@@ -71,7 +89,7 @@ export class SyncController {
     }
 
     let updated = false;
-    for (const [modId, chunks] of Object.entries(moduleChunks as Record<string, number[]>)) {
+    for (const [modId, chunks] of Object.entries(moduleChunks)) {
       if (Array.isArray(chunks)) {
         const existing = new Set(targetPeer.moduleChunks[modId] || []);
         for (const idx of chunks) {
@@ -89,27 +107,33 @@ export class SyncController {
       classroomState.broadcastState();
     }
 
-    res.json({ ok: true, state: classroomState.getFullState() });
+    res.json({ ok: true, success: true, state: classroomState.getFullState() });
   }
 
   public static transferStep(req: Request, res: Response): void {
-    const {
-      moduleId = 'mod-fisika-mikrohidro',
-      targetPeerId = 'peer-siswa-05',
-      chunksCount = 4,
-    } = req.body || {};
+    const parsed: TransferPackagePayload =
+      (req.validatedBody as TransferPackagePayload | undefined) ??
+      TransferPackageSchema.parse(req.body);
+
+    const { moduleId, targetPeerId, chunksCount } = parsed;
 
     const modules = classroomState.getModules();
     const mod = modules.find((m) => m.id === moduleId);
     if (!mod) {
-      res.status(404).json({ ok: false, error: 'Modul pembelajaran tidak ditemukan di jaringan lokal.' });
+      res.status(404).json({
+        ok: false,
+        error: 'Modul pembelajaran tidak ditemukan di jaringan lokal.',
+      });
       return;
     }
 
     const peers = classroomState.getPeers();
     const targetPeer = peers.find((p) => p.id === targetPeerId);
     if (!targetPeer) {
-      res.status(404).json({ ok: false, error: 'Simpul perangkat siswa tidak ditemukan.' });
+      res.status(404).json({
+        ok: false,
+        error: 'Simpul perangkat siswa tidak ditemukan.',
+      });
       return;
     }
 
@@ -117,7 +141,7 @@ export class SyncController {
       mod,
       targetPeerId,
       peers,
-      Math.min(16, Math.max(1, Number(chunksCount) || 4))
+      Math.min(16, Math.max(1, chunksCount))
     );
 
     const createdEvents: ChunkTransferEvent[] = [];
@@ -178,6 +202,7 @@ export class SyncController {
     classroomState.broadcastState();
     res.json({
       ok: true,
+      success: true,
       transferredCount: createdEvents.length,
       events: createdEvents,
       binaryPayloadsBase64,
@@ -186,18 +211,73 @@ export class SyncController {
   }
 
   public static resetPeer(req: Request, res: Response): void {
-    const { moduleId = 'mod-fisika-mikrohidro', targetPeerId = 'peer-siswa-05' } = req.body || {};
+    const parsed: TransferPackagePayload =
+      (req.validatedBody as TransferPackagePayload | undefined) ??
+      TransferPackageSchema.parse(req.body);
+
+    const { moduleId, targetPeerId } = parsed;
     const peers = classroomState.getPeers();
     const targetPeer = peers.find((p) => p.id === targetPeerId && p.role === 'PEER');
     if (!targetPeer) {
-      res.status(400).json({ ok: false, error: 'Hanya simpul siswa (PEER) yang dapat direset pecahan datanya.' });
+      res.status(400).json({
+        ok: false,
+        error: 'Hanya simpul siswa (PEER) yang dapat direset pecahan datanya.',
+      });
       return;
     }
 
     targetPeer.moduleChunks[moduleId] = [];
     classroomState.savePeers();
     classroomState.broadcastState();
-    res.json({ ok: true, state: classroomState.getFullState() });
+    res.json({ ok: true, success: true, state: classroomState.getFullState() });
+  }
+
+  public static exportPackage(_req: Request, res: Response): void {
+    const pkg = exportSneakernetPackage();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="ruangpintar-sneakernet-${new Date().toISOString().slice(0, 10)}.json"`
+    );
+    res.json(pkg);
+  }
+
+  public static importPackage(req: Request, res: Response): void {
+    const pkg = (req.validatedBody ?? req.body) as {
+      modules?: LearningModule[];
+      cacheEntries?: CacheEntry[];
+    };
+    if (!pkg || typeof pkg !== 'object') {
+      res.status(400).json({ ok: false, error: 'Paket data Sneakernet tidak valid atau kosong.' });
+      return;
+    }
+
+    try {
+      const result = importSneakernetPackage(pkg);
+      classroomState.setModules(result.modules);
+      classroomState.setCacheEntries(result.cacheEntries);
+
+      const peers = classroomState.getPeers();
+      for (const mod of result.modules) {
+        for (const p of peers) {
+          if (p.role === 'HOST' && (!p.moduleChunks[mod.id] || p.moduleChunks[mod.id].length === 0)) {
+            p.moduleChunks[mod.id] = Array.from({ length: mod.totalChunks }, (_, i) => i);
+          }
+        }
+      }
+      classroomState.savePeers();
+      classroomState.broadcastState();
+
+      res.json({
+        ok: true,
+        success: true,
+        message: `Berhasil mengimpor ${result.modulesCount} modul kurikulum dan ${result.cacheCount} cache tanya-jawab ke Simpul Guru!`,
+        state: classroomState.getFullState(),
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Gagal memproses impor paket data.';
+      res.status(500).json({ ok: false, error: message });
+    }
   }
 
   public static toggleGateway(req: Request, res: Response): void {

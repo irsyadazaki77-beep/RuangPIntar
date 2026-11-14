@@ -1,5 +1,5 @@
 import http from 'http';
-import { config } from './server/config/env.js';
+import { config, formatEphemeralPinBanner } from './server/config/env.js';
 import { createApp } from './server/app.js';
 import { WebSocketHandler } from './server/websocket/websocket.handler.js';
 import { startMdnsDiscovery } from './server/discovery/mdns.js';
@@ -27,13 +27,8 @@ async function startServer(): Promise<void> {
     console.log(`  * WebSockets & P2P : ws://${HOST}:${PORT}/ws`);
     console.log(`================================================================\n`);
 
-    // Peringatan Keamanan Default PIN (FASE 1)
-    const activePin = config.hostPin;
-    const isDefaultOrEmpty = !process.env.HOST_PIN || activePin === '1945';
-    if (isDefaultOrEmpty) {
-      console.warn(`\x1b[41m\x1b[37m\x1b[1m [PERINGATAN KEAMANAN SIMPUL GURU] \x1b[0m`);
-      console.warn(`\x1b[33m\x1b[1m⚠️  SIMPUL GURU MENGGUNAKAN PIN DEFAULT '1945' ATAU HOST_PIN BELUM DISETEL DI .ENV!\x1b[0m`);
-      console.warn(`\x1b[33m   Segera perbarui PIN melalui menu 'Ruang Guru' demi keamanan materi dan kontrol kelas.\x1b[0m\n`);
+    if (config.isEphemeralPin) {
+      console.warn(`${formatEphemeralPinBanner(config.hostPin)}\n`);
     }
   });
 

@@ -106,11 +106,21 @@ function MainLayout() {
     simulationCompleted: boolean;
   }) => {
     const activePeerId = studentProfile.peerId || STUDENT_PEER_ID;
+    const computedScore = Math.min(
+      100,
+      Math.max(
+        0,
+        Math.round((payload.quizScore / Math.max(1, payload.totalQuestions)) * 100)
+      )
+    );
     const submissionPayload = {
       id: `sub-${activePeerId}-${payload.moduleId}`,
+      studentId: activePeerId,
       peerId: activePeerId,
       studentName: studentProfile.studentName,
       avatar: studentProfile.avatar,
+      score: computedScore,
+      completedChapters: payload.simulationCompleted ? [0, 1] : [0],
       ...payload,
       timestamp: `${new Date().toLocaleTimeString('id-ID', { hour12: false })} WITA`,
       updatedMs: Date.now(),

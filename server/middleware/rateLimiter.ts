@@ -45,3 +45,20 @@ export const pinVerificationLimiter = rateLimit({
     error: 'Terlalu banyak percobaan otentikasi PIN. Akses dibatasi sementara.',
   },
 });
+
+/**
+ * Package Transfer (Export / Import Sneakernet) Rate Limiter
+ * Window: 5 minutes, max 10 requests per IP.
+ */
+export const packageTransferLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    ok: false,
+    success: false,
+    error: 'Terlalu banyak permintaan ekspor/impor paket. Silakan coba beberapa saat lagi.',
+  },
+});
+

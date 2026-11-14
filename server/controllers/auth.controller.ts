@@ -79,7 +79,7 @@ export class AuthController {
     res.status(401).json({
       success: false,
       ok: false,
-      error: `PIN Simpul Guru salah (percobaan ${currentCount}/${SECURITY_CONSTANTS.MAX_PIN_ATTEMPTS}). Gunakan PIN default 1945 atau PIN yang telah diperbarui.`,
+      error: `PIN Simpul Guru salah (percobaan ${currentCount}/${SECURITY_CONSTANTS.MAX_PIN_ATTEMPTS}). Silakan periksa PIN Simpul Guru di terminal server atau berkas .env.`,
     });
   }
 
@@ -149,7 +149,7 @@ export class AuthController {
     res.status(401).json({
       ok: false,
       valid: false,
-      error: `PIN Simpul Guru salah (percobaan ${currentCount}/${SECURITY_CONSTANTS.MAX_PIN_ATTEMPTS}). Gunakan PIN default 1945 atau PIN yang telah diperbarui.`,
+      error: `PIN Simpul Guru salah (percobaan ${currentCount}/${SECURITY_CONSTANTS.MAX_PIN_ATTEMPTS}). Silakan periksa PIN Simpul Guru di terminal server atau berkas .env.`,
     });
   }
 

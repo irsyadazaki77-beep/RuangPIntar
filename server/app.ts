@@ -30,6 +30,7 @@ export async function createApp(
   app.use('/api/host', authRouter);
   app.use('/api/tutor', aiRouter);
   app.use('/api/cache', aiRouter);
+  app.use('/api/sync', syncRouter);
   app.use('/api', syncRouter);
 
   // Catch-all for unmatched /api/* requests so they return standard JSON

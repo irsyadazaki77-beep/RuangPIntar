@@ -6,24 +6,53 @@ import {
 } from '../db/repositories/config.repository.js';
 import { config } from '../config/env.js';
 
-export function compareStringsTimingSafe(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf8');
-  const bufB = Buffer.from(b, 'utf8');
-  if (bufA.length !== bufB.length) {
-    crypto.timingSafeEqual(bufB, bufB);
-    return false;
-  }
-  return crypto.timingSafeEqual(bufA, bufB);
+/**
+ * Constant-time string comparison using SHA-256 hashing.
+ * Both inputs are hashed to fixed 32-byte buffers before comparison
+ * with crypto.timingSafeEqual, preventing secret length leakage via timing attacks.
+ * Handles non-string, null, or undefined inputs defensively without throwing.
+ */
+export function compareStringTimingSafe(a: unknown, b: unknown): boolean {
+  const isValidStringA = typeof a === 'string';
+  const isValidStringB = typeof b === 'string';
+
+  const safeStrA = isValidStringA ? a : '';
+  const safeStrB = isValidStringB ? b : '';
+
+  const hashA = crypto.createHash('sha256').update(safeStrA, 'utf8').digest();
+  const hashB = crypto.createHash('sha256').update(safeStrB, 'utf8').digest();
+
+  const digestsMatch = crypto.timingSafeEqual(hashA, hashB);
+  return isValidStringA && isValidStringB && digestsMatch;
 }
+
+// Preserve plural alias for backward compatibility across modules
+export const compareStringsTimingSafe = compareStringTimingSafe;
 
 export function getCurrentHostPin(): string {
-  return HostConfigRepository.get('host_pin', config.hostPin);
+  const storedPin = HostConfigRepository.get('host_pin', config.hostPin);
+  // Migrate away from legacy hardcoded '1945' if HOST_PIN was not explicitly set to '1945'
+  if (storedPin === '1945' && config.hostPin !== '1945') {
+    HostConfigRepository.set('host_pin', config.hostPin);
+    return config.hostPin;
+  }
+  return storedPin;
 }
 
-export function verifyPinTimingSafe(candidate: string, actualPin = getCurrentHostPin()): boolean {
-  const matchesPrimary = compareStringsTimingSafe(candidate, actualPin);
+export function verifyPinTimingSafe(
+  candidate: unknown,
+  actualPin: string = getCurrentHostPin()
+): boolean {
+  if (typeof candidate !== 'string' || candidate.trim().length === 0) {
+    // Still execute dummy constant-time hash comparison to avoid timing variance
+    compareStringTimingSafe('', actualPin);
+    return false;
+  }
+  const normalizedCandidate = candidate.trim();
+  const matchesPrimary = compareStringTimingSafe(normalizedCandidate, actualPin);
   const envPin = (config.hostPin || '').trim();
-  const matchesEnv = envPin.length > 0 ? compareStringsTimingSafe(candidate, envPin) : false;
+  const matchesEnv =
+    envPin.length > 0 ? compareStringTimingSafe(normalizedCandidate, envPin) : false;
   return matchesPrimary || matchesEnv;
 }
 
@@ -49,7 +78,7 @@ export function requireHostPin(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
-  // 2. Fallback: Validate direct PIN header/body (for backward compatibility during migration)
+  // 2. Fallback: Validate direct PIN header/body (for backward compatibility)
   const headerPin = req.header('x-host-pin');
   const bodyPin = typeof req.body?.hostPin === 'string' ? req.body.hostPin : undefined;
   const candidate = (headerPin || bodyPin || '').trim();
@@ -62,6 +91,7 @@ export function requireHostPin(req: Request, res: Response, next: NextFunction):
     ok: false,
     success: false,
     error:
-      'Akses ditolak: Sesi Simpul Guru tidak valid atau telah kedaluwarsa. Silakan login kembali dengan PIN Guru (default: 1945).',
+      'Akses ditolak: Sesi Simpul Guru tidak valid atau telah kedaluwarsa. Silakan login kembali dengan PIN Simpul Guru yang aktif.',
   });
 }
+

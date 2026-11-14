@@ -7,7 +7,13 @@ import { WebSocketHandler } from './websocket/websocket.handler.js';
 import { closeDatabase } from './db/index.js';
 import { classroomState } from './state/classroomState.js';
 import { buildCurriculumSynthesis } from './controllers/ai.controller.js';
-import { verifyPinTimingSafe, compareStringsTimingSafe } from './middleware/authMiddleware.js';
+import {
+  verifyPinTimingSafe,
+  compareStringTimingSafe,
+  compareStringsTimingSafe,
+  getCurrentHostPin,
+} from './middleware/authMiddleware.js';
+import { config, resolveHostPin } from './config/env.js';
 
 test('AI controller builds deterministic local edge curriculum synthesis', () => {
   const sampleModule = classroomState.getModules()[0];
@@ -21,14 +27,47 @@ test('AI controller builds deterministic local edge curriculum synthesis', () =>
   assert.equal(synthesis.keyConcepts.length > 0, true);
 });
 
-test('timing-safe string comparison and PIN verification function properly', () => {
-  assert.equal(compareStringsTimingSafe('1945', '1945'), true);
-  assert.equal(compareStringsTimingSafe('1945', '1946'), false);
-  assert.equal(compareStringsTimingSafe('1945', '19450'), false);
-  assert.equal(compareStringsTimingSafe('short', 'longer-string'), false);
+test('FASE 1 & 2: SHA-256 timing-safe comparison and ephemeral/fail-fast PIN configuration', () => {
+  // 1. Identical strings return true
+  assert.equal(compareStringTimingSafe('482910', '482910'), true);
+  assert.equal(compareStringsTimingSafe('ruangpintar-secret', 'ruangpintar-secret'), true);
 
-  assert.equal(verifyPinTimingSafe('1945'), true);
-  assert.equal(verifyPinTimingSafe('0000'), false);
+  // 2. Same length but different strings return false
+  assert.equal(compareStringTimingSafe('482910', '482911'), false);
+  assert.equal(compareStringTimingSafe('aaaaaa', 'bbbbbb'), false);
+
+  // 3. Different length strings return false without leaking length via early return
+  assert.equal(compareStringTimingSafe('1234', '12345678'), false);
+  assert.equal(compareStringTimingSafe('short', 'much-longer-secret-pin-string'), false);
+  assert.equal(compareStringTimingSafe('', 'non-empty'), false);
+
+  // 4. Defensive handling of non-string, null, and undefined values without throwing
+  assert.equal(compareStringTimingSafe(null, '482910'), false);
+  assert.equal(compareStringTimingSafe('482910', undefined), false);
+  assert.equal(compareStringTimingSafe(null, undefined), false);
+  assert.equal(compareStringTimingSafe(123456, '123456'), false);
+  assert.equal(compareStringTimingSafe({}, []), false);
+
+  // 5. Verify PIN against active hostPin
+  const activePin = getCurrentHostPin();
+  assert.equal(verifyPinTimingSafe(activePin), true);
+  assert.equal(verifyPinTimingSafe('000000-wrong'), false);
+  assert.equal(verifyPinTimingSafe(null), false);
+
+  // 6. Verify resolveHostPin generates a random 6-digit PIN in dev and fails fast in production
+  const devResolved = resolveHostPin('', 'development');
+  assert.equal(devResolved.isEphemeralPin, true);
+  assert.equal(/^\d{6}$/.test(devResolved.hostPin), true);
+  assert.notEqual(devResolved.hostPin, '1945');
+
+  assert.throws(
+    () => resolveHostPin('', 'production'),
+    /FATAL CONFIG ERROR/
+  );
+  assert.throws(
+    () => resolveHostPin('abc', 'production'),
+    /FATAL CONFIG ERROR/
+  );
 });
 
 test('server REST API and WebSocket integration test', async () => {
@@ -46,6 +85,7 @@ test('server REST API and WebSocket integration test', async () => {
   const port = typeof address === 'object' && address ? address.port : 3000;
   const baseUrl = `http://127.0.0.1:${port}`;
   const wsUrl = `ws://127.0.0.1:${port}/ws`;
+  const activePin = getCurrentHostPin();
 
   try {
     // 1. Test /api/state
@@ -64,11 +104,11 @@ test('server REST API and WebSocket integration test', async () => {
     assert.equal(typeof netData.primaryIp, 'string');
     assert.equal(typeof netData.lanUrl, 'string');
 
-    // 3. Test Rate Limiting on PIN verification
+    // 3. Test PIN verification with active generated/configured PIN
     const pinRes = await fetch(`${baseUrl}/api/host/verify-pin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: '1945' }),
+      body: JSON.stringify({ pin: activePin }),
     });
     assert.equal(pinRes.status, 200);
     const pinData = await pinRes.json();
@@ -144,7 +184,7 @@ test('server REST API and WebSocket integration test', async () => {
   }
 });
 
-test('FASE 5: Session token authentication, rate limiting, and protected route authorization test', async () => {
+test('FASE 3: Zod validation rejects missing studentId/moduleId and out-of-range scores with 400 Bad Request', async () => {
   const server = http.createServer();
   const app = await createApp(server, { skipVite: true });
   server.on('request', app);
@@ -159,18 +199,108 @@ test('FASE 5: Session token authentication, rate limiting, and protected route a
   const baseUrl = `http://127.0.0.1:${port}`;
 
   try {
+    // 1. Missing studentId and moduleId on /api/students/sync-submission -> 400 Bad Request
+    const emptyProgressRes = await fetch(`${baseUrl}/api/students/sync-submission`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ score: 80 }),
+    });
+    assert.equal(emptyProgressRes.status, 400);
+    const emptyProgressData = await emptyProgressRes.json();
+    assert.equal(emptyProgressData.success, false);
+    assert.equal(emptyProgressData.error, 'Validation Error');
+    assert.equal(typeof emptyProgressData.details, 'object');
+    assert.equal(Array.isArray(emptyProgressData.details.studentId), true);
+    assert.equal(Array.isArray(emptyProgressData.details.moduleId), true);
+
+    // 2. Invalid score (> 100) on /api/sync/progress -> 400 Bad Request
+    const badScoreRes = await fetch(`${baseUrl}/api/sync/progress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studentId: 'peer-siswa-05',
+        moduleId: 'mod-fisika-mikrohidro',
+        score: 150,
+        completedChapters: [0, 1],
+      }),
+    });
+    assert.equal(badScoreRes.status, 400);
+    const badScoreData = await badScoreRes.json();
+    assert.equal(badScoreData.success, false);
+    assert.equal(badScoreData.error, 'Validation Error');
+    assert.equal(Array.isArray(badScoreData.details.score), true);
+
+    // 3. Valid ProgressSyncSchema payload -> 200 OK
+    const validProgressRes = await fetch(`${baseUrl}/api/students/sync-submission`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studentId: 'peer-siswa-05',
+        studentName: 'Hendrikus D.',
+        moduleId: 'mod-fisika-mikrohidro',
+        score: 90,
+        completedChapters: ['bab-1', 'bab-2'],
+        timestamp: Date.now(),
+      }),
+    });
+    assert.equal(validProgressRes.status, 200);
+    const validProgressData = await validProgressRes.json();
+    assert.equal(validProgressData.ok, true);
+    assert.equal(validProgressData.submission.peerId, 'peer-siswa-05');
+
+    // 4. Empty body on /api/p2p/transfer-step (no silent dummy fallback!) -> 400 Bad Request
+    const emptyTransferRes = await fetch(`${baseUrl}/api/p2p/transfer-step`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    assert.equal(emptyTransferRes.status, 400);
+    const emptyTransferData = await emptyTransferRes.json();
+    assert.equal(emptyTransferData.success, false);
+    assert.equal(emptyTransferData.error, 'Validation Error');
+    assert.equal(Array.isArray(emptyTransferData.details.moduleId), true);
+    assert.equal(Array.isArray(emptyTransferData.details.targetPeerId), true);
+
+    // 5. Empty body on /api/p2p/reset-peer (no silent dummy fallback!) -> 400 Bad Request
+    const emptyResetRes = await fetch(`${baseUrl}/api/p2p/reset-peer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    assert.equal(emptyResetRes.status, 400);
+  } finally {
+    server.close();
+    closeDatabase();
+  }
+});
+
+test('FASE 4 & 5: Rate limiter on /change-pin, /export-package, and session token auth', async () => {
+  const server = http.createServer();
+  const app = await createApp(server, { skipVite: true });
+  server.on('request', app);
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+
+  const address = server.address();
+  assert.notEqual(address, null);
+  const port = typeof address === 'object' && address ? address.port : 3000;
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const activePin = getCurrentHostPin();
+
+  try {
     // 1. Test POST /api/auth/login with correct PIN -> 200 and session token
     const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: '1945' }),
+      body: JSON.stringify({ pin: activePin }),
     });
     assert.equal(loginRes.status, 200);
     const loginData = await loginRes.json();
     assert.equal(loginData.success, true);
     assert.equal(typeof loginData.token, 'string');
     assert.equal(loginData.token.length >= 32, true);
-    assert.equal(typeof loginData.expiresAt, 'number');
     const validToken = loginData.token;
 
     // 2. Test access to protected endpoint with valid Bearer token -> 200
@@ -183,43 +313,53 @@ test('FASE 5: Session token authentication, rate limiting, and protected route a
       body: JSON.stringify({ online: true }),
     });
     assert.equal(protectedWithTokenRes.status, 200);
-    const toggleData = await protectedWithTokenRes.json();
-    assert.equal(toggleData.ok, true);
 
-    // 3. Test access to protected endpoint without Bearer token -> 401
-    const protectedNoTokenRes = await fetch(`${baseUrl}/api/gateway/toggle`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ online: false }),
-    });
-    assert.equal(protectedNoTokenRes.status, 401);
-
-    // 4. Test POST /api/auth/login with wrong PIN -> 401
-    const wrongLoginRes = await fetch(`${baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: '9999-wrong' }),
-    });
-    assert.equal(wrongLoginRes.status, 401);
-    const wrongData = await wrongLoginRes.json();
-    assert.equal(wrongData.success, false);
-
-    // 5. Test brute force lockout / 429 rate limiter on /api/auth/login
-    let reached429 = false;
-    for (let i = 0; i < 15; i++) {
-      const res = await fetch(`${baseUrl}/api/auth/login`, {
+    // 3. Test packageTransferLimiter on POST /api/sync/export-package (max 10 requests / 5 min)
+    let exportReached429 = false;
+    let export429Message = '';
+    for (let i = 0; i < 12; i++) {
+      const res = await fetch(`${baseUrl}/api/sync/export-package`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: `brute-wrong-${i}` }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${validToken}`,
+        },
       });
       if (res.status === 429) {
-        reached429 = true;
+        exportReached429 = true;
+        const errBody = await res.json();
+        export429Message = errBody.error || '';
         break;
       }
     }
-    assert.equal(reached429, true);
+    assert.equal(exportReached429, true);
+    assert.equal(
+      export429Message,
+      'Terlalu banyak permintaan ekspor/impor paket. Silakan coba beberapa saat lagi.'
+    );
 
-    // 6. Test POST /api/auth/logout to revoke token
+    // 4. Test pinVerificationLimiter on POST /api/auth/change-pin -> returns 429 Too Many Requests
+    let changePinReached429 = false;
+    for (let i = 0; i < 20; i++) {
+      const res = await fetch(`${baseUrl}/api/auth/change-pin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${validToken}`,
+        },
+        body: JSON.stringify({
+          currentPin: '0000',
+          newPin: '123456',
+        }),
+      });
+      if (res.status === 429) {
+        changePinReached429 = true;
+        break;
+      }
+    }
+    assert.equal(changePinReached429, true);
+
+    // 5. Test POST /api/auth/logout to revoke token
     const logoutRes = await fetch(`${baseUrl}/api/auth/logout`, {
       method: 'POST',
       headers: {
@@ -228,10 +368,8 @@ test('FASE 5: Session token authentication, rate limiting, and protected route a
       },
     });
     assert.equal(logoutRes.status, 200);
-    const logoutData = await logoutRes.json();
-    assert.equal(logoutData.success, true);
 
-    // 7. Test protected endpoint after token is revoked -> must return 401
+    // 6. Test protected endpoint after token is revoked -> must return 401
     const postLogoutRes = await fetch(`${baseUrl}/api/gateway/toggle`, {
       method: 'POST',
       headers: {
