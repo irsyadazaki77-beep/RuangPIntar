@@ -49,11 +49,7 @@ export function verifyPinTimingSafe(
     return false;
   }
   const normalizedCandidate = candidate.trim();
-  const matchesPrimary = compareStringTimingSafe(normalizedCandidate, actualPin);
-  const envPin = (config.hostPin || '').trim();
-  const matchesEnv =
-    envPin.length > 0 ? compareStringTimingSafe(normalizedCandidate, envPin) : false;
-  return matchesPrimary || matchesEnv;
+  return compareStringTimingSafe(normalizedCandidate, actualPin);
 }
 
 /**

@@ -8,6 +8,7 @@ import {
   saveCustomHostUrl,
   loadCustomHostUrl,
 } from '../utils/clientStorage';
+import { apiFetch, safeParseJson } from '../utils/apiClient';
 import {
   useMeshNetwork,
   STUDENT_PEER_ID,
@@ -31,23 +32,13 @@ export function parseHostAddress(input: string): { httpBaseUrl: string; wsUrl: s
   };
 }
 
-async function safeParseJson(res: Response): Promise<Record<string, any>> {
-  try {
-    const text = await res.text();
-    if (!text || text.trim().startsWith('<')) {
-      return {};
-    }
-    return JSON.parse(text);
-  } catch {
-    return {};
-  }
-}
-
 export function useMeshSocket() {
   const {
     studentProfile,
     isOfflineActive,
     gatewayTetheringOnline,
+    socketConnected,
+    setSocketConnected,
     applyServerState,
     setPeers,
     setActiveWebRtcChannelsCount,
@@ -64,13 +55,26 @@ export function useMeshSocket() {
     }
     return typeof window !== 'undefined' ? window.location.host : 'localhost:3000';
   });
+  const [reconnectNonce, setReconnectNonce] = useState<number>(0);
 
-  const [socketConnected, setSocketConnected] = useState<boolean>(false);
   const wsRef = useRef<WebSocket | null>(null);
   const rtcPeersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const dataChannelsRef = useRef<Map<string, RTCDataChannel>>(new Map());
   const backoffRef = useRef<number>(1000);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
+
+  // Refs prevent WebSocket/WebRTC teardown when profile or tethering state changes
+  const studentProfileRef = useRef(studentProfile);
+  studentProfileRef.current = studentProfile;
+  const isOfflineActiveRef = useRef(isOfflineActive);
+  isOfflineActiveRef.current = isOfflineActive;
+  const gatewayTetheringRef = useRef(gatewayTetheringOnline);
+  gatewayTetheringRef.current = gatewayTetheringOnline;
+
+  const forceReconnect = useCallback(() => {
+    backoffRef.current = 1000;
+    setReconnectNonce((n) => n + 1);
+  }, []);
 
   const reconnectToHost = useCallback(
     async (newHostUrl: string): Promise<boolean> => {
@@ -80,6 +84,7 @@ export function useMeshSocket() {
         setCustomHostUrl(parsed.httpBaseUrl);
         setSimulatedOfflineMode(false);
         setActiveHost(parsed.hostWithPort);
+        setReconnectNonce((n) => n + 1);
 
         if (wsRef.current) {
           try {
@@ -90,7 +95,7 @@ export function useMeshSocket() {
         }
 
         try {
-          const res = await fetch(`${parsed.httpBaseUrl}/api/state`);
+          const res = await apiFetch('/api/state', undefined, parsed.httpBaseUrl);
           if (res.ok) {
             const data = await safeParseJson(res);
             if (data && Object.keys(data).length > 0) {
@@ -251,16 +256,34 @@ export function useMeshSocket() {
     [handleIncomingBinaryChunk]
   );
 
+  // Send updated student identity over active WebSocket without reconnecting
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({
+          type: 'peer:identify',
+          peerId: studentProfile.peerId,
+          studentName: studentProfile.studentName,
+          avatar: studentProfile.avatar,
+          deviceType: 'Smartphone Siswa (Android)',
+        })
+      );
+    }
+  }, [studentProfile]);
+
   // Initialize IndexedDB cached chunks and WebSocket connection lifecycle
   useEffect(() => {
     let mounted = true;
+    const parsedHost = parseHostAddress(activeHost);
+    const activePeerId = studentProfileRef.current.peerId || STUDENT_PEER_ID;
 
     async function initClientStorage() {
-      const savedChunks = await loadClientDownloadedChunks(STUDENT_PEER_ID);
+      const savedChunks = await loadClientDownloadedChunks(activePeerId);
       if (savedChunks && mounted) {
         setPeers((prev) =>
           prev.map((p) =>
-            p.id === STUDENT_PEER_ID
+            p.id === activePeerId
               ? { ...p, moduleChunks: { ...p.moduleChunks, ...savedChunks } }
               : p
           )
@@ -268,7 +291,7 @@ export function useMeshSocket() {
       }
 
       try {
-        const r = await fetch('/api/state');
+        const r = await apiFetch('/api/state', undefined, parsedHost.httpBaseUrl);
         if (r.ok) {
           const data = await safeParseJson(r);
           if (mounted && data && Object.keys(data).length > 0) {
@@ -277,14 +300,18 @@ export function useMeshSocket() {
         }
 
         if (savedChunks && Object.keys(savedChunks).length > 0) {
-          const syncRes = await fetch('/api/p2p/sync-client-chunks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              peerId: STUDENT_PEER_ID,
-              moduleChunks: savedChunks,
-            }),
-          });
+          const syncRes = await apiFetch(
+            '/api/p2p/sync-client-chunks',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                peerId: activePeerId,
+                moduleChunks: savedChunks,
+              }),
+            },
+            parsedHost.httpBaseUrl
+          );
           if (syncRes.ok) {
             const syncData = await safeParseJson(syncRes);
             if (mounted && syncData?.state) {
@@ -299,7 +326,6 @@ export function useMeshSocket() {
 
     void initClientStorage();
 
-    const parsedHost = parseHostAddress(activeHost);
     const wsUrl = parsedHost.wsUrl;
 
     const connectWebSocket = () => {
@@ -315,12 +341,13 @@ export function useMeshSocket() {
           setSocketConnected(true);
           backoffRef.current = 1000; // Reset exponential backoff on successful connect
 
+          const profile = studentProfileRef.current;
           ws.send(
             JSON.stringify({
               type: 'peer:identify',
-              peerId: studentProfile.peerId,
-              studentName: studentProfile.studentName,
-              avatar: studentProfile.avatar,
+              peerId: profile.peerId,
+              studentName: profile.studentName,
+              avatar: profile.avatar,
               deviceType: 'Smartphone Siswa (Android)',
             })
           );
@@ -375,7 +402,7 @@ export function useMeshSocket() {
           }
 
           // In 3T environments without public internet, omit STUN to avoid 10s DNS lookup delays
-          const useStun = !isOfflineActive && gatewayTetheringOnline;
+          const useStun = !isOfflineActiveRef.current && gatewayTetheringRef.current;
           const pc = new RTCPeerConnection({
             iceServers: useStun ? [{ urls: 'stun:stun.l.google.com:19302' }] : [],
           });
@@ -487,13 +514,12 @@ export function useMeshSocket() {
     };
   }, [
     activeHost,
+    reconnectNonce,
     applyServerState,
-    gatewayTetheringOnline,
     handleIncomingBinaryChunk,
-    isOfflineActive,
     setActiveWebRtcChannelsCount,
     setPeers,
-    studentProfile,
+    setSocketConnected,
   ]);
 
   return {
@@ -501,6 +527,7 @@ export function useMeshSocket() {
     transmitBinaryViaWebRtcDataChannel,
     handleIncomingBinaryChunk,
     reconnectToHost,
+    forceReconnect,
     activeHost,
   };
 }

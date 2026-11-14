@@ -248,7 +248,25 @@ export interface CacheEntry {
   createdAt: string;
   hitCount: number;
   savedQuotaKB: number;
-  originSource: 'GEMINI_CLOUD_GATEWAY' | 'TEACHER_PREWARM';
+  originSource: 'GEMINI_CLOUD_GATEWAY' | 'TEACHER_PREWARM' | 'LOCAL_EDGE_SYNTHESIS';
+}
+
+export interface PendingAiQuestion {
+  id: string;
+  question: string;
+  moduleId: string;
+  moduleTitle: string;
+  askedByPeerName: string;
+  createdAt: string;
+  createdMs: number;
+}
+
+export interface ClassroomBroadcast {
+  message: string;
+  focusModuleId?: string;
+  examMode: boolean;
+  updatedAt: string;
+  updatedMs: number;
 }
 
 export interface TutorAskResponse {

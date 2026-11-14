@@ -106,6 +106,14 @@ export class ModuleRepository {
     }));
   }
 
+  static saveAll(modules: LearningModule[]): void {
+    const db = getDatabase();
+    const tx = db.transaction((items: LearningModule[]) => {
+      items.forEach((mod, idx) => ModuleRepository.save(mod, idx));
+    });
+    tx(modules);
+  }
+
   static count(): number {
     const db = getDatabase();
     const row = db.prepare('SELECT COUNT(*) as cnt FROM modules').get() as { cnt: number };

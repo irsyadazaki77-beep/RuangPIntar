@@ -10,13 +10,8 @@ import {
   HostSessionRepository,
 } from '../db/repositories/config.repository.js';
 import {
-  exportSneakernetPackage,
-  importSneakernetPackage,
-} from '../db/index.js';
-import {
   validateHostPinChange,
 } from '../../src/utils/edgeEngine.js';
-import { classroomState } from '../state/classroomState.js';
 import { SECURITY_CONSTANTS } from '../config/env.js';
 
 const failedPinAttempts = new Map<string, { count: number; lockedUntil: number }>();
@@ -169,50 +164,5 @@ export class AuthController {
       ok: true,
       message: 'PIN Keamanan Simpul Guru berhasil diperbarui dan disimpan di SQLite lokal.',
     });
-  }
-
-  public static exportPackage(_req: Request, res: Response): void {
-    const pkg = exportSneakernetPackage();
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="ruangpintar-sneakernet-${new Date().toISOString().slice(0, 10)}.json"`
-    );
-    res.json(pkg);
-  }
-
-  public static importPackage(req: Request, res: Response): void {
-    const pkg = req.body;
-    if (!pkg || typeof pkg !== 'object') {
-      res.status(400).json({ ok: false, error: 'Paket data Sneakernet tidak valid atau kosong.' });
-      return;
-    }
-
-    try {
-      const result = importSneakernetPackage(pkg);
-      classroomState.setModules(result.modules);
-      classroomState.setCacheEntries(result.cacheEntries);
-
-      // Seed newly imported modules on Teacher Host node
-      const peers = classroomState.getPeers();
-      for (const mod of result.modules) {
-        for (const p of peers) {
-          if (p.role === 'HOST' && (!p.moduleChunks[mod.id] || p.moduleChunks[mod.id].length === 0)) {
-            p.moduleChunks[mod.id] = Array.from({ length: mod.totalChunks }, (_, i) => i);
-          }
-        }
-      }
-      classroomState.savePeers();
-      classroomState.broadcastState();
-
-      res.json({
-        ok: true,
-        message: `Berhasil mengimpor ${result.modulesCount} modul kurikulum dan ${result.cacheCount} cache tanya-jawab ke Simpul Guru!`,
-        state: classroomState.getFullState(),
-      });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Gagal memproses impor paket data.';
-      res.status(500).json({ ok: false, error: message });
-    }
   }
 }

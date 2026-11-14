@@ -19,6 +19,11 @@ import {
   GraduationCap,
   Award,
   BarChart3,
+  Megaphone,
+  Send,
+  Trash2,
+  Sparkles,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   calculateGradebookSummary,
@@ -26,6 +31,8 @@ import {
   type CacheEntry,
   type SwarmMetrics,
   type StudentSubmission,
+  type PendingAiQuestion,
+  type ClassroomBroadcast,
 } from '../utils/edgeEngine';
 import { getSubjectTheme } from '../utils/subjectTheme';
 import { HostQrConnector } from './HostQrConnector';
@@ -35,6 +42,8 @@ interface Props {
   cacheEntries: CacheEntry[];
   metrics: SwarmMetrics;
   submissions?: StudentSubmission[];
+  pendingAiQuestions?: PendingAiQuestion[];
+  classroomBroadcast?: ClassroomBroadcast | null;
   gatewayTetheringOnline: boolean;
   isPinVerified: boolean;
   onVerifyPin: (pin: string) => Promise<{ ok: boolean; error?: string; retryAfterSeconds?: number }>;
@@ -59,6 +68,15 @@ interface Props {
   }) => Promise<{ ok: boolean; error?: string }>;
   onExportPackage?: () => void;
   onImportPackage?: (pkg: unknown) => Promise<{ ok: boolean; error?: string; message?: string }>;
+  onDistributeToAll?: (moduleId: string) => Promise<{ ok: boolean; message?: string; error?: string }>;
+  onBroadcastClassroom?: (payload: {
+    message: string;
+    focusModuleId?: string;
+    examMode: boolean;
+    clear?: boolean;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  onProcessAiQueue?: () => Promise<{ ok: boolean; message?: string; error?: string }>;
+  onDismissPendingQuestion?: (id: string) => Promise<void>;
 }
 
 const hostContainerVariants = {
@@ -83,6 +101,8 @@ export const TeacherHostView: React.FC<Props> = ({
   cacheEntries,
   metrics,
   submissions = [],
+  pendingAiQuestions = [],
+  classroomBroadcast = null,
   gatewayTetheringOnline,
   isPinVerified,
   onVerifyPin,
@@ -93,6 +113,10 @@ export const TeacherHostView: React.FC<Props> = ({
   onSeedCacheEntry,
   onExportPackage,
   onImportPackage,
+  onDistributeToAll,
+  onBroadcastClassroom,
+  onProcessAiQueue,
+  onDismissPendingQuestion,
 }) => {
   // PIN Gate state & Rate Limiting Cooldown (Task 1)
   const [pinInput, setPinInput] = useState('');
@@ -104,6 +128,19 @@ export const TeacherHostView: React.FC<Props> = ({
   const [importStatus, setImportStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  // Classroom Quick Actions, Broadcast & AI Queue
+  const [distributeModuleId, setDistributeModuleId] = useState<string>(modules[0]?.id || '');
+  const [isDistributingAll, setIsDistributingAll] = useState<boolean>(false);
+  const [broadcastMessage, setBroadcastMessage] = useState<string>(classroomBroadcast?.message || '');
+  const [broadcastFocusModId, setBroadcastFocusModId] = useState<string>(
+    classroomBroadcast?.focusModuleId || ''
+  );
+  const [broadcastExamMode, setBroadcastExamMode] = useState<boolean>(
+    Boolean(classroomBroadcast?.examMode)
+  );
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState<boolean>(false);
+  const [isProcessingQueue, setIsProcessingQueue] = useState<boolean>(false);
 
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
@@ -553,6 +590,230 @@ export const TeacherHostView: React.FC<Props> = ({
       {/* Zero-Config Connectivity: Dynamic LAN IP QR Code & Camera Scanner */}
       <HostQrConnector className="mb-6" />
 
+      {/* 00. Ringkasan Kelas Sekilas, Kontrol Siaran, Mode Ujian & Distribusi Massal */}
+      <motion.section
+        variants={hostItemVariants}
+        aria-label="Kontrol Cepat Kelas dan Pengumuman"
+        className="bento-card p-6 sm:p-7 space-y-5"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#e6e2d8]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 shrink-0">
+              <Megaphone className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-stone-900">
+                00. Kontrol Cepat Kelas, Pengumuman &amp; Mode Ujian
+              </h2>
+              <p className="text-xs text-stone-600 mt-0.5">
+                Kirim pengumuman ke seluruh HP siswa, kunci Sahabat AI saat kuis berlangsung, atau bagikan modul sekaligus.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono">
+            <span className="px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-200 text-sky-900 font-semibold">
+              {metrics.studentPeersCount} Siswa Terdaftar
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-semibold">
+              {submissions.length} Nilai Terkumpul
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
+              {pendingAiQuestions.length} Antrean AI
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Left: Classroom Broadcast + Exam Mode */}
+          <div className="lg:col-span-7 surface-warm-recessed p-5 rounded-2xl space-y-3.5">
+            <div className="text-xs font-bold text-stone-900">
+              Siaran Pengumuman &amp; Mode Ujian Real-Time
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                  Pesan Pengumuman untuk Siswa
+                </label>
+                <input
+                  type="text"
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  maxLength={240}
+                  placeholder="Contoh: Kerjakan Kuis Bab Mikrohidro sebelum jam 10.00 WITA!"
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-stone-700 mb-1">
+                  Arahkan Siswa ke Modul (Opsional)
+                </label>
+                <select
+                  value={broadcastFocusModId}
+                  onChange={(e) => setBroadcastFocusModId(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl text-stone-900"
+                >
+                  <option value="">-- Tidak diarahkan --</option>
+                  {modules.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.code} — {m.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-end">
+                <label className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl flex items-center gap-2 text-xs font-semibold text-stone-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={broadcastExamMode}
+                    onChange={(e) => setBroadcastExamMode(e.target.checked)}
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>🔒 Mode Ujian (Kunci AI Tutor)</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                disabled={isSendingBroadcast || !onBroadcastClassroom}
+                onClick={async () => {
+                  if (!onBroadcastClassroom) return;
+                  setIsSendingBroadcast(true);
+                  await onBroadcastClassroom({
+                    message: broadcastMessage.trim(),
+                    focusModuleId: broadcastFocusModId || undefined,
+                    examMode: broadcastExamMode,
+                  });
+                  setIsSendingBroadcast(false);
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{isSendingBroadcast ? 'Mengirim...' : 'Kirim ke Semua Siswa'}</span>
+              </button>
+
+              {classroomBroadcast && (
+                <button
+                  type="button"
+                  disabled={isSendingBroadcast || !onBroadcastClassroom}
+                  onClick={async () => {
+                    if (!onBroadcastClassroom) return;
+                    setIsSendingBroadcast(true);
+                    setBroadcastMessage('');
+                    setBroadcastFocusModId('');
+                    setBroadcastExamMode(false);
+                    await onBroadcastClassroom({
+                      message: '',
+                      examMode: false,
+                      clear: true,
+                    });
+                    setIsSendingBroadcast(false);
+                  }}
+                  className="px-3 py-2 text-xs font-semibold text-stone-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl cursor-pointer"
+                >
+                  Hapus Pengumuman
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Right: One-Click Distribute to All + AI Offline Queue */}
+          <div className="lg:col-span-5 surface-warm-recessed p-5 rounded-2xl flex flex-col justify-between space-y-4">
+            <div className="space-y-2.5">
+              <div className="text-xs font-bold text-stone-900">
+                Bagikan Modul ke Seluruh Siswa (1 Klik)
+              </div>
+              <select
+                value={distributeModuleId || modules[0]?.id || ''}
+                onChange={(e) => setDistributeModuleId(e.target.value)}
+                className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl text-stone-900"
+              >
+                {modules.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.code} — {m.title}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={isDistributingAll || !onDistributeToAll}
+                onClick={async () => {
+                  if (!onDistributeToAll) return;
+                  setIsDistributingAll(true);
+                  await onDistributeToAll(distributeModuleId || modules[0]?.id || '');
+                  setIsDistributingAll(false);
+                }}
+                className="w-full px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 disabled:opacity-50 rounded-xl cursor-pointer shadow-2xs"
+              >
+                {isDistributingAll
+                  ? 'Mendistribusikan ke Kelas...'
+                  : '⚡ Bagikan Modul Ini ke Semua Siswa'}
+              </button>
+            </div>
+
+            <div className="pt-3 border-t border-[#e6e2d8] space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-stone-900">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Antrean Pertanyaan AI Luring ({pendingAiQuestions.length})</span>
+                </span>
+                {onProcessAiQueue && pendingAiQuestions.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={isProcessingQueue || !gatewayTetheringOnline}
+                    onClick={async () => {
+                      setIsProcessingQueue(true);
+                      await onProcessAiQueue();
+                      setIsProcessingQueue(false);
+                    }}
+                    className="px-2.5 py-1 text-[11px] font-bold text-white bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded-lg cursor-pointer"
+                  >
+                    {isProcessingQueue ? 'Memproses...' : 'Proses via Gemini'}
+                  </button>
+                )}
+              </div>
+
+              {pendingAiQuestions.length === 0 ? (
+                <p className="text-[11px] text-stone-500">
+                  Belum ada pertanyaan luring yang menunggu sinyal internet.
+                </p>
+              ) : (
+                <ul className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                  {pendingAiQuestions.slice(0, 5).map((pq) => (
+                    <li
+                      key={pq.id}
+                      className="p-2 bg-white border border-slate-200 rounded-lg text-[11px] flex items-start justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-semibold text-stone-900 truncate">{pq.question}</div>
+                        <div className="text-[10px] text-stone-500 font-mono">
+                          {pq.askedByPeerName} · {pq.createdAt}
+                        </div>
+                      </div>
+                      {onDismissPendingQuestion && (
+                        <button
+                          type="button"
+                          onClick={() => onDismissPendingQuestion(pq.id)}
+                          title="Hapus dari antrean"
+                          className="text-slate-400 hover:text-red-600 p-1 shrink-0 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
       {/* Two-Column Structured Forms: Publish P2P Module (7 cols) + Pre-warm Local Cache (5 cols) */}
       <motion.section
         variants={hostItemVariants}
@@ -967,6 +1228,49 @@ export const TeacherHostView: React.FC<Props> = ({
                   <Award className="w-3.5 h-3.5" />
                   <span>Lab Tuntas: {gradebook.simulationsCompletedCount} Misi</span>
                 </span>
+                {submissions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const headers = [
+                        'Nama Siswa',
+                        'ID Simpul',
+                        'Modul',
+                        'Skor Kuis (%)',
+                        'Status Kuis',
+                        'Status Lab',
+                        'Waktu Sinkronisasi',
+                      ];
+                      const escapeCsv = (val: string | number) =>
+                        `"${String(val).replace(/"/g, '""')}"`;
+                      const rows = submissions.map((s) =>
+                        [
+                          escapeCsv(s.studentName),
+                          escapeCsv(s.peerId),
+                          escapeCsv(s.moduleTitle),
+                          escapeCsv(s.quizScore),
+                          escapeCsv(s.passed ? 'Lulus' : 'Remedial'),
+                          escapeCsv(s.simulationCompleted ? 'Lab Selesai' : 'Proses Baca'),
+                          escapeCsv(s.timestamp),
+                        ].join(',')
+                      );
+                      const csvContent = [headers.join(','), ...rows].join('\n');
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `rekap-nilai-ruangpintar-${new Date().toISOString().slice(0, 10)}.csv`;
+                      document.body.appendChild(a);
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-stone-800 font-sans font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Unduh Rekap (.csv)</span>
+                  </button>
+                )}
               </div>
             </div>
 

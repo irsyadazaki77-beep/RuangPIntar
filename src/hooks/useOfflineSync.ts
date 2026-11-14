@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { StudentSubmission } from '../utils/edgeEngine';
 import { useMeshNetwork } from '../context/MeshNetworkContext';
+import { apiFetch, safeParseJson } from '../utils/apiClient';
 
 const OFFLINE_QUEUE_KEY = 'ruangpintar_offline_pending_submissions_v1';
 
@@ -43,26 +44,20 @@ export function useOfflineSync() {
 
       for (const item of itemsToSync) {
         try {
-          const computedScore = Math.min(
-            100,
-            Math.max(
-              0,
-              Math.round((item.quizScore / Math.max(1, item.totalQuestions)) * 100)
-            )
-          );
+          const computedScore = Math.min(100, Math.max(0, Math.round(item.quizScore)));
           const payloadWithSchema = {
             studentId: item.peerId,
             score: computedScore,
             completedChapters: item.simulationCompleted ? [0, 1] : [0],
             ...item,
           };
-          const res = await fetch('/api/students/sync-submission', {
+          const res = await apiFetch('/api/students/sync-submission', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payloadWithSchema),
           });
           if (res.ok) {
-            const data = await res.json();
+            const data = await safeParseJson(res);
             if (data.state) applyServerState(data.state);
             syncedCount++;
           } else {

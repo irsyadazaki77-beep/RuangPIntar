@@ -5,6 +5,7 @@ import { QuizRepository } from './repositories/quiz.repository.js';
 import { PeerRepository } from './repositories/peer.repository.js';
 import { TransferRepository } from './repositories/transfer.repository.js';
 import { HostConfigRepository } from './repositories/config.repository.js';
+import { PendingQuestionRepository } from './repositories/pendingQuestion.repository.js';
 import {
   INITIAL_MODULES,
   INITIAL_PEERS,
@@ -29,6 +30,7 @@ export {
   PeerRepository,
   TransferRepository,
   HostConfigRepository,
+  PendingQuestionRepository,
 };
 
 // Aliases matching existing signatures for seamless compatibility
@@ -138,14 +140,10 @@ export function ensureDatabaseSeeded(): {
   } else {
     const loadedPeers = PeerRepository.loadAll();
     const canonicalIds = new Set(INITIAL_PEERS.map((p) => p.id));
-    const filteredPeers = loadedPeers.filter((p) => {
-      if (p.id === 'peer-test-unit') return false;
-      if (p.id.startsWith('peer-siswa-') && !canonicalIds.has(p.id)) return false;
-      return true;
-    });
+    const filteredPeers = loadedPeers.filter((p) => p.id !== 'peer-test-unit');
 
-    // Ensure all canonical peers exist and peer-siswa-05 retains seat suffix
-    const finalPeers: PeerNode[] = INITIAL_PEERS.map((initPeer) => {
+    // Ensure all canonical peers exist while preserving dynamic student devices
+    const canonicalMerged: PeerNode[] = INITIAL_PEERS.map((initPeer) => {
       const existing = filteredPeers.find((p) => p.id === initPeer.id);
       if (!existing) return initPeer;
       if (existing.id === 'peer-siswa-05' && existing.name === 'Hendrikus D.') {
@@ -153,6 +151,8 @@ export function ensureDatabaseSeeded(): {
       }
       return existing;
     });
+    const dynamicStudentPeers = filteredPeers.filter((p) => !canonicalIds.has(p.id));
+    const finalPeers: PeerNode[] = [...canonicalMerged, ...dynamicStudentPeers];
 
     if (finalPeers.length !== loadedPeers.length) {
       PeerRepository.saveAll(finalPeers);

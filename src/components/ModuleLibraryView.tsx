@@ -35,11 +35,9 @@ import {
   type SwarmMetrics,
   type SimulationType,
 } from '../utils/edgeEngine';
-import {
-  getSubjectTheme,
-  getStudentLevelInfo,
-} from '../utils/subjectTheme';
+import { getSubjectTheme, getStudentLevelInfo } from '../utils/subjectTheme';
 import { HERO_CLASSROOM_IMAGE } from '../utils/seedData';
+import { useMeshNetwork } from '../context/MeshNetworkContext';
 import { InteractiveSimulations } from './InteractiveSimulations';
 import { InlineChapterCalculator } from './modules/InlineChapterCalculator';
 import { ModuleCaseStudyView } from './modules/ModuleCaseStudyView';
@@ -94,14 +92,23 @@ export const ModuleLibraryView: React.FC<Props> = ({
   isSyncing,
   onSyncStudentSubmission,
 }) => {
+  const { studentProfile } = useMeshNetwork();
   const [subjectFilter, setSubjectFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeSubTab, setActiveSubTab] = useState<ModuleWorkspaceSubTab>('materi');
   const [isFocusReaderMode, setIsFocusReaderMode] = useState<boolean>(false);
   const [readerTextSize, setReaderTextSize] = useState<'normal' | 'large'>('normal');
+  const [isHighContrastReader, setIsHighContrastReader] = useState<boolean>(false);
   const [isBadgesExpanded, setIsBadgesExpanded] = useState<boolean>(true);
   const [isBitfieldExpanded, setIsBitfieldExpanded] = useState<boolean>(false);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>(() => {
+    try {
+      const saved = window.localStorage.getItem('ruangpintar_quiz_answers_v1');
+      return saved ? (JSON.parse(saved) as Record<string, number>) : {};
+    } catch {
+      return {};
+    }
+  });
   const [heroImgFailed, setHeroImgFailed] = useState(false);
   const [failedModuleImgs, setFailedModuleImgs] = useState<Record<string, boolean>>({});
 
@@ -176,7 +183,16 @@ export const ModuleLibraryView: React.FC<Props> = ({
     }
   }, [studentNotes]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('ruangpintar_quiz_answers_v1', JSON.stringify(selectedAnswers));
+    } catch {
+      // Ignore storage quota errors
+    }
+  }, [selectedAnswers]);
+
   const localStudentPeer =
+    peers.find((p) => p.id === studentProfile.peerId) ||
     peers.find((p) => p.id === 'peer-siswa-05') ||
     peers.find((p) => p.role === 'PEER') ||
     peers[0];
@@ -245,19 +261,30 @@ export const ModuleLibraryView: React.FC<Props> = ({
           'Misi Laboratorium Virtual Tuntas & Lencana Eksperimenter Sains Terbuka!'
         );
         if (onSyncStudentSubmission && activeModule) {
+          const total = Math.max(1, activeModule.checkpoints.length);
+          const answeredAny = activeModule.checkpoints.some(
+            (_, idx) => typeof selectedAnswers[`${activeModule.id}-${idx}`] === 'number'
+          );
+          const correctCount = activeModule.checkpoints.filter(
+            (cp, idx) => selectedAnswers[`${activeModule.id}-${idx}`] === cp.correctIndex
+          ).length;
+          const computedQuizPct = answeredAny
+            ? Math.min(100, Math.round((correctCount / total) * 100))
+            : 100;
+
           onSyncStudentSubmission({
             moduleId: activeModule.id,
             moduleTitle: activeModule.title,
-            quizScore: 100,
-            totalQuestions: activeModule.checkpoints.length,
-            passed: true,
+            quizScore: computedQuizPct,
+            totalQuestions: total,
+            passed: computedQuizPct >= 70,
             simulationCompleted: true,
           });
         }
         return { ...prev, [simType]: true };
       });
     },
-    [triggerXpCelebration, onSyncStudentSubmission, activeModule]
+    [triggerXpCelebration, onSyncStudentSubmission, activeModule, selectedAnswers]
   );
 
   const handleToggleChapterComplete = (moduleId: string, sectionIdx: number) => {
@@ -974,7 +1001,9 @@ export const ModuleLibraryView: React.FC<Props> = ({
             aria-label={`Pembaca Modul ${activeModule.title}`}
             className={`${
               isFocusReaderMode ? 'lg:col-span-12' : 'lg:col-span-8'
-            } bento-card overflow-hidden transition-all`}
+            } bento-card overflow-hidden transition-all ${
+              isHighContrastReader ? 'bg-white ring-2 ring-slate-900' : ''
+            }`}
           >
             {/* Active Subject Top Gradient Ribbon */}
             <div className={`h-2 w-full ${activeTheme.ribbonGradient}`} />
@@ -1084,8 +1113,8 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-600 font-medium">Ukuran Teks Bacaan:</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-slate-600 font-medium">Tampilan Bacaan:</span>
                     <button
                       type="button"
                       onClick={() => setReaderTextSize('normal')}
@@ -1107,6 +1136,17 @@ export const ModuleLibraryView: React.FC<Props> = ({
                       }`}
                     >
                       Besar (Nyaman)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsHighContrastReader((prev) => !prev)}
+                      className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer ${
+                        isHighContrastReader
+                          ? 'bg-slate-900 text-amber-300 border border-slate-900'
+                          : 'bg-white text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      {isHighContrastReader ? '☀️ Kontras Tinggi Aktif' : '☀️ Mode Siang'}
                     </button>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserCheck, X } from 'lucide-react';
 import {
   useMeshNetwork,
@@ -15,6 +15,13 @@ export const StudentProfileModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { studentProfile, setStudentProfile, setStatusBanner } = useMeshNetwork();
   const [nameInput, setNameInput] = useState(studentProfile.studentName);
   const [avatarInput, setAvatarInput] = useState(studentProfile.avatar);
+
+  useEffect(() => {
+    if (isOpen) {
+      setNameInput(studentProfile.studentName);
+      setAvatarInput(studentProfile.avatar);
+    }
+  }, [isOpen, studentProfile.avatar, studentProfile.studentName]);
 
   if (!isOpen) return null;
 

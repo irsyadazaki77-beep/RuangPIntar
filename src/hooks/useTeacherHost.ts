@@ -1,20 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useMeshNetwork } from '../context/MeshNetworkContext';
+import { apiFetch, safeParseJson } from '../utils/apiClient';
 
 const HOST_SESSION_TOKEN_KEY = 'ruangpintar_host_session_token';
 const HOST_SESSION_EXPIRY_KEY = 'ruangpintar_host_session_expires_at';
-
-async function safeParseJson(res: Response): Promise<Record<string, any>> {
-  try {
-    const text = await res.text();
-    if (!text || text.trim().startsWith('<')) {
-      return {};
-    }
-    return JSON.parse(text);
-  } catch {
-    return {};
-  }
-}
 
 export function useTeacherHost() {
   const {
@@ -51,7 +40,7 @@ export function useTeacherHost() {
 
     if (currentToken) {
       try {
-        await fetch('/api/auth/logout', {
+        await apiFetch('/api/auth/logout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -68,7 +57,7 @@ export function useTeacherHost() {
   const handleVerifyHostPin = useCallback(
     async (pin: string): Promise<{ ok: boolean; error?: string; retryAfterSeconds?: number }> => {
       try {
-        const response = await fetch('/api/auth/login', {
+        const response = await apiFetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pin: pin.trim() }),
@@ -118,7 +107,7 @@ export function useTeacherHost() {
       newPin: string
     ): Promise<{ ok: boolean; error?: string; message?: string }> => {
       try {
-        const response = await fetch('/api/host/change-pin', {
+        const response = await apiFetch('/api/host/change-pin', {
           method: 'POST',
           headers: getAuthHeaders({
             'Content-Type': 'application/json',
@@ -145,7 +134,7 @@ export function useTeacherHost() {
 
   const handleToggleGatewayTethering = useCallback(async () => {
     try {
-      const response = await fetch('/api/gateway/toggle', {
+      const response = await apiFetch('/api/gateway/toggle', {
         method: 'POST',
         headers: getAuthHeaders({
           'Content-Type': 'application/json',
@@ -177,7 +166,7 @@ export function useTeacherHost() {
       sizeMB: number;
     }): Promise<{ ok: boolean; error?: string }> => {
       try {
-        const response = await fetch('/api/modules', {
+        const response = await apiFetch('/api/modules', {
           method: 'POST',
           headers: getAuthHeaders({
             'Content-Type': 'application/json',
@@ -206,7 +195,7 @@ export function useTeacherHost() {
       answerMarkdown: string;
     }): Promise<{ ok: boolean; error?: string }> => {
       try {
-        const response = await fetch('/api/cache/seed', {
+        const response = await apiFetch('/api/cache/seed', {
           method: 'POST',
           headers: getAuthHeaders({
             'Content-Type': 'application/json',
@@ -229,7 +218,7 @@ export function useTeacherHost() {
 
   const handleExportPackage = useCallback(async () => {
     try {
-      const res = await fetch('/api/host/export-package', {
+      const res = await apiFetch('/api/host/export-package', {
         headers: getAuthHeaders(),
       });
       if (!res.ok) {
@@ -257,7 +246,7 @@ export function useTeacherHost() {
   const handleImportPackage = useCallback(
     async (pkg: unknown): Promise<{ ok: boolean; error?: string; message?: string }> => {
       try {
-        const res = await fetch('/api/host/import-package', {
+        const res = await apiFetch('/api/host/import-package', {
           method: 'POST',
           headers: getAuthHeaders({
             'Content-Type': 'application/json',
@@ -287,6 +276,104 @@ export function useTeacherHost() {
     [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]
   );
 
+  const handleDistributeToAll = useCallback(
+    async (moduleId: string): Promise<{ ok: boolean; message?: string; error?: string }> => {
+      try {
+        const res = await apiFetch('/api/sync/distribute-all', {
+          method: 'POST',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ moduleId }),
+        });
+        const data = await safeParseJson(res);
+        if (!res.ok || !data.ok) {
+          if (res.status === 401) await handleLockHost();
+          return { ok: false, error: data.error || 'Gagal membagikan modul ke seluruh siswa.' };
+        }
+        if (data.state) applyServerState(data.state);
+        if (data.message) setStatusBanner(data.message);
+        return { ok: true, message: data.message };
+      } catch {
+        return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+      }
+    },
+    [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]
+  );
+
+  const handleBroadcastClassroom = useCallback(
+    async (payload: {
+      message: string;
+      focusModuleId?: string;
+      examMode: boolean;
+      clear?: boolean;
+    }): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        const res = await apiFetch('/api/sync/broadcast', {
+          method: 'POST',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(payload),
+        });
+        const data = await safeParseJson(res);
+        if (!res.ok || !data.ok) {
+          if (res.status === 401) await handleLockHost();
+          return { ok: false, error: data.error || 'Gagal mengirim pengumuman kelas.' };
+        }
+        if (data.state) applyServerState(data.state);
+        setStatusBanner(
+          payload.clear
+            ? 'Pengumuman & mode ujian kelas dinonaktifkan.'
+            : 'Pengumuman kelas berhasil dikirim ke seluruh perangkat siswa!'
+        );
+        return { ok: true };
+      } catch {
+        return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+      }
+    },
+    [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]
+  );
+
+  const handleProcessAiQueue = useCallback(async (): Promise<{
+    ok: boolean;
+    message?: string;
+    error?: string;
+  }> => {
+    try {
+      const res = await apiFetch('/api/tutor/process-queue', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      });
+      const data = await safeParseJson(res);
+      if (!res.ok || !data.ok) {
+        if (res.status === 401) await handleLockHost();
+        return { ok: false, error: data.error || 'Gagal memproses antrean pertanyaan.' };
+      }
+      if (data.state) applyServerState(data.state);
+      if (data.message) setStatusBanner(data.message);
+      return { ok: true, message: data.message };
+    } catch {
+      return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+    }
+  }, [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]);
+
+  const handleDismissPendingQuestion = useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        const res = await apiFetch(`/api/tutor/queue/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
+        if (res.ok) {
+          const data = await safeParseJson(res);
+          if (data.state) applyServerState(data.state);
+        } else if (res.status === 401) {
+          await handleLockHost();
+        }
+      } catch {
+        // Ignore transient network error
+      }
+    },
+    [applyServerState, getAuthHeaders, handleLockHost]
+  );
+
   return {
     sessionToken,
     verifiedHostPin: sessionToken,
@@ -299,6 +386,10 @@ export function useTeacherHost() {
     handleSeedCacheEntry,
     handleExportPackage,
     handleImportPackage,
+    handleDistributeToAll,
+    handleBroadcastClassroom,
+    handleProcessAiQueue,
+    handleDismissPendingQuestion,
   };
 }
 

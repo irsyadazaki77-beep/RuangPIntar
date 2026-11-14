@@ -21,9 +21,13 @@ import {
   ProgressSyncSchema,
   TransferPackageSchema,
   ClientChunksSyncSchema,
+  DistributeAllSchema,
+  ClassroomBroadcastSchema,
   type ProgressSyncPayload,
   type TransferPackagePayload,
   type ClientChunksSyncPayload,
+  type DistributeAllPayload,
+  type ClassroomBroadcastPayload,
 } from '../schemas/sync.schema.js';
 
 export class SyncController {
@@ -450,5 +454,104 @@ export class SyncController {
       mdnsUrl: `http://${mdnsHost}:${port}`,
       hostname: os.hostname(),
     });
+  }
+
+  /**
+   * Distributes all missing chunks of a module across all student peers in one click.
+   */
+  public static distributeToAll(req: Request, res: Response): void {
+    const parsed: DistributeAllPayload =
+      (req.validatedBody as DistributeAllPayload | undefined) ??
+      DistributeAllSchema.parse(req.body);
+
+    const modules = classroomState.getModules();
+    const mod = modules.find((m) => m.id === parsed.moduleId);
+    if (!mod) {
+      res.status(404).json({ ok: false, error: 'Modul pembelajaran tidak ditemukan.' });
+      return;
+    }
+
+    const peers = classroomState.getPeers();
+    const studentPeers = peers.filter((p) => p.role === 'PEER');
+    let totalTransferred = 0;
+
+    for (const targetPeer of studentPeers) {
+      const planned = computeNextChunkTransfers(mod, targetPeer.id, peers, mod.totalChunks);
+      for (const item of planned) {
+        const held = targetPeer.moduleChunks[mod.id] || [];
+        if (!held.includes(item.chunkIndex)) {
+          held.push(item.chunkIndex);
+          held.sort((a, b) => a - b);
+          targetPeer.moduleChunks[mod.id] = held;
+        }
+        const mbDelta = item.sizeKB / 1024;
+        targetPeer.downloadedMB = Number((targetPeer.downloadedMB + mbDelta).toFixed(2));
+        const sourcePeer = peers.find((p) => p.id === item.fromPeerId);
+        if (sourcePeer) {
+          sourcePeer.uploadedMB = Number((sourcePeer.uploadedMB + mbDelta).toFixed(2));
+        }
+
+        const ev: ChunkTransferEvent = {
+          id: `tx-all-${Date.now()}-${targetPeer.id}-${item.chunkIndex}-${Math.random().toString(36).slice(2, 5)}`,
+          timestamp: formatTimeWITA(),
+          moduleId: mod.id,
+          moduleTitle: mod.title,
+          chunkIndex: item.chunkIndex,
+          chunkHash: mod.chunkHashes[item.chunkIndex] || `chk-${item.chunkIndex}`,
+          fromPeerId: item.fromPeerId,
+          fromPeerName: item.fromPeerName,
+          fromPeerRole: item.fromPeerRole,
+          toPeerId: item.toPeerId,
+          toPeerName: item.toPeerName,
+          sizeKB: item.sizeKB,
+          channelProtocol: 'WebRTC DataChannel (SCTP)',
+          zeroIspQuota: true,
+        };
+        classroomState.addTransferEvent(ev);
+        totalTransferred++;
+      }
+    }
+
+    if (totalTransferred > 0) {
+      classroomState.savePeers();
+    }
+    classroomState.broadcastState();
+
+    res.json({
+      ok: true,
+      transferredCount: totalTransferred,
+      message:
+        totalTransferred > 0
+          ? `Berhasil mendistribusikan ${totalTransferred} pecahan materi "${mod.title}" ke seluruh siswa!`
+          : `Seluruh siswa sudah memiliki salinan lengkap modul "${mod.title}".`,
+      state: classroomState.getFullState(),
+    });
+  }
+
+  /**
+   * Broadcasts teacher announcement, optional focus module redirect, and exam mode lock.
+   */
+  public static setClassroomBroadcast(req: Request, res: Response): void {
+    const parsed: ClassroomBroadcastPayload =
+      (req.validatedBody as ClassroomBroadcastPayload | undefined) ??
+      ClassroomBroadcastSchema.parse(req.body);
+
+    if (parsed.clear || (!parsed.message && !parsed.focusModuleId && !parsed.examMode)) {
+      classroomState.setClassroomBroadcast(null);
+      classroomState.broadcastState();
+      res.json({ ok: true, broadcast: null, state: classroomState.getFullState() });
+      return;
+    }
+
+    const nextBroadcast = {
+      message: parsed.message,
+      focusModuleId: parsed.focusModuleId || undefined,
+      examMode: Boolean(parsed.examMode),
+      updatedAt: formatTimeWITA(),
+      updatedMs: Date.now(),
+    };
+    classroomState.setClassroomBroadcast(nextBroadcast);
+    classroomState.broadcastState();
+    res.json({ ok: true, broadcast: nextBroadcast, state: classroomState.getFullState() });
   }
 }

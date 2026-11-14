@@ -51,7 +51,7 @@ export function resolveHostPin(
     throw new Error(fatalMsg);
   }
 
-  const randomPin = crypto.randomInt(100000, 999999).toString();
+  const randomPin = crypto.randomInt(100000, 1000000).toString();
   console.warn(`\n${formatEphemeralPinBanner(randomPin)}\n`);
   return { hostPin: randomPin, isEphemeralPin: true };
 }

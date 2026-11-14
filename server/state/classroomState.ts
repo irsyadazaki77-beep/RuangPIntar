@@ -6,6 +6,7 @@ import {
   CacheRepository,
   QuizRepository,
   HostConfigRepository,
+  PendingQuestionRepository,
 } from '../db/index.js';
 import {
   calculateSwarmMetrics,
@@ -16,6 +17,8 @@ import {
   type TutorAskResponse,
   type StudentSubmission,
   type SwarmMetrics,
+  type PendingAiQuestion,
+  type ClassroomBroadcast,
 } from '../../src/utils/edgeEngine.js';
 import { INITIAL_CACHE_ENTRIES } from '../../src/utils/seedData.js';
 
@@ -28,6 +31,8 @@ export interface ClassroomFullState {
   submissions: StudentSubmission[];
   metrics: SwarmMetrics;
   gatewayTetheringOnline: boolean;
+  pendingAiQuestions: PendingAiQuestion[];
+  classroomBroadcast: ClassroomBroadcast | null;
 }
 
 export function formatTimeWITA(): string {
@@ -44,6 +49,8 @@ class ClassroomStateManager {
   private transferHistory: ChunkTransferEvent[] = [];
   private cacheEntries: CacheEntry[] = [];
   private recentQueries: TutorAskResponse[] = [];
+  private pendingAiQuestions: PendingAiQuestion[] = [];
+  private classroomBroadcast: ClassroomBroadcast | null = null;
   private gatewayTetheringOnline = true;
   private cloudQueriesCount = 4;
   private broadcaster: (() => void) | null = null;
@@ -61,6 +68,14 @@ class ClassroomStateManager {
     this.cacheEntries = seeded.cacheEntries;
     this.gatewayTetheringOnline = seeded.gatewayTetheringOnline;
     this.cloudQueriesCount = seeded.cloudQueriesCount;
+    this.pendingAiQuestions = PendingQuestionRepository.loadAll();
+
+    try {
+      const rawBroadcast = HostConfigRepository.get('classroom_broadcast_json', '');
+      this.classroomBroadcast = rawBroadcast ? (JSON.parse(rawBroadcast) as ClassroomBroadcast) : null;
+    } catch {
+      this.classroomBroadcast = null;
+    }
 
     if (this.recentQueries.length === 0) {
       this.recentQueries = [
@@ -127,6 +142,8 @@ class ClassroomStateManager {
       submissions,
       metrics,
       gatewayTetheringOnline: this.gatewayTetheringOnline,
+      pendingAiQuestions: this.pendingAiQuestions,
+      classroomBroadcast: this.classroomBroadcast,
     };
   }
 
@@ -141,7 +158,7 @@ class ClassroomStateManager {
 
   public addModule(mod: LearningModule): void {
     this.modules.unshift(mod);
-    this.modules.forEach((m, idx) => ModuleRepository.save(m, idx));
+    ModuleRepository.saveAll(this.modules);
   }
 
   // Peers
@@ -173,8 +190,49 @@ class ClassroomStateManager {
   }
 
   public addCacheEntry(entry: CacheEntry): void {
+    const existingIdx = this.cacheEntries.findIndex((c) => c.id === entry.id);
+    if (existingIdx >= 0) {
+      this.cacheEntries[existingIdx] = entry;
+      CacheRepository.save(entry, existingIdx);
+      return;
+    }
     this.cacheEntries.unshift(entry);
-    this.cacheEntries.forEach((c, idx) => CacheRepository.save(c, idx));
+    CacheRepository.saveAll(this.cacheEntries);
+  }
+
+  // Pending AI Questions (Offline Queue)
+  public getPendingAiQuestions(): PendingAiQuestion[] {
+    return this.pendingAiQuestions;
+  }
+
+  public addPendingAiQuestion(item: PendingAiQuestion): void {
+    const normalizedIncoming = item.question.trim().toLowerCase();
+    const alreadyQueued = this.pendingAiQuestions.some(
+      (q) => q.moduleId === item.moduleId && q.question.trim().toLowerCase() === normalizedIncoming
+    );
+    if (alreadyQueued) return;
+    this.pendingAiQuestions.unshift(item);
+    PendingQuestionRepository.insert(item);
+  }
+
+  public removePendingAiQuestion(id: string): boolean {
+    const before = this.pendingAiQuestions.length;
+    this.pendingAiQuestions = this.pendingAiQuestions.filter((q) => q.id !== id);
+    PendingQuestionRepository.remove(id);
+    return this.pendingAiQuestions.length < before;
+  }
+
+  // Classroom Broadcast & Exam Mode
+  public getClassroomBroadcast(): ClassroomBroadcast | null {
+    return this.classroomBroadcast;
+  }
+
+  public setClassroomBroadcast(broadcast: ClassroomBroadcast | null): void {
+    this.classroomBroadcast = broadcast;
+    HostConfigRepository.set(
+      'classroom_broadcast_json',
+      broadcast ? JSON.stringify(broadcast) : ''
+    );
   }
 
   // Recent queries

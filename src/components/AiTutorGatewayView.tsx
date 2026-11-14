@@ -31,6 +31,8 @@ interface Props {
   recentQueries: TutorAskResponse[];
   metrics: SwarmMetrics;
   gatewayTetheringOnline: boolean;
+  examMode?: boolean;
+  pendingQueueCount?: number;
   activeModuleId?: string;
   initialQuestionPrompt?: string | null;
   onClearInitialPrompt?: () => void;
@@ -157,6 +159,8 @@ export const AiTutorGatewayView: React.FC<Props> = ({
   recentQueries,
   metrics,
   gatewayTetheringOnline,
+  examMode = false,
+  pendingQueueCount = 0,
   activeModuleId,
   initialQuestionPrompt,
   onClearInitialPrompt,
@@ -720,6 +724,11 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                           <CheckCircle2 className="w-4 h-4 text-emerald-100" />
                           <span>✓ Jawaban Resmi Disetujui Guru (Memori Kelas · 0 Kuota)</span>
                         </div>
+                      ) : activeResponse.source === 'LOCAL_EDGE_SYNTHESIS' ? (
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-2xs">
+                          <Database className="w-4 h-4 text-amber-100" />
+                          <span>Sintesis Lokal + Antrean Gemini Guru ({pendingQueueCount} Menunggu)</span>
+                        </div>
                       ) : (
                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-600 text-white font-bold text-xs shadow-2xs">
                           <Zap className="w-4 h-4 text-sky-100" />
@@ -854,11 +863,25 @@ export const AiTutorGatewayView: React.FC<Props> = ({
           </AnimatePresence>
 
           {/* Bottom Docked Question Composer Form with Starter Prompts */}
-          <form
-            onSubmit={handleSubmit}
-            className="pt-4 border-t border-slate-200 space-y-3"
-            noValidate
-          >
+          {examMode ? (
+            <div
+              role="alert"
+              className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs sm:text-sm space-y-1"
+            >
+              <div className="font-bold flex items-center gap-2">
+                <span>🔒</span>
+                <span>Mode Ujian Sedang Diaktifkan oleh Guru</span>
+              </div>
+              <p className="text-xs text-amber-900">
+                Sahabat Belajar AI dinonaktifkan sementara selama evaluasi berlangsung. Silakan kerjakan kuis di tab Petualangan Belajar.
+              </p>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              className="pt-4 border-t border-slate-200 space-y-3"
+              noValidate
+            >
             {/* Quick Starter Prompts Chips */}
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
@@ -932,6 +955,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
               </p>
             )}
           </form>
+          )}
         </div>
       </motion.section>
     </motion.div>

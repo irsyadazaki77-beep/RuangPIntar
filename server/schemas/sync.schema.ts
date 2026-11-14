@@ -102,3 +102,24 @@ export const SneakernetImportSchema = z
   );
 
 export type SneakernetImportPayload = z.infer<typeof SneakernetImportSchema>;
+
+/**
+ * Skema distribusi massal 1 modul ke seluruh siswa terhubung
+ */
+export const DistributeAllSchema = z.object({
+  moduleId: z.string({ message: 'moduleId wajib berupa string' }).trim().min(1, 'moduleId wajib diisi'),
+});
+
+export type DistributeAllPayload = z.infer<typeof DistributeAllSchema>;
+
+/**
+ * Skema pengumuman kelas, arahkan modul fokus, dan mode ujian dari Guru
+ */
+export const ClassroomBroadcastSchema = z.object({
+  message: z.string().trim().max(280, 'Pengumuman maksimal 280 karakter').default(''),
+  focusModuleId: z.string().trim().optional(),
+  examMode: z.boolean().default(false),
+  clear: z.boolean().optional(),
+});
+
+export type ClassroomBroadcastPayload = z.infer<typeof ClassroomBroadcastSchema>;

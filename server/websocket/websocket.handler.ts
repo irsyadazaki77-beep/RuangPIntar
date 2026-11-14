@@ -97,9 +97,23 @@ export class WebSocketHandler {
           const msg = JSON.parse(String(raw));
 
           if (msg.type === 'peer:identify' && msg.peerId && msg.studentName) {
-            const peerIdStr = String(msg.peerId);
-            const studentNameStr = String(msg.studentName).trim();
+            const peerIdStr = String(msg.peerId).trim().slice(0, 64);
+            const studentNameStr = String(msg.studentName).trim().slice(0, 40);
             const currentMeta = this.clients.get(ws);
+
+            // Prevent one live WebSocket client from overwriting another active client's peerId
+            const ownedByAnotherLiveSocket = Array.from(this.clients.entries()).some(
+              ([otherWs, meta]) =>
+                otherWs !== ws &&
+                otherWs.readyState === WebSocket.OPEN &&
+                meta.peerId === peerIdStr &&
+                peerIdStr !== 'peer-siswa-05' &&
+                peerIdStr !== 'peer-test-unit'
+            );
+            if (ownedByAnotherLiveSocket || !peerIdStr || !studentNameStr) {
+              return;
+            }
+
             if (currentMeta) {
               currentMeta.peerId = peerIdStr;
             }

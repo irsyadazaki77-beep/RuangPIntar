@@ -16,10 +16,19 @@ export const NAV_ITEMS: { id: ActiveTab; label: string; mobileLabel: string; ico
 
 interface Props {
   onSync: () => void;
+  onReconnect?: () => void;
 }
 
-export const AppHeader: React.FC<Props> = ({ onSync }) => {
-  const { activeTab, setActiveTab, studentProfile, isSyncing, openQrScanner, isOfflineActive } = useMeshNetwork();
+export const AppHeader: React.FC<Props> = ({ onSync, onReconnect }) => {
+  const {
+    activeTab,
+    setActiveTab,
+    studentProfile,
+    isSyncing,
+    openQrScanner,
+    isOfflineActive,
+    socketConnected,
+  } = useMeshNetwork();
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
 
   return (
@@ -73,21 +82,45 @@ export const AppHeader: React.FC<Props> = ({ onSync }) => {
             })}
           </nav>
 
-          {/* Zone 3: Student Profile + PWA + Quick Sync */}
+          {/* Zone 3: Connection Indicator + Student Profile + PWA + Quick Sync */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {isOfflineActive && (
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.95 }}
-                onClick={openQrScanner}
-                className="min-h-[42px] px-2.5 sm:px-3.5 py-1.5 rounded-xl border border-sky-300 bg-sky-100/90 hover:bg-sky-200 text-xs font-bold text-sky-900 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs shrink-0"
-                title="Pindai QR Code Simpul Guru"
-              >
-                <span className="text-sm">📷</span>
-                <span className="hidden sm:inline">Hubungkan ke Guru (Scan QR)</span>
-                <span className="sm:hidden">Scan QR</span>
-              </motion.button>
-            )}
+            <button
+              type="button"
+              onClick={socketConnected ? openQrScanner : onReconnect || openQrScanner}
+              title={
+                socketConnected
+                  ? 'Terhubung langsung ke Laptop Guru (klik untuk pindah/scan QR)'
+                  : isOfflineActive
+                    ? 'Mode Luring aktif (klik untuk sambung ke Laptop Guru)'
+                    : 'Belum tersambung ke Laptop Guru — klik untuk sambung ulang'
+              }
+              className={`min-h-[42px] px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0 ${
+                socketConnected
+                  ? 'border-emerald-200 bg-emerald-50/90 text-emerald-800 hover:bg-emerald-100'
+                  : isOfflineActive
+                    ? 'border-amber-200 bg-amber-50/90 text-amber-900 hover:bg-amber-100'
+                    : 'border-rose-200 bg-rose-50/90 text-rose-800 hover:bg-rose-100'
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  socketConnected
+                    ? 'bg-emerald-500 animate-pulse'
+                    : isOfflineActive
+                      ? 'bg-amber-500'
+                      : 'bg-rose-500'
+                }`}
+              />
+              <span className="hidden lg:inline">
+                {socketConnected
+                  ? 'Terhubung Guru'
+                  : isOfflineActive
+                    ? 'Luring (HP)'
+                    : 'Sambung Ulang'}
+              </span>
+              <span className="lg:hidden">QR</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setShowProfileModal(true)}
@@ -95,7 +128,7 @@ export const AppHeader: React.FC<Props> = ({ onSync }) => {
               title="Klik untuk ubah profil siswa"
             >
               <span className="text-base">{studentProfile.avatar.split(' ')[0]}</span>
-              <span className="hidden sm:inline font-bold">{studentProfile.studentName}</span>
+              <span className="hidden sm:inline font-bold max-w-[110px] truncate">{studentProfile.studentName}</span>
             </button>
             <PWAInstallButton />
             <motion.button
@@ -105,9 +138,9 @@ export const AppHeader: React.FC<Props> = ({ onSync }) => {
               onClick={onSync}
               className="min-h-[42px] px-3 sm:px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 disabled:opacity-50 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-xs flex items-center gap-1.5"
             >
-              <span>🔄</span>
-              <span className="hidden sm:inline">{isSyncing ? 'Mengunduh...' : 'Bagi Buku (P2P)'}</span>
-              <span className="sm:hidden">{isSyncing ? 'Unduh...' : 'Bagi P2P'}</span>
+              <span>📥</span>
+              <span className="hidden sm:inline">{isSyncing ? 'Menyinkron...' : 'Terima Materi'}</span>
+              <span className="sm:hidden">{isSyncing ? 'Unduh...' : 'Materi'}</span>
             </motion.button>
           </div>
         </div>

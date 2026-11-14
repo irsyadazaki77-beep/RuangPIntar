@@ -7,3 +7,5 @@ export const aiRouter = Router();
 
 aiRouter.post('/ask', aiTutorLimiter, AiController.askQuestion);
 aiRouter.post('/seed', requireHostPin, AiController.seedCache);
+aiRouter.post('/process-queue', requireHostPin, AiController.processPendingQueue);
+aiRouter.delete('/queue/:id', requireHostPin, AiController.dismissPendingQuestion);

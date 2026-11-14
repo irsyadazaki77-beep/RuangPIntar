@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Binary } from 'lucide-react';
 import { useMeshNetwork } from '../../context/MeshNetworkContext';
 
 export const StatusBanner: React.FC = () => {
   const { statusBanner, setStatusBanner, lastBinaryPacketInfo } = useMeshNetwork();
+
+  // Auto-dismiss status banner after 5s so it stays non-intrusive on mobile screens
+  useEffect(() => {
+    if (!statusBanner) return;
+    const timer = window.setTimeout(() => {
+      setStatusBanner(null);
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [statusBanner, setStatusBanner]);
 
   return (
     <AnimatePresence mode="popLayout">

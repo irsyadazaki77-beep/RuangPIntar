@@ -118,5 +118,15 @@ function initializeSchema(db: Database.Database): void {
       created_at INTEGER NOT NULL,
       expires_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS pending_ai_questions (
+      id TEXT PRIMARY KEY,
+      question TEXT NOT NULL,
+      module_id TEXT NOT NULL,
+      module_title TEXT NOT NULL,
+      asked_by_peer_name TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      created_ms INTEGER NOT NULL
+    );
   `);
 }

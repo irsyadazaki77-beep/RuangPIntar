@@ -39,8 +39,92 @@ export function buildCurriculumSynthesis(
   };
 }
 
+export async function queryGeminiGateway(
+  question: string,
+  selectedModule: LearningModule
+): Promise<{
+  answerMarkdown: string;
+  keyConcepts: string[];
+  quotaBytesUsed: number;
+} | null> {
+  const apiKey = config.geminiApiKey;
+  const hasConfiguredKey =
+    Boolean(apiKey) && apiKey !== 'MY_GEMINI_API_KEY' && apiKey!.trim().length > 10;
+  if (!classroomState.isGatewayTetheringOnline() || !hasConfiguredKey) {
+    return null;
+  }
+
+  try {
+    const ai = new GoogleGenAI({
+      apiKey: config.geminiApiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+
+    const systemInstruction =
+      `Anda adalah Tutor AI RuangPintar Edge yang beroperasi di Simpul Lokal (Edge Gateway) Laptop Guru untuk membantu siswa SMA/SMK di wilayah 3T (Tertinggal, Terdepan, Terluar) Indonesia.\n\n` +
+      `Konteks Modul Saat Ini:\n- Judul: "${selectedModule.title}"\n- Bidang Studi: ${selectedModule.subject} (${selectedModule.gradeLevel})\n- Ringkasan: ${selectedModule.summary}\n\n` +
+      `Prinsip Respon Pembelajaran:\n` +
+      `1. Efisien & Padat: Langsung ke inti materi tanpa kalimat basa-basi pembuka/penutup untuk menghemat kuota satelit.\n` +
+      `2. Kontekstual Wilayah 3T: Hubungkan konsep sains/teknik dengan analogi nyata di desa, kepulauan, dan pesisir Indonesia.\n` +
+      `3. Struktur Wajib: Bagi penjelasan menjadi 3 bagian: (a) Konsep Inti, (b) Rumus & Contoh Perhitungan Konkret bila ada, (c) Penerapan Lapangan di Daerah 3T.`;
+
+    const geminiResponse = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: question.trim(),
+      config: {
+        systemInstruction,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            answerMarkdown: {
+              type: Type.STRING,
+              description: 'Jawaban lengkap terstruktur dalam format Markdown.',
+            },
+            keyConcepts: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: '3 konsep kunci utama dari jawaban.',
+            },
+          },
+        },
+      },
+    });
+
+    const rawText = (geminiResponse.text ?? '').trim();
+    if (!rawText) return null;
+
+    const parsed = JSON.parse(rawText);
+    const answerMarkdown = parsed.answerMarkdown || rawText;
+    const keyConcepts =
+      Array.isArray(parsed.keyConcepts) && parsed.keyConcepts.length > 0
+        ? parsed.keyConcepts.slice(0, 4)
+        : [selectedModule.subject, 'Gateway Gemini Cloud', 'Cache Lokal Guru'];
+    const quotaBytesUsed = Buffer.byteLength(question + answerMarkdown, 'utf8');
+    classroomState.incrementCloudQueriesCount();
+    return { answerMarkdown, keyConcepts, quotaBytesUsed };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[RuangPintar AI Gateway] Fallback ke sintesis lokal: ${message}`);
+    return null;
+  }
+}
+
 export class AiController {
   public static async askQuestion(req: Request, res: Response): Promise<void> {
+    if (classroomState.getClassroomBroadcast()?.examMode) {
+      res.status(403).json({
+        ok: false,
+        error:
+          'Mode Ujian sedang diaktifkan oleh Guru. Sahabat Belajar AI dikunci sementara selama evaluasi berlangsung.',
+      });
+      return;
+    }
+
     const {
       question = '',
       moduleId = 'mod-fisika-mikrohidro',
@@ -93,84 +177,34 @@ export class AiController {
 
     // Step 2: Cache Miss -> Route via Teacher Host Single-Gateway Cloud AI (Gemini) if tethering is online
     const startTime = Date.now();
-    let answerMarkdown = '';
-    let keyConcepts: string[] = [];
-    let responseSource: 'CLOUD_GEMINI_GATEWAY' | 'LOCAL_EDGE_SYNTHESIS' = 'LOCAL_EDGE_SYNTHESIS';
+    const cloudResult = await queryGeminiGateway(question, selectedModule);
+
+    let answerMarkdown: string;
+    let keyConcepts: string[];
+    let responseSource: 'CLOUD_GEMINI_GATEWAY' | 'LOCAL_EDGE_SYNTHESIS';
     let quotaBytesUsed = 0;
 
-    const apiKey = config.geminiApiKey;
-    const hasConfiguredKey =
-      Boolean(apiKey) && apiKey !== 'MY_GEMINI_API_KEY' && apiKey!.trim().length > 10;
-    const gatewayTetheringOnline = classroomState.isGatewayTetheringOnline();
-
-    if (gatewayTetheringOnline && hasConfiguredKey) {
-      try {
-        const ai = new GoogleGenAI({
-          apiKey: config.geminiApiKey,
-          httpOptions: {
-            headers: {
-              'User-Agent': 'aistudio-build',
-            },
-          },
-        });
-
-        const systemInstruction =
-          `Anda adalah Tutor AI RuangPintar Edge yang beroperasi di Simpul Lokal (Edge Gateway) Laptop Guru untuk membantu siswa SMA/SMK di wilayah 3T (Tertinggal, Terdepan, Terluar) Indonesia.\n\n` +
-          `Konteks Modul Saat Ini:\n- Judul: "${selectedModule.title}"\n- Bidang Studi: ${selectedModule.subject} (${selectedModule.gradeLevel})\n- Ringkasan: ${selectedModule.summary}\n\n` +
-          `Prinsip Respon Pembelajaran:\n` +
-          `1. Efisien & Padat: Langsung ke inti materi tanpa kalimat basa-basi pembuka/penutup untuk menghemat kuota satelit.\n` +
-          `2. Kontekstual Wilayah 3T: Hubungkan konsep sains/teknik dengan analogi nyata di desa, kepulauan, dan pesisir Indonesia.\n` +
-          `3. Struktur Wajib: Bagi penjelasan menjadi 3 bagian: (a) Konsep Inti, (b) Rumus & Contoh Perhitungan Konkret bila ada, (c) Penerapan Lapangan di Daerah 3T.`;
-
-        const geminiResponse = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: question.trim(),
-          config: {
-            systemInstruction,
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                answerMarkdown: {
-                  type: Type.STRING,
-                  description: 'Jawaban lengkap terstruktur dalam format Markdown.',
-                },
-                keyConcepts: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                  description: '3 konsep kunci utama dari jawaban.',
-                },
-              },
-            },
-          },
-        });
-
-        const rawText = (geminiResponse.text ?? '').trim();
-        if (rawText) {
-          const parsed = JSON.parse(rawText);
-          answerMarkdown = parsed.answerMarkdown || rawText;
-          keyConcepts =
-            Array.isArray(parsed.keyConcepts) && parsed.keyConcepts.length > 0
-              ? parsed.keyConcepts.slice(0, 4)
-              : [selectedModule.subject, 'Gateway Gemini Cloud', 'Cache Lokal Guru'];
-          responseSource = 'CLOUD_GEMINI_GATEWAY';
-          quotaBytesUsed = Buffer.byteLength(question + answerMarkdown, 'utf8');
-          classroomState.incrementCloudQueriesCount();
-        }
-      } catch {
-        // Fallback cleanly to local edge curriculum synthesis if network/key unavailable in sandbox
-        const fallback = buildCurriculumSynthesis(question, selectedModule);
-        answerMarkdown = fallback.answerMarkdown;
-        keyConcepts = fallback.keyConcepts;
-        responseSource = 'LOCAL_EDGE_SYNTHESIS';
-        quotaBytesUsed = 0;
-      }
+    if (cloudResult) {
+      answerMarkdown = cloudResult.answerMarkdown;
+      keyConcepts = cloudResult.keyConcepts;
+      quotaBytesUsed = cloudResult.quotaBytesUsed;
+      responseSource = 'CLOUD_GEMINI_GATEWAY';
     } else {
       const fallback = buildCurriculumSynthesis(question, selectedModule);
       answerMarkdown = fallback.answerMarkdown;
       keyConcepts = fallback.keyConcepts;
       responseSource = 'LOCAL_EDGE_SYNTHESIS';
-      quotaBytesUsed = 0;
+
+      // Queue question for batch processing when Teacher Host gets internet signal
+      classroomState.addPendingAiQuestion({
+        id: `pq-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        question: question.trim(),
+        moduleId: selectedModule.id,
+        moduleTitle: selectedModule.title,
+        askedByPeerName,
+        createdAt: formatTimeWITA(),
+        createdMs: Date.now(),
+      });
     }
 
     const latencyMs =
@@ -189,7 +223,10 @@ export class AiController {
       createdAt: formatTimeWITA(),
       hitCount: 1,
       savedQuotaKB: 4.8,
-      originSource: 'GEMINI_CLOUD_GATEWAY',
+      originSource:
+        responseSource === 'CLOUD_GEMINI_GATEWAY'
+          ? 'GEMINI_CLOUD_GATEWAY'
+          : 'LOCAL_EDGE_SYNTHESIS',
     };
 
     classroomState.addCacheEntry(newCacheEntry);
@@ -214,6 +251,79 @@ export class AiController {
     classroomState.addRecentQuery(result);
     classroomState.broadcastState();
     res.json({ result, state: classroomState.getFullState() });
+  }
+
+  public static async processPendingQueue(_req: Request, res: Response): Promise<void> {
+    if (!classroomState.isGatewayTetheringOnline()) {
+      res.status(400).json({
+        ok: false,
+        error: 'Aktifkan Gateway Tethering Guru terlebih dahulu sebelum memproses antrean pertanyaan.',
+      });
+      return;
+    }
+
+    const pending = [...classroomState.getPendingAiQuestions()];
+    if (pending.length === 0) {
+      res.json({
+        ok: true,
+        processedCount: 0,
+        message: 'Tidak ada antrean pertanyaan offline yang menunggu.',
+        state: classroomState.getFullState(),
+      });
+      return;
+    }
+
+    const modules = classroomState.getModules();
+    let processedCount = 0;
+
+    for (const item of pending) {
+      const mod = modules.find((m) => m.id === item.moduleId) || modules[0];
+      const cloudResult = await queryGeminiGateway(item.question, mod);
+      if (cloudResult) {
+        const entry: CacheEntry = {
+          id: `cache-batch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          moduleId: mod.id,
+          subject: mod.subject,
+          questionCanonical: item.question,
+          normalizedTokens: normalizeQuestion(item.question),
+          answerMarkdown: cloudResult.answerMarkdown,
+          keyConcepts: cloudResult.keyConcepts,
+          createdByStudent: item.askedByPeerName,
+          createdAt: formatTimeWITA(),
+          hitCount: 1,
+          savedQuotaKB: 4.8,
+          originSource: 'GEMINI_CLOUD_GATEWAY',
+        };
+        classroomState.addCacheEntry(entry);
+        classroomState.removePendingAiQuestion(item.id);
+        processedCount++;
+      }
+    }
+
+    classroomState.broadcastState();
+    res.json({
+      ok: true,
+      processedCount,
+      remainingCount: classroomState.getPendingAiQuestions().length,
+      message:
+        processedCount > 0
+          ? `${processedCount} pertanyaan antrean berhasil dijawab oleh Gemini Cloud dan disimpan ke Cache Lokal!`
+          : 'Gemini API tidak tersedia atau belum dikonfigurasi (cek GEMINI_API_KEY di .env).',
+      state: classroomState.getFullState(),
+    });
+  }
+
+  public static dismissPendingQuestion(req: Request, res: Response): void {
+    const id = String(req.params.id || '').trim();
+    if (!id) {
+      res.status(400).json({ ok: false, error: 'ID pertanyaan wajib diisi.' });
+      return;
+    }
+    const removed = classroomState.removePendingAiQuestion(id);
+    if (removed) {
+      classroomState.broadcastState();
+    }
+    res.json({ ok: true, removed, state: classroomState.getFullState() });
   }
 
   public static seedCache(req: Request, res: Response): void {

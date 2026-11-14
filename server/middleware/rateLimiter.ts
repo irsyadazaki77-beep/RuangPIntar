@@ -47,10 +47,41 @@ export const pinVerificationLimiter = rateLimit({
 });
 
 /**
+ * Dedicated limiter for PIN rotation so /change-pin rate limits don't lock out /login.
+ */
+export const changePinLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    ok: false,
+    valid: false,
+    error: 'Terlalu banyak percobaan otentikasi PIN. Akses dibatasi sementara.',
+  },
+});
+
+/**
  * Package Transfer (Export / Import Sneakernet) Rate Limiter
  * Window: 5 minutes, max 10 requests per IP.
  */
 export const packageTransferLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    ok: false,
+    success: false,
+    error: 'Terlalu banyak permintaan ekspor/impor paket. Silakan coba beberapa saat lagi.',
+  },
+});
+
+/**
+ * Separate limiter for Sneakernet package imports so package exports do not
+ * exhaust the import allowance.
+ */
+export const packageImportLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 10,
   standardHeaders: true,

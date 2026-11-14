@@ -50,16 +50,6 @@ const meshItemVariants = {
   },
 };
 
-const MESH_EDGES = [
-  { id: 'edge-1-2', x1: 120, y1: 155, x2: 580, y2: 155, dur: '2.2s', color: '#38bdf8' },
-  { id: 'edge-1-3', x1: 120, y1: 155, x2: 165, y2: 295, dur: '1.6s', color: '#0ea5e9' },
-  { id: 'edge-1-5', x1: 120, y1: 155, x2: 350, y2: 330, dur: '1.8s', color: '#38bdf8' },
-  { id: 'edge-2-4', x1: 580, y1: 155, x2: 535, y2: 295, dur: '1.7s', color: '#0ea5e9' },
-  { id: 'edge-2-5', x1: 580, y1: 155, x2: 350, y2: 330, dur: '1.9s', color: '#38bdf8' },
-  { id: 'edge-3-5', x1: 165, y1: 295, x2: 350, y2: 330, dur: '1.4s', color: '#38bdf8' },
-  { id: 'edge-4-5', x1: 535, y1: 295, x2: 350, y2: 330, dur: '1.5s', color: '#38bdf8' },
-];
-
 export const MeshTopologyView: React.FC<Props> = ({
   modules,
   peers,
@@ -80,15 +70,63 @@ export const MeshTopologyView: React.FC<Props> = ({
   const activeModule = modules.find((m) => m.id === selectedModuleId) || modules[0];
   const activeTheme = getSubjectTheme(activeModule.subject);
   const studentPeers = peers.filter((p) => p.role === 'PEER');
+  const hostPeers = peers.filter((p) => p.role === 'HOST');
 
-  const nodePositions: Record<string, { x: number; y: number; shortLabel: string }> = {
-    'host-guru-01': { x: 350, y: 58, shortLabel: 'Laptop Guru (Host 192.168.43.1)' },
-    'peer-siswa-01': { x: 120, y: 155, shortLabel: 'Peer 01 · Yohanes' },
-    'peer-siswa-02': { x: 580, y: 155, shortLabel: 'Peer 02 · Maria' },
-    'peer-siswa-03': { x: 165, y: 295, shortLabel: 'Peer 03 · Lukas' },
-    'peer-siswa-04': { x: 535, y: 295, shortLabel: 'Peer 04 · Siti' },
-    'peer-siswa-05': { x: 350, y: 330, shortLabel: 'Peer 05 · Hendrikus (Anda)' },
-  };
+  // Dynamic radial classroom layout: Teacher Host at center, all students arranged around
+  const nodePositions: Record<string, { x: number; y: number; shortLabel: string }> = {};
+  hostPeers.forEach((h, idx) => {
+    nodePositions[h.id] = {
+      x: 350 + idx * 140,
+      y: 195,
+      shortLabel: h.name.slice(0, 26),
+    };
+  });
+
+  const visibleStudents = studentPeers.slice(0, 12);
+  visibleStudents.forEach((p, idx) => {
+    const angle = -Math.PI / 2 + (idx * Math.PI * 2) / Math.max(1, visibleStudents.length);
+    nodePositions[p.id] = {
+      x: Math.round(350 + Math.cos(angle) * 245),
+      y: Math.round(195 + Math.sin(angle) * 140),
+      shortLabel: p.name.slice(0, 22),
+    };
+  });
+
+  // Dynamic P2P edges connecting neighboring student peers in the mesh ring
+  const dynamicMeshEdges = visibleStudents.flatMap((p, idx) => {
+    if (visibleStudents.length < 2) return [];
+    const nextPeer = visibleStudents[(idx + 1) % visibleStudents.length];
+    const fromPos = nodePositions[p.id];
+    const toPos = nodePositions[nextPeer.id];
+    if (!fromPos || !toPos) return [];
+    const edges = [
+      {
+        id: `ring-${p.id}-${nextPeer.id}`,
+        x1: fromPos.x,
+        y1: fromPos.y,
+        x2: toPos.x,
+        y2: toPos.y,
+        dur: `${(1.4 + (idx % 4) * 0.25).toFixed(2)}s`,
+        color: idx % 2 === 0 ? '#38bdf8' : '#0ea5e9',
+      },
+    ];
+    if (visibleStudents.length >= 4 && idx < Math.floor(visibleStudents.length / 2)) {
+      const oppPeer = visibleStudents[(idx + 2) % visibleStudents.length];
+      const oppPos = nodePositions[oppPeer.id];
+      if (oppPos) {
+        edges.push({
+          id: `cross-${p.id}-${oppPeer.id}`,
+          x1: fromPos.x,
+          y1: fromPos.y,
+          x2: oppPos.x,
+          y2: oppPos.y,
+          dur: `${(1.8 + (idx % 3) * 0.2).toFixed(2)}s`,
+          color: '#0284c7',
+        });
+      }
+    }
+    return edges;
+  });
 
   const targetPeer = peers.find((p) => p.id === selectedTargetPeerId) || studentPeers[0];
   const targetHeldChunks = targetPeer?.moduleChunks[activeModule.id] || [];
@@ -204,7 +242,7 @@ export const MeshTopologyView: React.FC<Props> = ({
                 role="img"
                 aria-label="Visualisasi jaringan mesh P2P dengan animasi paket data antar-siswa"
               >
-                {MESH_EDGES.map((edge) => (
+                {dynamicMeshEdges.map((edge) => (
                   <g key={edge.id}>
                     <line
                       x1={edge.x1}
@@ -232,10 +270,26 @@ export const MeshTopologyView: React.FC<Props> = ({
                   </g>
                 ))}
 
-                {/* Host Seed Lines */}
-                <line x1="350" y1="58" x2="120" y2="155" stroke="#475569" strokeWidth="1.5" strokeDasharray="3 3" />
-                <line x1="350" y1="58" x2="580" y2="155" stroke="#475569" strokeWidth="1.5" strokeDasharray="3 3" />
-                <line x1="350" y1="58" x2="350" y2="330" stroke="#475569" strokeWidth="1.2" strokeDasharray="2 4" />
+                {/* Dynamic Host Seed Lines */}
+                {hostPeers[0] &&
+                  nodePositions[hostPeers[0].id] &&
+                  visibleStudents.map((sp) => {
+                    const hostPos = nodePositions[hostPeers[0].id];
+                    const spPos = nodePositions[sp.id];
+                    if (!hostPos || !spPos) return null;
+                    return (
+                      <line
+                        key={`seed-${sp.id}`}
+                        x1={hostPos.x}
+                        y1={hostPos.y}
+                        x2={spPos.x}
+                        y2={spPos.y}
+                        stroke="#475569"
+                        strokeWidth="1.2"
+                        strokeDasharray="3 4"
+                      />
+                    );
+                  })}
 
                 {/* Highlight recent transfer vector */}
                 {transferHistory[0] &&
@@ -291,12 +345,12 @@ export const MeshTopologyView: React.FC<Props> = ({
                   )}
 
                 {/* Render All Peers */}
-                {peers.map((p, idx) => {
+                {peers.slice(0, 13).map((p, idx) => {
                   const fallbackAngle = (idx * Math.PI * 2) / Math.max(1, peers.length);
                   const pos = nodePositions[p.id] || {
-                    x: Math.round(350 + Math.cos(fallbackAngle) * 180),
-                    y: Math.round(210 + Math.sin(fallbackAngle) * 95),
-                    shortLabel: p.name.slice(0, 24),
+                    x: Math.round(350 + Math.cos(fallbackAngle) * 245),
+                    y: Math.round(195 + Math.sin(fallbackAngle) * 140),
+                    shortLabel: p.name.slice(0, 22),
                   };
                   const heldCount = (p.moduleChunks[activeModule?.id || ''] || []).length;
                   const total = activeModule?.totalChunks || 16;

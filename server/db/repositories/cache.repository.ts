@@ -71,6 +71,14 @@ export class CacheRepository {
     }));
   }
 
+  static saveAll(entries: CacheEntry[]): void {
+    const db = getDatabase();
+    const tx = db.transaction((items: CacheEntry[]) => {
+      items.forEach((entry, idx) => CacheRepository.save(entry, idx));
+    });
+    tx(entries);
+  }
+
   static count(): number {
     const db = getDatabase();
     const row = db.prepare('SELECT COUNT(*) as cnt FROM cache_entries').get() as { cnt: number };

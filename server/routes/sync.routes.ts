@@ -1,13 +1,18 @@
 import { Router } from 'express';
 import { SyncController } from '../controllers/sync.controller.js';
 import { requireHostPin } from '../middleware/authMiddleware.js';
-import { packageTransferLimiter } from '../middleware/rateLimiter.js';
+import {
+  packageTransferLimiter,
+  packageImportLimiter,
+} from '../middleware/rateLimiter.js';
 import { validateBody } from '../middleware/validate.middleware.js';
 import {
   ProgressSyncSchema,
   TransferPackageSchema,
   ClientChunksSyncSchema,
   SneakernetImportSchema,
+  DistributeAllSchema,
+  ClassroomBroadcastSchema,
 } from '../schemas/sync.schema.js';
 
 export const syncRouter = Router();
@@ -59,7 +64,7 @@ syncRouter.post(
 );
 syncRouter.post(
   '/import-package',
-  packageTransferLimiter,
+  packageImportLimiter,
   requireHostPin,
   validateBody(SneakernetImportSchema),
   SyncController.importPackage
@@ -70,6 +75,22 @@ syncRouter.post('/gateway/toggle', requireHostPin, SyncController.toggleGateway)
 
 // Publish module (Protected by Teacher PIN)
 syncRouter.post('/modules', requireHostPin, SyncController.publishModule);
+
+// One-click distribute module to all connected student peers (Protected by Teacher PIN)
+syncRouter.post(
+  '/distribute-all',
+  requireHostPin,
+  validateBody(DistributeAllSchema),
+  SyncController.distributeToAll
+);
+
+// Classroom announcement, focus module & exam mode broadcast (Protected by Teacher PIN)
+syncRouter.post(
+  '/broadcast',
+  requireHostPin,
+  validateBody(ClassroomBroadcastSchema),
+  SyncController.setClassroomBroadcast
+);
 
 // Host network & QR discovery info
 syncRouter.get('/host/network-info', SyncController.getNetworkInfo);

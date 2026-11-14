@@ -384,3 +384,161 @@ test('FASE 4 & 5: Rate limiter on /change-pin, /export-package, and session toke
     closeDatabase();
   }
 });
+
+test('FASE 6: Cache hit deduplication, offline AI queue, exam mode lock, distribute-all, and strict PIN revocation', async () => {
+  const server = http.createServer();
+  const app = await createApp(server, { skipVite: true });
+  server.on('request', app);
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+
+  const address = server.address();
+  assert.notEqual(address, null);
+  const port = typeof address === 'object' && address ? address.port : 3000;
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const activePin = getCurrentHostPin();
+
+  try {
+    // Login as Teacher Host
+    const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: activePin }),
+    });
+    const loginData = await loginRes.json();
+    const token = loginData.token as string;
+    assert.equal(typeof token, 'string');
+
+    // 1. Repeated cache hits must NOT duplicate entries in state.cacheEntries
+    const beforeCount = classroomState.getCacheEntries().length;
+    for (let i = 0; i < 3; i++) {
+      const hitRes = await fetch(`${baseUrl}/api/tutor/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: 'Bagaimana rumus menghitung daya listrik mikrohidro dari tinggi jatuh air dan debit sungai?',
+          moduleId: 'mod-fisika-mikrohidro',
+          askedByPeerName: 'Test Deduplikasi',
+        }),
+      });
+      assert.equal(hitRes.status, 200);
+    }
+    assert.equal(classroomState.getCacheEntries().length, beforeCount);
+
+    // 2. Offline AI synthesis queues pending question & sets originSource = LOCAL_EDGE_SYNTHESIS
+    await fetch(`${baseUrl}/api/gateway/toggle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ online: false }),
+    });
+
+    const uniqueOfflineQ = `Mengapa refraksi prisma kuarsa memisahkan spektrum panjang gelombang monokromatik ${Date.now()}?`;
+    const offlineAskRes = await fetch(`${baseUrl}/api/tutor/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: uniqueOfflineQ,
+        moduleId: 'mod-fisika-mikrohidro',
+        askedByPeerName: 'Siswa Luring',
+      }),
+    });
+    assert.equal(offlineAskRes.status, 200);
+    const offlineAskData = await offlineAskRes.json();
+    assert.equal(offlineAskData.result.source, 'LOCAL_EDGE_SYNTHESIS');
+    const createdEntry = offlineAskData.state.cacheEntries.find(
+      (c: { id: string }) => c.id === offlineAskData.result.cacheEntryId
+    );
+    assert.equal(createdEntry?.originSource, 'LOCAL_EDGE_SYNTHESIS');
+    const createdPending = offlineAskData.state.pendingAiQuestions.find(
+      (q: { question: string }) => q.question === uniqueOfflineQ
+    );
+    assert.ok(createdPending);
+
+    // Dismiss the test pending question cleanly
+    const dismissRes = await fetch(`${baseUrl}/api/tutor/queue/${createdPending.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(dismissRes.status, 200);
+
+    // 3. Exam mode lock via /api/sync/broadcast blocks /api/tutor/ask with 403
+    const broadcastOnRes = await fetch(`${baseUrl}/api/sync/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        message: 'Ujian tengah semester dimulai!',
+        focusModuleId: 'mod-fisika-mikrohidro',
+        examMode: true,
+      }),
+    });
+    assert.equal(broadcastOnRes.status, 200);
+
+    const lockedAskRes = await fetch(`${baseUrl}/api/tutor/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: 'Tolong bantu jawab soal ujian ini sekarang!',
+        moduleId: 'mod-fisika-mikrohidro',
+      }),
+    });
+    assert.equal(lockedAskRes.status, 403);
+
+    // Clear broadcast
+    await fetch(`${baseUrl}/api/sync/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ message: '', examMode: false, clear: true }),
+    });
+
+    // 4. One-click distribute-all endpoint succeeds
+    const distRes = await fetch(`${baseUrl}/api/sync/distribute-all`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ moduleId: 'mod-fisika-mikrohidro' }),
+    });
+    assert.equal(distRes.status, 200);
+    const distData = await distRes.json();
+    assert.equal(distData.ok, true);
+
+    // 5. Invalid sneakernet payload on /api/auth/import-package is rejected with 400
+    const badImportRes = await fetch(`${baseUrl}/api/auth/import-package`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ invalidField: true }),
+    });
+    assert.equal(badImportRes.status, 400);
+
+    // 6. Changing PIN revokes old config.hostPin in verifyPinTimingSafe
+    const { HostConfigRepository } = await import('./db/index.js');
+    const prevDbPin = HostConfigRepository.get('host_pin', config.hostPin);
+    try {
+      HostConfigRepository.set('host_pin', '889977');
+      assert.equal(verifyPinTimingSafe('889977'), true);
+      if (config.hostPin !== '889977') {
+        assert.equal(verifyPinTimingSafe(config.hostPin), false);
+      }
+    } finally {
+      HostConfigRepository.set('host_pin', prevDbPin);
+    }
+  } finally {
+    server.close();
+    closeDatabase();
+  }
+});

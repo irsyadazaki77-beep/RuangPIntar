@@ -1,9 +1,14 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller.js';
+import { SyncController } from '../controllers/sync.controller.js';
 import { requireHostPin } from '../middleware/authMiddleware.js';
+import { validateBody } from '../middleware/validate.middleware.js';
+import { SneakernetImportSchema } from '../schemas/sync.schema.js';
 import {
   pinVerificationLimiter,
+  changePinLimiter,
   packageTransferLimiter,
+  packageImportLimiter,
 } from '../middleware/rateLimiter.js';
 
 export const authRouter = Router();
@@ -18,7 +23,7 @@ authRouter.post('/verify-pin', pinVerificationLimiter, AuthController.verifyPin)
 // Protected Teacher Host Operations
 authRouter.post(
   '/change-pin',
-  pinVerificationLimiter,
+  changePinLimiter,
   requireHostPin,
   AuthController.changePin
 );
@@ -26,18 +31,19 @@ authRouter.get(
   '/export-package',
   packageTransferLimiter,
   requireHostPin,
-  AuthController.exportPackage
+  SyncController.exportPackage
 );
 authRouter.post(
   '/export-package',
   packageTransferLimiter,
   requireHostPin,
-  AuthController.exportPackage
+  SyncController.exportPackage
 );
 authRouter.post(
   '/import-package',
-  packageTransferLimiter,
+  packageImportLimiter,
   requireHostPin,
-  AuthController.importPackage
+  validateBody(SneakernetImportSchema),
+  SyncController.importPackage
 );
 
