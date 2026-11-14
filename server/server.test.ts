@@ -437,7 +437,8 @@ test('FASE 6: Cache hit deduplication, offline AI queue, exam mode lock, distrib
       body: JSON.stringify({ online: false }),
     });
 
-    const uniqueOfflineQ = `Mengapa refraksi prisma kuarsa memisahkan spektrum panjang gelombang monokromatik ${Date.now()}?`;
+    const nonce = Math.random().toString(36).slice(2, 8);
+    const uniqueOfflineQ = `zxqa${nonce} zxqb${nonce} zxqc${nonce} zxqd${nonce}`;
     const offlineAskRes = await fetch(`${baseUrl}/api/tutor/ask`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -459,12 +460,16 @@ test('FASE 6: Cache hit deduplication, offline AI queue, exam mode lock, distrib
     );
     assert.ok(createdPending);
 
-    // Dismiss the test pending question cleanly
+    // Dismiss the test pending question cleanly & purge synthetic cache entry from DB
     const dismissRes = await fetch(`${baseUrl}/api/tutor/queue/${createdPending.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
     assert.equal(dismissRes.status, 200);
+    if (createdEntry?.id) {
+      const { getDatabase } = await import('./db/index.js');
+      getDatabase().prepare('DELETE FROM cache_entries WHERE id = ?').run(createdEntry.id);
+    }
 
     // 3. Exam mode lock via /api/sync/broadcast blocks /api/tutor/ask with 403
     const broadcastOnRes = await fetch(`${baseUrl}/api/sync/broadcast`, {

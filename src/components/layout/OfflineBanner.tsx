@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Wifi } from 'lucide-react';
+import { QrCode, BookOpenCheck } from 'lucide-react';
 import { useMeshNetwork } from '../../context/MeshNetworkContext';
 
 export const OfflineBanner: React.FC = () => {
@@ -11,30 +11,28 @@ export const OfflineBanner: React.FC = () => {
     <div
       role="status"
       aria-live="polite"
-      className="bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 text-white px-4 py-2.5 text-xs sm:text-sm font-medium shadow-xs"
+      className="bg-[#163A5F] text-[#FFFDF8] px-4 py-2 text-xs sm:text-[13px] border-b border-[#0E2944]"
     >
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
-          <span className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-amber-200" />
+          <span className="w-6 h-6 rounded-lg bg-[#FFFDF8]/15 flex items-center justify-center shrink-0">
+            <BookOpenCheck className="w-3.5 h-3.5 text-[#F2B857]" />
           </span>
-          <span className="font-semibold text-white tracking-wide">
-            Mode Belajar Mandiri:
-            <span className="font-normal text-sky-100 ml-1.5">
-              Kamu tetap bisa membaca semua buku dan mencoba eksperimen sains tanpa kuota internet!
+          <span className="font-semibold">
+            Mode Pustaka Mandiri:
+            <span className="font-normal text-[#DFD8C8] ml-1.5">
+              Semua buku, catatan, dan laboratorium sains tetap bisa dibuka tanpa kuota internet.
             </span>
           </span>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={openQrScanner}
-            className="min-h-[36px] px-3.5 py-1 text-xs font-bold bg-white text-sky-900 hover:bg-sky-50 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 shrink-0"
-          >
-            <span>📷</span>
-            <span>Hubungkan ke Guru (Scan QR)</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={openQrScanner}
+          className="min-h-[34px] px-3 py-1 text-xs font-semibold bg-[#FFFDF8] text-[#163A5F] hover:bg-[#EFE9DC] rounded-lg transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 shrink-0"
+        >
+          <QrCode className="w-3.5 h-3.5 text-[#C85A32]" />
+          <span>Pindai QR Kelas</span>
+        </button>
       </div>
     </div>
   );

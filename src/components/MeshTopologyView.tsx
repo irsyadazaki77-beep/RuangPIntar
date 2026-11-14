@@ -11,6 +11,7 @@ import {
   Grid,
   Trophy,
   History,
+  User,
 } from 'lucide-react';
 import type {
   LearningModule,
@@ -150,11 +151,12 @@ export const MeshTopologyView: React.FC<Props> = ({
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200">
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                <span className="px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800">
-                  🤝 Teman Sekelas yang Terhubung
+                <span className="px-2.5 py-1 rounded-lg bg-[#EDF3F7] border border-[#C5D6E3] text-[#163A5F] inline-flex items-center gap-1.5">
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Jaringan Teman Sekelas</span>
                 </span>
-                <span aria-hidden="true" className="text-slate-300">·</span>
-                <span className="text-emerald-700 font-bold">
+                <span aria-hidden="true" className="text-[#DED4BE]">·</span>
+                <span className="text-[#1F6E58] font-bold">
                   Terhubung ke Guru: Aktif ({Math.max(1, activeWebRtcChannelsCount)} Jalur)
                 </span>
               </div>
@@ -446,20 +448,23 @@ export const MeshTopologyView: React.FC<Props> = ({
             >
               <div className="space-y-4">
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <span>🤝</span>
+                  <h2 className="font-display text-base sm:text-lg font-bold text-[#17232F] flex items-center gap-2">
+                    <Share2 className={`w-4 h-4 ${activeTheme.accentText}`} />
                     <span>Bantu Teman Melengkapi Buku</span>
                   </h2>
-                  <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                  <p className="text-xs text-[#4A5562] leading-relaxed mt-1">
                     Kirim bagian buku langsung dari HP kamu ke teman sekelas melalui WiFi sekolah tanpa kuota internet.
                   </p>
                 </div>
 
                 {/* Target Peer Status Block */}
-                <div className="bg-white/95 rounded-2xl p-4 border border-slate-200/90 space-y-3.5 shadow-2xs">
+                <div className="bg-[#FFFDF8] rounded-2xl p-4 border border-[#DED4BE] space-y-3.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-900 text-sm">👤 {targetPeer?.name}</span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                    <span className="font-bold text-[#17232F] text-sm inline-flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-[#163A5F]" />
+                      <span>{targetPeer?.name}</span>
+                    </span>
+                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-[#EFE9DC] text-[#17232F]">
                       {targetPeer?.localIp}
                     </span>
                   </div>

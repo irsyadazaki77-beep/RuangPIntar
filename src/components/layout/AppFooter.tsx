@@ -5,39 +5,39 @@ export const AppFooter: React.FC = () => {
   const { isOfflineActive, setSimulatedOfflineMode, setActiveTab } = useMeshNetwork();
 
   return (
-    <footer className="border-t border-slate-200/80 bg-white/75 backdrop-blur-md mt-12">
-      <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-        <div>
-          RuangPintar Edge — Infrastruktur Pembelajaran Terdesentralisasi Wilayah 3T (SQLite + IndexedDB + WebRTC Binary + PWA)
+    <footer className="border-t border-[#DED4BE] bg-[#FFFDF8] mt-10 pb-20 md:pb-0">
+      <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#5A6572]">
+        <div className="font-medium">
+          <span className="font-display font-bold text-[#17232F]">RuangPintar</span> · Pustaka Luring &amp; Jaringan Kelas Nusantara (SQLite · IndexedDB · WebRTC)
         </div>
         <div className="flex flex-wrap items-center gap-5">
           <button
             type="button"
             onClick={() => setSimulatedOfflineMode((prev) => !prev)}
-            className="hover:text-amber-700 transition-colors cursor-pointer whitespace-nowrap font-mono text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-amber-50 text-slate-700"
+            className="hover:text-[#9E3E22] transition-colors cursor-pointer whitespace-nowrap font-mono text-[11px] px-2.5 py-1 rounded-lg bg-[#EFE9DC] hover:bg-[#FAF0EC] text-[#17232F]"
           >
             {isOfflineActive ? 'Matikan Simulasi Offline' : 'Uji Mode Offline Lokal'}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('pustaka')}
-            className="hover:text-sky-700 transition-colors cursor-pointer whitespace-nowrap font-medium"
+            className="hover:text-[#163A5F] transition-colors cursor-pointer whitespace-nowrap font-semibold"
           >
-            Pustaka P2P
+            Materi Kelas
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('mesh')}
-            className="hover:text-sky-700 transition-colors cursor-pointer whitespace-nowrap font-medium"
+            className="hover:text-[#163A5F] transition-colors cursor-pointer whitespace-nowrap font-semibold"
           >
-            Topologi WebRTC
+            Jaringan Kelas
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('tutor')}
-            className="hover:text-sky-700 transition-colors cursor-pointer whitespace-nowrap font-medium"
+            className="hover:text-[#163A5F] transition-colors cursor-pointer whitespace-nowrap font-semibold"
           >
-            Gateway AI Lokal
+            Tanya Pintar
           </button>
         </div>
       </div>

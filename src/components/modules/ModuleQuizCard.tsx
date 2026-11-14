@@ -14,6 +14,8 @@ import {
   VolumeX,
   Star,
   Award,
+  Target,
+  Trophy,
 } from 'lucide-react';
 import type { LearningModule } from '../../utils/edgeEngine';
 import type { SubjectVisualTheme } from '../../utils/subjectTheme';
@@ -161,7 +163,7 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
                     Buka Langkah Berikutnya ({revealedCount + 1}/{ex.steps.length}) →
                   </button>
                 ) : (
-                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-300 p-4 rounded-xl text-xs sm:text-sm text-emerald-950 leading-relaxed">
+                  <div className="bg-[#ECF5F1] border border-[#BCDAD0] p-4 rounded-xl text-xs sm:text-sm text-[#123D31] leading-relaxed">
                     <strong>Kesimpulan Rekayasa Lapangan: </strong>
                     {ex.finalConclusion}
                   </div>
@@ -173,14 +175,14 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
       )}
 
       {/* Timed Quiz Checkpoints Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#DED4BE]">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span>🎯</span>
+          <h3 className="font-display text-base sm:text-lg font-bold text-[#17232F] flex items-center gap-2">
+            <Target className={`w-4 h-4 ${theme.accentText}`} />
             <span>Kuis Pemahaman Konsep ({totalQuestions} Soal)</span>
           </h3>
-          <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
-            Pilih jawaban yang paling tepat. Dapatkan umpan balik langsung dan kumpulkan bintang XP!
+          <p className="text-xs text-[#4A5562] leading-relaxed mt-0.5">
+            Pilih jawaban yang paling tepat untuk melihat pembahasan dan mencatat skormu ke kelas.
           </p>
         </div>
 
@@ -189,17 +191,17 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
           <button
             type="button"
             onClick={() => setMuted(toggleAudioMuted())}
-            className="min-h-[40px] px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+            className="min-h-[40px] px-3 py-1.5 rounded-xl border border-[#DED4BE] bg-[#FFFDF8] hover:bg-[#EFE9DC] text-xs font-semibold text-[#17232F] flex items-center gap-1.5 transition-colors cursor-pointer"
             title={muted ? 'Aktifkan efek suara' : 'Bisukan efek suara'}
           >
             {muted ? (
               <>
-                <VolumeX className="w-4 h-4 text-slate-400" />
+                <VolumeX className="w-4 h-4 text-[#5A6572]" />
                 <span>Suara: Senyap</span>
               </>
             ) : (
               <>
-                <Volume2 className="w-4 h-4 text-emerald-600" />
+                <Volume2 className="w-4 h-4 text-[#1F6E58]" />
                 <span>Suara: Aktif</span>
               </>
             )}
@@ -209,21 +211,21 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
             <button
               type="button"
               onClick={onStartTimedChallenge}
-              className="min-h-[40px] px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer shadow-xs active:scale-95"
+              className="min-h-[40px] px-4 py-2 text-xs font-semibold text-[#FFFDF8] bg-[#C85A32] hover:bg-[#B24D28] rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
             >
               <Timer className="w-4 h-4" />
               <span>Mulai Tantangan 30 Detik</span>
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-3.5 py-2 rounded-xl tabular-nums flex items-center gap-1.5 min-h-[40px]">
-                <Zap className="w-4 h-4 text-amber-600" />
+              <span className="font-mono text-xs font-bold text-[#8C540B] bg-[#FBF4E7] border border-[#EAD6B0] px-3.5 py-2 rounded-xl tabular-nums flex items-center gap-1.5 min-h-[40px]">
+                <Zap className="w-4 h-4 text-[#B97217]" />
                 <span>Sisa Waktu: {remainingSeconds} dtk</span>
               </span>
               <button
                 type="button"
                 onClick={onExitTimedChallenge}
-                className="min-h-[40px] px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
+                className="min-h-[40px] px-3.5 py-2 text-xs font-semibold text-[#17232F] bg-[#EFE9DC] hover:bg-[#E5DEC9] rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
               >
                 Mode Santai
               </button>
@@ -233,12 +235,12 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
       </div>
 
       {isTimedQuizMode && (
-        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+        <div className="w-full h-3 bg-[#EFE9DC] rounded-full overflow-hidden border border-[#DED4BE]">
           <div
             className={`h-full transition-all duration-300 ${
               remainingSeconds > 10
-                ? 'bg-gradient-to-r from-amber-400 to-orange-500'
-                : 'bg-gradient-to-r from-rose-500 to-red-600'
+                ? 'bg-[#B97217]'
+                : 'bg-[#C85A32]'
             }`}
             style={{ width: `${Math.round((remainingSeconds / 30) * 100)}%` }}
           />
@@ -389,33 +391,33 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
         <motion.section
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-white via-sky-50/40 to-emerald-50/30 border border-sky-200/90 rounded-2xl p-6 sm:p-7 space-y-5 shadow-sm"
+          className="bg-[#FFFDF8] border border-[#DED4BE] rounded-2xl p-6 sm:p-7 space-y-5"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-xl">🏆</span>
-                <h4 className="text-base sm:text-lg font-bold text-slate-900">
+                <Trophy className="w-5 h-5 text-[#C85A32]" />
+                <h4 className="font-display text-base sm:text-lg font-bold text-[#17232F]">
                   {isAllAnswered
                     ? 'Selamat! Kamu Telah Menuntaskan Semua Soal'
                     : `Progres Kuis: ${answeredCount} dari ${totalQuestions} Soal Terjawab`}
                 </h4>
               </div>
-              <p className="text-xs sm:text-sm text-slate-600">
+              <p className="text-xs sm:text-sm text-[#4A5562]">
                 {scorePercent >= 70
-                  ? 'Pemahaman konsepmu sangat baik! Terus tingkatkan eksperimen di laboratorium virtual.'
+                  ? 'Pemahaman konsepmu sangat baik! Terus tingkatkan eksperimen di laboratorium kelas.'
                   : 'Bagus sudah mencoba! Kamu bisa membaca ulang materi bab untuk memperkuat konsep.'}
               </p>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              <div className="bg-white border border-sky-200 px-4 py-2.5 rounded-2xl text-center shadow-2xs">
-                <div className="text-[11px] font-semibold text-slate-500">Skor Kuis</div>
-                <div className="text-xl sm:text-2xl font-bold text-sky-700">{scorePercent}%</div>
+              <div className="bg-[#EDF3F7] border border-[#C5D6E3] px-4 py-2.5 rounded-2xl text-center">
+                <div className="text-[11px] font-semibold text-[#4A5562]">Skor Kuis</div>
+                <div className="text-xl sm:text-2xl font-bold text-[#163A5F] tabular-nums">{scorePercent}%</div>
               </div>
-              <div className="bg-white border border-emerald-200 px-4 py-2.5 rounded-2xl text-center shadow-2xs">
-                <div className="text-[11px] font-semibold text-slate-500">Benar</div>
-                <div className="text-xl sm:text-2xl font-bold text-emerald-700">
+              <div className="bg-[#ECF5F1] border border-[#BCDAD0] px-4 py-2.5 rounded-2xl text-center">
+                <div className="text-[11px] font-semibold text-[#4A5562]">Benar</div>
+                <div className="text-xl sm:text-2xl font-bold text-[#1F6E58] tabular-nums">
                   {correctCount}/{answeredCount}
                 </div>
               </div>
@@ -423,7 +425,7 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
           </div>
 
           {/* Star Rating & Visual Recap Banner */}
-          <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-50/90 via-white to-sky-50/90 rounded-2xl border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+          <div className="p-4 sm:p-5 bg-[#EFE9DC]/75 rounded-2xl border border-[#DED4BE] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 {/* Visual Stars Rating (1-3 stars) */}

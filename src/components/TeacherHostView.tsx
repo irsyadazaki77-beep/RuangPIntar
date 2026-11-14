@@ -24,6 +24,7 @@ import {
   Trash2,
   Sparkles,
   FileSpreadsheet,
+  Zap,
 } from 'lucide-react';
 import {
   calculateGradebookSummary,
@@ -332,17 +333,17 @@ export const TeacherHostView: React.FC<Props> = ({
           aria-describedby="host-pin-modal-desc"
           className="bento-card overflow-hidden border border-slate-200/90 shadow-md"
         >
-          <div className="h-1.5 w-full bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600" />
+          <div className="h-1.5 w-full bg-[#163A5F]" />
           <div className="p-6 sm:p-8 space-y-5">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700 shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-[#EDF3F7] border border-[#C5D6E3] flex items-center justify-center text-[#163A5F] shrink-0">
                 <Lock className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[11px] font-mono uppercase tracking-wider font-semibold text-sky-700">
+                <div className="text-[11px] font-mono uppercase tracking-wider font-semibold text-[#9E3E22]">
                   Otorisasi Peran Simpul Guru (Host Node)
                 </div>
-                <h1 id="host-pin-modal-title" className="text-lg font-bold text-slate-900">
+                <h1 id="host-pin-modal-title" className="font-display text-lg font-bold text-[#17232F]">
                   Masukkan PIN Kendali Simpul Guru
                 </h1>
               </div>
@@ -404,7 +405,7 @@ export const TeacherHostView: React.FC<Props> = ({
                 type="submit"
                 whileTap={{ scale: 0.98 }}
                 disabled={isVerifyingPin || cooldownSeconds > 0}
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                className="w-full py-2.5 px-4 bg-[#163A5F] hover:bg-[#1E4D7B] disabled:opacity-50 text-[#FFFDF8] text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>
@@ -436,28 +437,28 @@ export const TeacherHostView: React.FC<Props> = ({
         aria-label="Status Simpul Pusat Laptop Guru"
         className="bento-card overflow-hidden"
       >
-        <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 via-emerald-500 to-amber-500" />
+        <div className="h-1.5 w-full bg-[#163A5F]" />
         <div className="p-6 sm:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-500">
-              <span className="text-sky-700 font-bold">Host Node: 192.168.43.1</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#5A6572]">
+              <span className="text-[#163A5F] font-bold">Host Node: 192.168.43.1</span>
               <span aria-hidden="true">·</span>
               <span>Database: SQLite Persisten (WAL)</span>
               <span aria-hidden="true">·</span>
-              <span className="text-emerald-700 font-semibold flex items-center gap-1">
+              <span className="text-[#1F6E58] font-semibold flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Sesi Guru Aktif (Bearer Token 8 Jam)</span>
               </span>
             </div>
             <h1
-              className="text-xl sm:text-2xl font-bold text-slate-900"
+              className="font-display text-xl sm:text-2xl font-bold text-[#17232F]"
               style={{ textWrap: 'balance' }}
             >
-              Panel Kendali Simpul Guru (Host Node) &amp; Manajemen Cache Lokal
+              Panel Kendali Simpul Guru (Host Node) &amp; Manajemen Arsip Lokal
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-3xl">
+            <p className="text-xs sm:text-sm text-[#4A5562] max-w-3xl">
               Kelola distribusi materi P2P ke seluruh perangkat kelas, atur koneksi tethering seluler
-              satu pintu untuk AI, dan tambahkan cadangan materi atau jawaban ke cache lokal.
+              satu pintu untuk AI, dan tambahkan cadangan materi atau jawaban ke arsip lokal.
             </p>
           </div>
 
@@ -466,10 +467,10 @@ export const TeacherHostView: React.FC<Props> = ({
               type="button"
               whileTap={{ scale: 0.97 }}
               onClick={onToggleGatewayTethering}
-              className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-xs ${
+              className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer ${
                 gatewayTetheringOnline
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-500 hover:to-teal-500'
-                  : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-400 hover:to-orange-500'
+                  ? 'bg-[#1F6E58] text-[#FFFDF8] hover:bg-[#27856B]'
+                  : 'bg-[#B97217] text-[#FFFDF8] hover:bg-[#9E5F11]'
               }`}
             >
               {gatewayTetheringOnline ? (
@@ -748,11 +749,14 @@ export const TeacherHostView: React.FC<Props> = ({
                   await onDistributeToAll(distributeModuleId || modules[0]?.id || '');
                   setIsDistributingAll(false);
                 }}
-                className="w-full px-4 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 disabled:opacity-50 rounded-xl cursor-pointer shadow-2xs"
+                className="w-full px-4 py-2.5 text-xs font-semibold text-[#FFFDF8] bg-[#163A5F] hover:bg-[#1E4D7B] disabled:opacity-50 rounded-xl cursor-pointer inline-flex items-center justify-center gap-2 transition-colors"
               >
-                {isDistributingAll
-                  ? 'Mendistribusikan ke Kelas...'
-                  : '⚡ Bagikan Modul Ini ke Semua Siswa'}
+                <Zap className="w-3.5 h-3.5 text-[#F2B857]" />
+                <span>
+                  {isDistributingAll
+                    ? 'Mendistribusikan ke Kelas...'
+                    : 'Bagikan Modul Ini ke Semua Siswa'}
+                </span>
               </button>
             </div>
 
@@ -1092,7 +1096,7 @@ export const TeacherHostView: React.FC<Props> = ({
               type="button"
               whileTap={{ scale: 0.97 }}
               onClick={onExportPackage}
-              className="px-4 py-2.5 text-xs font-semibold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-xs"
+              className="px-4 py-2.5 text-xs font-semibold text-[#FFFDF8] bg-[#C85A32] hover:bg-[#B24D28] rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>Unduh Paket Data Modul (.json)</span>

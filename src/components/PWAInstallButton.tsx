@@ -87,10 +87,10 @@ export const PWAInstallButton: React.FC = () => {
     <button
       type="button"
       onClick={promptInstall}
-      className="px-3 py-1.5 text-xs font-semibold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+      className="px-3 py-1.5 text-xs font-semibold text-[#163A5F] bg-[#EFE9DC] hover:bg-[#E5DEC9] border border-[#DED4BE] rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
     >
       <Download className="w-3.5 h-3.5" />
-      <span>Pasang Aplikasi Offline</span>
+      <span className="hidden xl:inline">Pasang Aplikasi</span>
     </button>
   );
 };

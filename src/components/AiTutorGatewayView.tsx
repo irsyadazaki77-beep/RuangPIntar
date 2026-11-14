@@ -13,6 +13,7 @@ import {
   Volume2,
   Square,
   CheckCircle2,
+  GraduationCap,
 } from 'lucide-react';
 import type {
   LearningModule,
@@ -343,47 +344,47 @@ export const AiTutorGatewayView: React.FC<Props> = ({
             </p>
           </div>
 
-          <div className="text-right font-mono text-xs tabular-nums shrink-0 space-y-0.5 bg-gradient-to-br from-emerald-50 to-teal-50/70 border border-emerald-200/90 rounded-xl px-4 py-3 shadow-2xs">
-            <div className="text-slate-600">Efisiensi Cache Kelas</div>
-            <div className="text-base font-bold text-emerald-700">
-              {metrics.cacheHitRatioPct}% Jawaban dari Cache Lokal
+          <div className="text-right font-mono text-xs tabular-nums shrink-0 space-y-0.5 bg-[#ECF5F1] border border-[#BCDAD0] rounded-xl px-4 py-3">
+            <div className="text-[#4A5562]">Efisiensi Arsip Kelas</div>
+            <div className="text-base font-bold text-[#1F6E58]">
+              {metrics.cacheHitRatioPct}% Jawaban dari Arsip Lokal
             </div>
-            <div className="text-slate-600">
-              {metrics.totalCacheHits} Cache Hit · {metrics.totalCloudQueries} Cloud Call
+            <div className="text-[#4A5562]">
+              {metrics.totalCacheHits} Arsip Lokal · {metrics.totalCloudQueries} Tanya Cloud
             </div>
           </div>
         </div>
 
         {/* Sleek Single-Line Pipeline Status Ribbon */}
-        <div className="bg-slate-50 border-t border-slate-200/90 px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="bg-[#EFE9DC]/70 border-t border-[#DED4BE] px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <span className="font-mono font-semibold text-slate-500">Alur Eksekusi:</span>
-            <span className="font-medium text-slate-900">
-              01. Siswa → WiFi Lokal (192.168.43.1)
+            <span className="font-mono font-semibold text-[#5A6572]">Alur Jawaban:</span>
+            <span className="font-medium text-[#17232F]">
+              01. Siswa → WiFi Kelas (192.168.43.1)
             </span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <ArrowRight className="w-3.5 h-3.5 text-[#5A6572] shrink-0" />
             <span
               className={`px-2.5 py-0.5 rounded-md font-mono font-semibold transition-colors ${
                 activeResponse && isLocalHit
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-2xs'
-                  : 'text-slate-700 bg-white border border-slate-200'
+                  ? 'bg-[#1F6E58] text-[#FFFDF8]'
+                  : 'text-[#17232F] bg-[#FFFDF8] border border-[#DED4BE]'
               }`}
             >
-              02. Pencocokan Cache Lokal {activeResponse && isLocalHit ? '(HIT · 0ms)' : ''}
+              02. Pencocokan Arsip Kelas {activeResponse && isLocalHit ? '(INSTAN · 0ms)' : ''}
             </span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <ArrowRight className="w-3.5 h-3.5 text-[#5A6572] shrink-0" />
             <span
               className={`px-2.5 py-0.5 rounded-md font-mono font-semibold transition-colors ${
                 activeResponse && !isLocalHit
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-2xs'
-                  : 'text-slate-700 bg-white border border-slate-200'
+                  ? 'bg-[#C85A32] text-[#FFFDF8]'
+                  : 'text-[#17232F] bg-[#FFFDF8] border border-[#DED4BE]'
               }`}
             >
-              03. Cloud Gemini Guru → Simpan Cache {activeResponse && !isLocalHit ? '(BARU)' : ''}
+              03. Gateway Guru → Simpan Arsip {activeResponse && !isLocalHit ? '(BARU)' : ''}
             </span>
           </div>
 
-          <span className="font-mono text-[11px] text-emerald-700 font-bold">
+          <span className="font-mono text-[11px] text-[#1F6E58] font-bold">
             0 Byte Kuota Siswa Terpakai
           </span>
         </div>
@@ -645,28 +646,28 @@ export const AiTutorGatewayView: React.FC<Props> = ({
 
         {/* RIGHT PANEL (8 cols): Clean Warm Conversational Workspace & Bottom Composer */}
         <div className="lg:col-span-8 bento-card p-6 sm:p-7 flex flex-col justify-between space-y-6">
-          {/* Top Conversation Header: Kakak Belajar / Sahabat RuangPintar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
+          {/* Top Conversation Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#DED4BE]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 via-indigo-600 to-teal-500 text-white flex items-center justify-center font-bold text-xl shadow-xs">
-                🧑‍🏫
+              <div className="w-10 h-10 rounded-xl bg-[#163A5F] text-[#FFFDF8] flex items-center justify-center">
+                <GraduationCap className="w-5 h-5 text-[#F2B857]" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <span>Sahabat Belajar AI</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                    Kakak Belajar Kelas
+                <h2 className="font-display text-base font-bold text-[#17232F] flex items-center gap-2">
+                  <span>Tanya Pintar</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#ECF5F1] border border-[#BCDAD0] text-[#1F6E58]">
+                    Pendamping Kelas
                   </span>
                 </h2>
-                <p className="text-xs text-slate-500">
-                  Simpul Guru: 192.168.43.1 · Jawaban Resmi Disetujui Guru &amp; Bebas Kuota
+                <p className="text-xs text-[#5A6572]">
+                  Simpul Guru: 192.168.43.1 · Jawaban Terkurasi &amp; Bebas Kuota
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl shadow-2xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Aman &amp; Terverifikasi Guru</span>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#1F6E58] bg-[#ECF5F1] border border-[#BCDAD0] px-3 py-1.5 rounded-xl">
+              <ShieldCheck className="w-4 h-4 text-[#1F6E58] shrink-0" />
+              <span>Terverifikasi Guru</span>
             </div>
           </div>
 
@@ -682,17 +683,17 @@ export const AiTutorGatewayView: React.FC<Props> = ({
               >
                 {/* Student Question Bubble */}
                 <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0 mt-0.5 shadow-2xs">
-                    🐬
+                  <div className="w-9 h-9 rounded-xl bg-[#163A5F] text-[#FFFDF8] flex items-center justify-center shrink-0 mt-0.5">
+                    <User className="w-4 h-4" />
                   </div>
-                  <div className="flex-1 bg-slate-100 rounded-2xl rounded-tl-xs p-4 space-y-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 font-semibold">
+                  <div className="flex-1 bg-[#EFE9DC] border border-[#DED4BE] rounded-2xl rounded-tl-xs p-4 space-y-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#5A6572] font-semibold">
                       <span>
-                        Ditanyakan oleh <strong className="text-slate-900">{activeResponse.askedByPeerName}</strong>
+                        Ditanyakan oleh <strong className="text-[#17232F]">{activeResponse.askedByPeerName}</strong>
                       </span>
                       <span className="font-mono tabular-nums">{activeResponse.timestamp}</span>
                     </div>
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                    <h3 className="text-sm sm:text-base font-bold text-[#17232F] leading-snug">
                       &ldquo;{activeResponse.question}&rdquo;
                     </h3>
                   </div>
@@ -701,38 +702,38 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                 {/* AI Gateway Response Bubble + Streamlined Telemetry Header */}
                 <div className="flex items-start gap-3">
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 font-bold text-base shadow-2xs ${
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                       activeResponse.source === 'LOCAL_CACHE'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-sky-600 text-white'
+                        ? 'bg-[#1F6E58] text-[#FFFDF8]'
+                        : 'bg-[#C85A32] text-[#FFFDF8]'
                     }`}
                   >
-                    🧑‍🏫
+                    <Bot className="w-4 h-4" />
                   </div>
 
-                  <div className="flex-1 border border-slate-200 rounded-2xl rounded-tl-xs overflow-hidden bg-white shadow-2xs">
+                  <div className="flex-1 border border-[#DED4BE] rounded-2xl rounded-tl-xs overflow-hidden bg-[#FFFDF8]">
                     {/* Compact Telemetry Ribbon */}
                     <div
                       className={`px-4 py-3 border-b flex flex-wrap items-center justify-between gap-3 text-xs ${
                         activeResponse.source === 'LOCAL_CACHE'
-                          ? 'bg-gradient-to-r from-emerald-50 via-teal-50 to-white border-emerald-200'
-                          : 'bg-gradient-to-r from-sky-50 via-indigo-50 to-white border-sky-200'
+                          ? 'bg-[#ECF5F1] border-[#BCDAD0]'
+                          : 'bg-[#EDF3F7] border-[#C5D6E3]'
                       }`}
                     >
                       {activeResponse.source === 'LOCAL_CACHE' ? (
-                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-2xs">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-100" />
-                          <span>✓ Jawaban Resmi Disetujui Guru (Memori Kelas · 0 Kuota)</span>
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#1F6E58] text-[#FFFDF8] font-semibold text-xs">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#F2B857]" />
+                          <span>Arsip Kelas (0 Kuota)</span>
                         </div>
                       ) : activeResponse.source === 'LOCAL_EDGE_SYNTHESIS' ? (
-                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-600 text-white font-bold text-xs shadow-2xs">
-                          <Database className="w-4 h-4 text-amber-100" />
-                          <span>Sintesis Lokal + Antrean Gemini Guru ({pendingQueueCount} Menunggu)</span>
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#B97217] text-[#FFFDF8] font-semibold text-xs">
+                          <Database className="w-3.5 h-3.5" />
+                          <span>Sintesis Lokal · Antrean Guru ({pendingQueueCount})</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-600 text-white font-bold text-xs shadow-2xs">
-                          <Zap className="w-4 h-4 text-sky-100" />
-                          <span>Jawaban Baru dari Guru (Otomatis Masuk Cache Kelas)</span>
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#163A5F] text-[#FFFDF8] font-semibold text-xs">
+                          <Zap className="w-3.5 h-3.5 text-[#F2B857]" />
+                          <span>Jawaban Baru (Masuk Arsip Kelas)</span>
                         </div>
                       )}
 
@@ -940,11 +941,11 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                 type="submit"
                 whileTap={{ scale: 0.95 }}
                 disabled={isAsking}
-                className="min-h-[46px] px-5 py-3 bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-xs active:scale-95"
+                className="min-h-[46px] px-5 py-3 bg-[#163A5F] hover:bg-[#1E4D7B] disabled:opacity-50 text-[#FFFDF8] text-xs sm:text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-4 h-4 text-[#F2B857]" />
                 <span>
-                  {isAsking ? 'Memproses...' : 'Tanya Kakak Belajar'}
+                  {isAsking ? 'Memproses...' : 'Kirim Pertanyaan'}
                 </span>
               </motion.button>
             </div>

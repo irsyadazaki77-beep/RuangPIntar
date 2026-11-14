@@ -24,6 +24,12 @@ import {
   Check,
   Volume2,
   Square,
+  Sun,
+  FlaskConical,
+  Target,
+  School,
+  Library,
+  Bot,
 } from 'lucide-react';
 import { playIndonesianSpeech, stopSpeech } from '../utils/speechUtils';
 import {
@@ -412,40 +418,43 @@ export const ModuleLibraryView: React.FC<Props> = ({
       animate="visible"
       className="space-y-6"
     >
-      {/* Tropical Nusantara Context Banner + Interactive Student Level & XP Dashboard */}
+      {/* Nusantara Editorial Hero Banner + Interactive Student Level & XP Dashboard */}
       <motion.section
         variants={bentoItemVariants}
         aria-label="Ringkasan Arsitektur RuangPintar Edge dan Progres Belajar Siswa"
         className="bento-card overflow-hidden"
       >
-        {/* Top Multi-Subject Tropical Ribbon */}
-        <div className="h-2 w-full bg-gradient-to-r from-sky-500 via-emerald-500 via-indigo-500 to-amber-500" />
+        {/* Top Solid Maritime Ink Bar */}
+        <div className="h-1.5 w-full bg-[#163A5F]" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
-          <div className="lg:col-span-8 p-6 sm:p-7 flex flex-col justify-between space-y-4 bg-gradient-to-br from-white via-sky-50/30 to-emerald-50/25">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                <span className="px-2.5 py-1 rounded-full bg-sky-100 text-sky-800 flex items-center gap-1">
-                  🏫 <span>Terhubung ke Guru (192.168.43.1)</span>
+          <div className="lg:col-span-8 p-6 sm:p-7 flex flex-col justify-between space-y-4 bg-[#FFFDF8]">
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+                <span className="px-2.5 py-1 rounded-lg bg-[#EDF3F7] border border-[#C5D6E3] text-[#163A5F] inline-flex items-center gap-1.5">
+                  <School className="w-3.5 h-3.5" />
+                  <span>Terhubung ke Guru (192.168.43.1)</span>
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                  📚 <span>{modules.length} Buku Pelajaran Siap</span>
+                <span className="px-2.5 py-1 rounded-lg bg-[#ECF5F1] border border-[#BCDAD0] text-[#1F6E58] inline-flex items-center gap-1.5">
+                  <Library className="w-3.5 h-3.5" />
+                  <span>{modules.length} Buku Pelajaran</span>
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
-                  🔬 <span>6 Lab Sains Tanpa Kuota</span>
+                <span className="px-2.5 py-1 rounded-lg bg-[#FAF0EC] border border-[#E9C9BC] text-[#9E3E22] inline-flex items-center gap-1.5">
+                  <FlaskConical className="w-3.5 h-3.5" />
+                  <span>6 Lab Sains Luring</span>
                 </span>
               </div>
 
               <h1
-                className="text-2xl sm:text-[28px] font-bold tracking-tight text-slate-900 leading-snug"
+                className="font-display text-2xl sm:text-[28px] font-bold tracking-tight text-[#17232F] leading-snug"
                 style={{ textWrap: 'balance' }}
               >
-                Petualangan Sains Kepulauan Nusantara — Belajar Bebas Kuota Internet
+                Pustaka Sains Nusantara — Belajar Mandiri Bebas Kuota
               </h1>
 
-              <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
-                Buka buku pelajaran favoritmu, dengarkan narasi suara otomatis jika lelah membaca,
-                uji rumus di laboratorium virtual, dan kumpulkan bintang XP untuk menjadi ilmuwan cilik 3T!
+              <p className="text-sm text-[#4A5562] leading-relaxed max-w-2xl">
+                Buka buku pelajaran, aktifkan suara pembaca jika lelah membaca, uji rumus di
+                laboratorium kelas, dan catat kemajuanmu tanpa koneksi internet.
               </p>
             </div>
 
@@ -454,42 +463,42 @@ export const ModuleLibraryView: React.FC<Props> = ({
                 type="button"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onNavigateTab('tutor')}
-                className="min-h-[46px] px-4 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-xs active:scale-95"
+                className="min-h-[44px] px-4 py-2.5 text-xs sm:text-sm font-semibold text-[#FFFDF8] bg-[#163A5F] hover:bg-[#1E4D7B] rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
               >
-                <MessageSquare className="w-4 h-4" />
-                <span>Tanya Sahabat Belajar AI (0 Kuota)</span>
+                <MessageSquare className="w-4 h-4 text-[#F2B857]" />
+                <span>Tanya Pintar (0 Kuota)</span>
               </motion.button>
               <motion.button
                 type="button"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onNavigateTab('mesh')}
-                className="min-h-[46px] px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-800 bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/60 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs active:scale-95"
+                className="min-h-[44px] px-4 py-2.5 text-xs sm:text-sm font-semibold text-[#17232F] bg-[#EFE9DC] border border-[#DED4BE] hover:bg-[#E5DEC9] rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
               >
-                <Share2 className="w-4 h-4 text-sky-600" />
-                <span>Lihat Teman Sekelas yang Terhubung</span>
+                <Share2 className="w-4 h-4 text-[#C85A32]" />
+                <span>Lihat Jaringan Kelas</span>
               </motion.button>
             </div>
           </div>
 
           {/* Right Documentary Visual Panel */}
-          <div className="lg:col-span-4 relative min-h-[210px] lg:min-h-full bg-slate-900 flex flex-col justify-end overflow-hidden group border-t lg:border-t-0 lg:border-l border-slate-200">
+          <div className="lg:col-span-4 relative min-h-[210px] lg:min-h-full bg-[#122B24] flex flex-col justify-end overflow-hidden group border-t lg:border-t-0 lg:border-l border-[#DED4BE]">
             {!heroImgFailed ? (
               <img
                 src={HERO_CLASSROOM_IMAGE}
-                alt="Siswa dan guru di kelas wilayah 3T berkolaborasi menggunakan jaringan lokal RuangPintar Edge"
+                alt="Siswa dan guru di kelas wilayah 3T berkolaborasi menggunakan jaringan lokal RuangPintar"
                 referrerPolicy="no-referrer"
                 onError={() => setHeroImgFailed(true)}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-sky-950 to-emerald-950" />
+              <div className="absolute inset-0 bg-[#122B24]" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent" />
-            <div className="relative z-10 p-5 text-white space-y-1.5">
-              <p className="text-[11px] font-mono text-cyan-300 font-semibold">
+            <div className="absolute inset-0 bg-gradient-to-t from-[#122B24]/95 via-[#122B24]/45 to-transparent" />
+            <div className="relative z-10 p-5 text-[#FFFDF8] space-y-1.5">
+              <p className="text-[11px] font-mono text-[#F2B857] font-semibold">
                 Alor · Kepulauan Aru · Wakatobi · Sumba · Rote · Natuna
               </p>
-              <p className="text-xs font-medium text-slate-100 leading-snug">
+              <p className="text-xs font-medium text-[#EFE9DC] leading-snug">
                 Kurikulum berbasis potensi energi terbarukan, ekologi pesisir, dan kemaritiman
                 Nusantara yang berjalan 100% di jaringan lokal sekolah.
               </p>
@@ -498,51 +507,51 @@ export const ModuleLibraryView: React.FC<Props> = ({
         </div>
 
         {/* Visual Learning Progress & Interactive XP Banner */}
-        <div className="bg-slate-50/90 border-t border-slate-200/90 px-6 py-4 space-y-4">
+        <div className="bg-[#EFE9DC]/65 border-t border-[#DED4BE] px-6 py-4 space-y-4">
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-center">
-            {/* Left 7 Cols: 4 Colorful Educational KPI Blocks */}
+            {/* Left 7 Cols: Clean Warm KPI Index Cards */}
             <div className="xl:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-white border border-emerald-200 rounded-2xl p-3 shadow-2xs">
-                <p className="text-[11px] font-semibold text-slate-500">Kuota Dihemat</p>
+              <div className="bg-[#FFFDF8] border border-[#DED4BE] rounded-xl p-3">
+                <p className="text-[11px] font-medium text-[#5A6572]">Kuota Dihemat</p>
                 <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-base sm:text-lg font-bold text-emerald-700">
+                  <span className="text-base sm:text-lg font-bold text-[#1F6E58] tabular-nums">
                     {metrics.ispQuotaSavedMB.toFixed(1)} MB
                   </span>
-                  <span className="text-[10px] text-emerald-600 font-bold">Gratis</span>
+                  <span className="text-[10px] text-[#1F6E58] font-semibold">Gratis</span>
                 </div>
               </div>
 
-              <div className="bg-white border border-sky-200 rounded-2xl p-3 shadow-2xs">
-                <p className="text-[11px] font-semibold text-slate-500">Buku Dibagi Teman</p>
+              <div className="bg-[#FFFDF8] border border-[#DED4BE] rounded-xl p-3">
+                <p className="text-[11px] font-medium text-[#5A6572]">Berbagi Teman</p>
                 <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-base sm:text-lg font-bold text-sky-700">
+                  <span className="text-base sm:text-lg font-bold text-[#163A5F] tabular-nums">
                     {metrics.meshOffloadPercentage}%
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium">
+                  <span className="text-[10px] text-[#5A6572] font-medium tabular-nums">
                     {metrics.peerToPeerOffloadedMB} MB
                   </span>
                 </div>
               </div>
 
-              <div className="bg-white border border-teal-200 rounded-2xl p-3 shadow-2xs">
-                <p className="text-[11px] font-semibold text-slate-500">Jawaban AI di Kelas</p>
+              <div className="bg-[#FFFDF8] border border-[#DED4BE] rounded-xl p-3">
+                <p className="text-[11px] font-medium text-[#5A6572]">Arsip Tanya Pintar</p>
                 <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-base sm:text-lg font-bold text-teal-700">
+                  <span className="text-base sm:text-lg font-bold text-[#9E3E22] tabular-nums">
                     {metrics.cacheHitRatioPct}% Instan
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium">
+                  <span className="text-[10px] text-[#5A6572] font-medium tabular-nums">
                     {metrics.totalCacheHits}× 0ms
                   </span>
                 </div>
               </div>
 
-              <div className="bg-white border border-indigo-200 rounded-2xl p-3 shadow-2xs">
-                <p className="text-[11px] font-semibold text-slate-500">Teman Sekelas Aktif</p>
+              <div className="bg-[#FFFDF8] border border-[#DED4BE] rounded-xl p-3">
+                <p className="text-[11px] font-medium text-[#5A6572]">Teman Terhubung</p>
                 <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-base sm:text-lg font-bold text-indigo-700">
+                  <span className="text-base sm:text-lg font-bold text-[#17232F] tabular-nums">
                     {metrics.studentPeersCount} Murid
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium">
+                  <span className="text-[10px] text-[#5A6572] font-medium">
                     1 Guru
                   </span>
                 </div>
@@ -550,17 +559,17 @@ export const ModuleLibraryView: React.FC<Props> = ({
             </div>
 
             {/* Right 5 Cols: Visual Student Level Progress Bar & Badge Toggle */}
-            <div className="xl:col-span-5 bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-sky-50/80 border border-amber-200/90 rounded-xl p-3.5 flex flex-col justify-between space-y-2.5 shadow-2xs">
+            <div className="xl:col-span-5 bg-[#FFFDF8] border border-[#DED4BE] rounded-xl p-3.5 flex flex-col justify-between space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center font-mono text-xs font-bold shadow-xs">
+                  <div className="w-7 h-7 rounded-lg bg-[#C85A32] text-[#FFFDF8] flex items-center justify-center font-mono text-xs font-bold">
                     L{levelInfo.level}
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900">{levelInfo.title}</div>
-                    <div className="text-[10px] font-mono text-slate-600 tabular-nums">
-                      Total: <strong className="text-amber-800">{studentXp} XP</strong> · Rentetan
-                      Kuis: <strong className="text-emerald-700">{quizStreak}×</strong>
+                    <div className="text-xs font-bold text-[#17232F]">{levelInfo.title}</div>
+                    <div className="text-[10px] font-mono text-[#5A6572] tabular-nums">
+                      Total: <strong className="text-[#9E3E22]">{studentXp} XP</strong> · Rentetan
+                      Kuis: <strong className="text-[#1F6E58]">{quizStreak}×</strong>
                     </div>
                   </div>
                 </div>
@@ -569,9 +578,9 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   type="button"
                   aria-expanded={isBadgesExpanded}
                   onClick={() => setIsBadgesExpanded((prev) => !prev)}
-                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-800 bg-white border border-amber-200 hover:bg-amber-50/70 rounded-lg transition-colors flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer shadow-2xs"
+                  className="px-2.5 py-1.5 text-xs font-semibold text-[#17232F] bg-[#EFE9DC] border border-[#DED4BE] hover:bg-[#E5DEC9] rounded-lg transition-colors flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
                 >
-                  <Award className="w-3.5 h-3.5 text-amber-600" />
+                  <Award className="w-3.5 h-3.5 text-[#C85A32]" />
                   <span>
                     {achievementsData.unlockedCount}/{achievementsData.badges.length} Lencana
                   </span>
@@ -584,13 +593,13 @@ export const ModuleLibraryView: React.FC<Props> = ({
               </div>
 
               <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-mono text-slate-600 tabular-nums">
-                  <span>Progres ke Level {Math.min(5, levelInfo.level + 1)} ({levelInfo.nextTitle})</span>
-                  <span className="font-bold text-amber-800">
+                <div className="flex justify-between text-[10px] font-mono text-[#5A6572] tabular-nums">
+                  <span>Menuju Level {Math.min(5, levelInfo.level + 1)} ({levelInfo.nextTitle})</span>
+                  <span className="font-bold text-[#9E3E22]">
                     {levelInfo.progressPct}% ({levelInfo.xpNeededForNext} XP lagi)
                   </span>
                 </div>
-                <div className="w-full h-2 bg-white/90 border border-amber-200/70 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-[#EFE9DC] border border-[#DED4BE] rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${levelInfo.progressPct}%` }}
@@ -612,15 +621,15 @@ export const ModuleLibraryView: React.FC<Props> = ({
                 exit={{ opacity: 0, y: -6, scale: 0.98 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                 role="status"
-                className={`rounded-xl px-4 py-3 flex items-center justify-between gap-3 text-xs font-semibold shadow-sm border ${
+                className={`rounded-xl px-4 py-3 flex items-center justify-between gap-3 text-xs font-semibold border ${
                   lastXpToast.xpDelta > 0
-                    ? 'bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-sky-500/15 border-emerald-300 text-slate-900'
-                    : 'bg-amber-50 border-amber-300 text-amber-950'
+                    ? 'bg-[#ECF5F1] border-[#BCDAD0] text-[#17232F]'
+                    : 'bg-[#FBF4E7] border-[#EAD6B0] text-[#8C540B]'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   {lastXpToast.xpDelta > 0 && (
-                    <span className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white font-mono text-xs font-bold shadow-2xs tabular-nums">
+                    <span className="px-2.5 py-1 rounded-lg bg-[#C85A32] text-[#FFFDF8] font-mono text-xs font-bold tabular-nums">
                       +{lastXpToast.xpDelta} XP
                     </span>
                   )}
@@ -629,7 +638,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                 <button
                   type="button"
                   onClick={() => setLastXpToast(null)}
-                  className="font-mono text-xs text-slate-700 hover:text-slate-950 bg-white/80 hover:bg-white px-2.5 py-1 rounded-md border border-slate-200 cursor-pointer shrink-0"
+                  className="font-mono text-xs text-[#17232F] hover:bg-[#EFE9DC] bg-[#FFFDF8] px-2.5 py-1 rounded-md border border-[#DED4BE] cursor-pointer shrink-0"
                 >
                   Tutup
                 </button>
@@ -652,35 +661,35 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   {achievementsData.badges.map((badge, bIdx) => {
                     const badgePalettes = [
                       {
-                        border: 'border-emerald-300/90',
-                        bg: 'bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-white',
-                        bar: 'bg-gradient-to-r from-emerald-500 to-teal-500',
-                        text: 'text-emerald-700',
+                        border: 'border-[#BCDAD0]',
+                        bg: 'bg-[#ECF5F1]',
+                        bar: 'bg-[#1F6E58]',
+                        text: 'text-[#1F6E58]',
                         actionLabel: 'Buka Lab Simulasi →',
                         onClick: () => setActiveSubTab('simulasi'),
                       },
                       {
-                        border: 'border-sky-300/90',
-                        bg: 'bg-gradient-to-br from-sky-50/90 via-cyan-50/40 to-white',
-                        bar: 'bg-gradient-to-r from-sky-500 to-cyan-500',
-                        text: 'text-sky-700',
-                        actionLabel: 'Buka Topologi Mesh →',
+                        border: 'border-[#C5D6E3]',
+                        bg: 'bg-[#EDF3F7]',
+                        bar: 'bg-[#163A5F]',
+                        text: 'text-[#163A5F]',
+                        actionLabel: 'Buka Jaringan Kelas →',
                         onClick: () => onNavigateTab('mesh'),
                       },
                       {
-                        border: 'border-amber-300/90',
-                        bg: 'bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-white',
-                        bar: 'bg-gradient-to-r from-amber-500 to-orange-500',
-                        text: 'text-amber-700',
-                        actionLabel: 'Buka Kuis Tantangan →',
+                        border: 'border-[#EAD6B0]',
+                        bg: 'bg-[#FBF4E7]',
+                        bar: 'bg-[#B97217]',
+                        text: 'text-[#8C540B]',
+                        actionLabel: 'Buka Kuis Latihan →',
                         onClick: () => setActiveSubTab('kuis'),
                       },
                       {
-                        border: 'border-indigo-300/90',
-                        bg: 'bg-gradient-to-br from-indigo-50/90 via-violet-50/40 to-white',
-                        bar: 'bg-gradient-to-r from-indigo-500 to-violet-500',
-                        text: 'text-indigo-700',
-                        actionLabel: 'Buka Tutor AI 0-Kuota →',
+                        border: 'border-[#E9C9BC]',
+                        bg: 'bg-[#FAF0EC]',
+                        bar: 'bg-[#C85A32]',
+                        text: 'text-[#9E3E22]',
+                        actionLabel: 'Buka Tanya Pintar →',
                         onClick: () => onNavigateTab('tutor'),
                       },
                     ];
@@ -790,8 +799,8 @@ export const ModuleLibraryView: React.FC<Props> = ({
                       onClick={() => setSearchQuery(searchQuery === kw ? '' : kw)}
                       className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                         searchQuery.toLowerCase() === kw.toLowerCase()
-                          ? 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-2xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+                          ? 'bg-[#163A5F] text-[#FFFDF8] shadow-2xs'
+                          : 'bg-[#EFE9DC] text-[#17232F] hover:bg-[#E5DEC9]'
                       }`}
                     >
                       {kw}
@@ -1140,13 +1149,14 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={() => setIsHighContrastReader((prev) => !prev)}
-                      className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer inline-flex items-center gap-1.5 ${
                         isHighContrastReader
-                          ? 'bg-slate-900 text-amber-300 border border-slate-900'
-                          : 'bg-white text-slate-700 border border-slate-200'
+                          ? 'bg-[#17232F] text-[#F2B857] border border-[#17232F]'
+                          : 'bg-[#FFFDF8] text-[#17232F] border border-[#DED4BE]'
                       }`}
                     >
-                      {isHighContrastReader ? '☀️ Kontras Tinggi Aktif' : '☀️ Mode Siang'}
+                      <Sun className="w-3.5 h-3.5" />
+                      <span>{isHighContrastReader ? 'Kontras Tinggi' : 'Mode Siang'}</span>
                     </button>
                   </div>
                 </div>
@@ -1164,13 +1174,13 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     role="tab"
                     aria-selected={activeSubTab === 'materi'}
                     onClick={() => setActiveSubTab('materi')}
-                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                       activeSubTab === 'materi'
                         ? activeTheme.activeTabGradient
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-white/60'
+                        : 'text-[#4A5562] hover:text-[#17232F] hover:bg-[#EFE9DC]/70 bg-[#FFFDF8]/70'
                     }`}
                   >
-                    <span>📖</span>
+                    <BookOpen className="w-4 h-4 shrink-0" />
                     <span>
                       1. Buku Bacaan ({activeModuleCompletedChaptersCount}/
                       {activeModule.sections.length})
@@ -1182,16 +1192,16 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     role="tab"
                     aria-selected={activeSubTab === 'simulasi'}
                     onClick={() => setActiveSubTab('simulasi')}
-                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                       activeSubTab === 'simulasi'
                         ? activeTheme.activeTabGradient
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-white/60'
+                        : 'text-[#4A5562] hover:text-[#17232F] hover:bg-[#EFE9DC]/70 bg-[#FFFDF8]/70'
                     }`}
                   >
-                    <span>🔬</span>
+                    <FlaskConical className="w-4 h-4 shrink-0" />
                     <span>
                       2. Lab Eksperimen{' '}
-                      {completedMissions[activeModule.simulationType] ? '(✓ Selesai)' : '(+150 XP)'}
+                      {completedMissions[activeModule.simulationType] ? '(Selesai)' : '(+150 XP)'}
                     </span>
                   </button>
 
@@ -1200,15 +1210,15 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     role="tab"
                     aria-selected={activeSubTab === 'kuis'}
                     onClick={() => setActiveSubTab('kuis')}
-                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                       activeSubTab === 'kuis'
                         ? activeTheme.activeTabGradient
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 bg-white/60'
+                        : 'text-[#4A5562] hover:text-[#17232F] hover:bg-[#EFE9DC]/70 bg-[#FFFDF8]/70'
                     }`}
                   >
-                    <span>🎯</span>
+                    <Target className="w-4 h-4 shrink-0" />
                     <span>
-                      3. Kuis Seru ({activeModuleAnsweredQuizCount}/
+                      3. Kuis Latihan ({activeModuleAnsweredQuizCount}/
                       {activeModule.checkpoints.length})
                     </span>
                   </button>
@@ -1225,10 +1235,10 @@ export const ModuleLibraryView: React.FC<Props> = ({
                         onNavigateTab('tutor');
                       }
                     }}
-                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${activeTheme.softBg} ${activeTheme.accentText} border ${activeTheme.softBorder} hover:opacity-90`}
+                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${activeTheme.softBg} ${activeTheme.accentText} border ${activeTheme.softBorder} hover:opacity-90`}
                   >
-                    <span>🤖</span>
-                    <span>4. Tanya Sahabat AI →</span>
+                    <Bot className="w-4 h-4 shrink-0" />
+                    <span>4. Tanya Pintar →</span>
                   </button>
                 </div>
               </div>
@@ -1553,11 +1563,11 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   <section
                     id="section-student-notes"
                     aria-label="Catatan Belajar Siswa Lokal"
-                    className="bg-gradient-to-br from-amber-50/70 via-white to-sky-50/40 border border-amber-200/90 rounded-2xl p-5 space-y-3.5 scroll-mt-24"
+                    className="bg-[#FAF5EB] border border-[#DED4BE] rounded-2xl p-5 space-y-3.5 scroll-mt-24"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-2xs">
+                        <div className="w-8 h-8 rounded-xl bg-[#C85A32] text-[#FFFDF8] flex items-center justify-center">
                           <PenLine className="w-4 h-4" />
                         </div>
                         <div>

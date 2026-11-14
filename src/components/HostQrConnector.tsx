@@ -184,19 +184,19 @@ export const HostQrConnector: React.FC<Props> = ({ className = '' }) => {
   }, [stopScanner]);
 
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden ${className}`}>
+    <div className={`bg-[#FFFDF8] rounded-2xl border border-[#DED4BE] overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-sky-50 via-teal-50 to-slate-50 border-b border-slate-200/80 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#EFE9DC]/70 border-b border-[#DED4BE] px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-sky-600 text-white shadow-xs">
+          <div className="p-2 rounded-xl bg-[#163A5F] text-[#FFFDF8]">
             <QrCode className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900">
-              Konektivitas Zero-Config (QR Code & mDNS Discovery)
+            <h3 className="font-display text-sm font-bold text-[#17232F]">
+              Konektivitas Zero-Config (QR Code &amp; mDNS Discovery)
             </h3>
-            <p className="text-xs text-slate-600">
-              Siswa cukup memindai QR Code atau membuka <span className="font-mono text-sky-700 font-semibold">ruangpintar.local</span> tanpa kuota internet.
+            <p className="text-xs text-[#4A5562]">
+              Siswa cukup memindai QR Code atau membuka <span className="font-mono text-[#163A5F] font-semibold">ruangpintar.local</span> tanpa kuota internet.
             </p>
           </div>
         </div>

@@ -19,12 +19,12 @@ export default defineConfig(() => {
           'pwa-maskable-512x512.png',
         ],
         manifest: {
-          name: 'RuangPintar Edge — LMS Terdesentralisasi Wilayah 3T',
+          name: 'RuangPintar — Pustaka Luring & Kelas Terdesentralisasi 3T',
           short_name: 'RuangPintar',
           description:
             'Platform LMS P2P berbasis WebRTC DataChannel dan Single-Gateway Cloud AI dengan cache lokal untuk sekolah wilayah 3T Indonesia.',
-          theme_color: '#0284c7',
-          background_color: '#f8fafc',
+          theme_color: '#163A5F',
+          background_color: '#F7F3EA',
           display: 'standalone',
           start_url: '/',
           scope: '/',

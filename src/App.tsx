@@ -1,5 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Megaphone, Lock } from 'lucide-react';
 import {
   MeshNetworkProvider,
   useMeshNetwork,
@@ -242,10 +243,10 @@ function MainLayout() {
         const isLocalSynthesis = data.result.source === 'LOCAL_EDGE_SYNTHESIS';
         setStatusBanner(
           isHit
-            ? `✨ Jawaban Resmi Guru Tersedia! (Instan 0 detik · Hemat ${data.result.ispQuotaKBaved} KB Kuota · +45 XP Sahabat AI)`
+            ? `Dijawab dari Arsip Kelas · Instan 0 detik & bebas kuota (${data.result.ispQuotaKBaved} KB dihemat).`
             : isLocalSynthesis
-              ? '📥 Dijawab dari ringkasan modul lokal & dimasukkan ke Antrean Gemini Guru.'
-              : '🌟 Jawaban baru berhasil dijawab oleh Sahabat Pintar dan disimpan di kelas untuk semua teman.'
+              ? 'Dijawab dari ringkasan modul lokal & dicatat ke Antrean Guru untuk dilengkapi nanti.'
+              : 'Jawaban baru diterima dan disimpan ke arsip kelas agar semua teman dapat memakainya tanpa kuota.'
         );
       }
       return data.result || null;
@@ -255,7 +256,7 @@ function MainLayout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-warm-canvas text-slate-900 selection:bg-sky-100 selection:text-sky-950">
+    <div className="min-h-screen flex flex-col bg-warm-canvas text-[#17232F] selection:bg-[#163A5F] selection:text-[#FFFDF8]">
       <OfflineBanner />
 
       <AppHeader
@@ -263,49 +264,30 @@ function MainLayout() {
         onReconnect={forceReconnect}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-5">
-        {/* Responsive Mobile Navigation Bar (Touch-first: min-h-[48px], active:scale-95) */}
-        <nav
-          aria-label="Navigasi Layar Kecil"
-          className="flex md:hidden items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar"
-        >
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setActiveTab(item.id)}
-              className={`min-h-[48px] px-3.5 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap shrink-0 cursor-pointer transition-all active:scale-95 flex items-center gap-1.5 shadow-2xs ${
-                activeTab === item.id
-                  ? 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold shadow-xs'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <span>{item.iconEmoji}</span>
-              <span>{item.mobileLabel}</span>
-            </button>
-          ))}
-        </nav>
-
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-24 md:pb-8 space-y-5">
         <StatusBanner />
 
         {classroomBroadcast && (classroomBroadcast.message || classroomBroadcast.examMode || classroomBroadcast.focusModuleId) && (
           <div
             role="status"
-            className="bg-gradient-to-r from-indigo-50 via-sky-50 to-amber-50 border border-indigo-200 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs"
+            className="bg-[#FFFDF8] border border-[#DED4BE] border-l-4 border-l-[#C85A32] rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs"
           >
             <div className="flex items-start gap-2.5">
-              <span className="text-base leading-none mt-0.5">📢</span>
+              <div className="w-8 h-8 rounded-xl bg-[#FAF0EC] border border-[#E9C9BC] flex items-center justify-center text-[#9E3E22] shrink-0 mt-0.5">
+                <Megaphone className="w-4 h-4" />
+              </div>
               <div className="space-y-0.5">
-                <div className="font-bold text-indigo-950 flex flex-wrap items-center gap-2">
-                  <span>Pengumuman Guru ({classroomBroadcast.updatedAt})</span>
+                <div className="font-bold text-[#17232F] flex flex-wrap items-center gap-2">
+                  <span>Arahan Guru ({classroomBroadcast.updatedAt})</span>
                   {classroomBroadcast.examMode && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-bold">
-                      🔒 Mode Ujian Aktif
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FBF4E7] border border-[#EAD6B0] text-[#8C540B] text-[10px] font-bold">
+                      <Lock className="w-3 h-3" />
+                      <span>Mode Ujian Aktif</span>
                     </span>
                   )}
                 </div>
                 {classroomBroadcast.message && (
-                  <p className="text-slate-800">{classroomBroadcast.message}</p>
+                  <p className="text-[#4A5562]">{classroomBroadcast.message}</p>
                 )}
               </div>
             </div>
@@ -317,9 +299,9 @@ function MainLayout() {
                   setActiveModuleId(classroomBroadcast.focusModuleId!);
                   setActiveTab('pustaka');
                 }}
-                className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs cursor-pointer shrink-0 transition-colors"
+                className="px-3 py-1.5 rounded-xl bg-[#163A5F] hover:bg-[#1E4D7B] text-[#FFFDF8] font-semibold text-xs cursor-pointer shrink-0 transition-colors"
               >
-                Buka Modul Arahan Guru →
+                Buka Modul Arahan →
               </button>
             )}
           </div>
@@ -327,8 +309,8 @@ function MainLayout() {
 
         <Suspense
           fallback={
-            <div className="bento-card p-8 text-center text-xs text-slate-600 font-medium">
-              Memuat tampilan kelas...
+            <div className="bento-card p-8 text-center text-xs text-[#4A5562] font-medium">
+              Menyiapkan halaman belajar...
             </div>
           }
         >
@@ -433,6 +415,33 @@ function MainLayout() {
       </Suspense>
 
       <StudentOnboardingModal />
+
+      {/* Mobile Bottom Tab Bar (Native-like PWA Navigation) */}
+      <nav
+        aria-label="Navigasi Bawah Seluler"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF8]/95 backdrop-blur-md border-t border-[#DED4BE] px-2 py-1.5 shadow-[0_-4px_20px_-8px_rgba(23,35,47,0.16)]"
+      >
+        <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
+          {NAV_ITEMS.map(({ id, mobileLabel, Icon }) => {
+            const isActive = activeTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveTab(id)}
+                className={`min-h-[50px] px-1.5 py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition-all active:scale-95 cursor-pointer ${
+                  isActive
+                    ? 'bg-[#163A5F] text-[#FFFDF8]'
+                    : 'text-[#5A6572] hover:text-[#17232F]'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-[#F2B857]' : ''}`} />
+                <span className="truncate leading-tight">{mobileLabel}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
 
       <AppFooter />
     </div>

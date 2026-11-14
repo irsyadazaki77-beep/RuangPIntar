@@ -1,19 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0284c7" />
-      <stop offset="50%" stop-color="#0d9488" />
-      <stop offset="100%" stop-color="#059669" />
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)" />
-  <circle cx="256" cy="256" r="148" fill="none" stroke="#ffffff" stroke-width="14" stroke-dasharray="28 16" opacity="0.55" />
-  <circle cx="256" cy="144" r="32" fill="#ffffff" />
-  <circle cx="152" cy="322" r="32" fill="#ffffff" />
-  <circle cx="360" cy="322" r="32" fill="#ffffff" />
-  <line x1="256" y1="144" x2="152" y2="322" stroke="#ffffff" stroke-width="14" />
-  <line x1="256" y1="144" x2="360" y2="322" stroke="#ffffff" stroke-width="14" />
-  <line x1="152" y1="322" x2="360" y2="322" stroke="#ffffff" stroke-width="14" />
-  <circle cx="256" cy="256" r="42" fill="#f8fafc" />
-  <text x="256" y="268" font-family="monospace" font-weight="bold" font-size="34" fill="#0369a1" text-anchor="middle">3T</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Deep Maritime Indigo Backdrop -->
+  <rect width="512" height="512" rx="112" fill="#163A5F" />
+  <!-- Subtle Warm Paper Inner Frame -->
+  <rect x="28" y="28" width="456" height="456" rx="88" stroke="#EFE9DC" stroke-opacity="0.16" stroke-width="6" />
+
+  <!-- Peer Signal Arcs (Offline Mesh Waves) -->
+  <path
+    d="M178 134 C224 98, 288 98, 334 134"
+    stroke="#4EA88F"
+    stroke-width="18"
+    stroke-linecap="round"
+  />
+  <path
+    d="M142 100 C208 50, 304 50, 370 100"
+    stroke="#4EA88F"
+    stroke-opacity="0.55"
+    stroke-width="14"
+    stroke-linecap="round"
+  />
+
+  <!-- Terracotta & Amber Lantern Diamond (Beacon of Knowledge) -->
+  <path
+    d="M256 142 L284 198 L340 226 L284 254 L256 310 L228 254 L172 226 L228 198 Z"
+    fill="#C85A32"
+  />
+  <circle cx="256" cy="226" r="24" fill="#F2B857" />
+
+  <!-- Open Book / Nusantara Hull Arc -->
+  <path
+    d="M108 320 C168 300, 224 316, 256 346 C288 316, 344 300, 404 320 L388 398 C332 378, 284 390, 256 416 C228 390, 180 378, 124 398 Z"
+    fill="#FFFDF8"
+  />
+  <!-- Book Spine Center Line -->
+  <path
+    d="M256 346 L256 416"
+    stroke="#163A5F"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+  <!-- Subtle Book Page Lines -->
+  <path d="M148 348 C184 338, 212 344, 232 358" stroke="#DED4BE" stroke-width="10" stroke-linecap="round" />
+  <path d="M364 348 C328 338, 300 344, 280 358" stroke="#DED4BE" stroke-width="10" stroke-linecap="round" />
 </svg>

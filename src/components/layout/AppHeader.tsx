@@ -1,18 +1,39 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
+import {
+  BookOpen,
+  Share2,
+  MessageSquareText,
+  GraduationCap,
+  DownloadCloud,
+  QrCode,
+} from 'lucide-react';
 import { PWAInstallButton } from '../PWAInstallButton';
 import { StudentProfileModal } from './StudentProfileModal';
+import { BrandLogo } from './BrandLogo';
 import {
   useMeshNetwork,
   type ActiveTab,
 } from '../../context/MeshNetworkContext';
 
-export const NAV_ITEMS: { id: ActiveTab; label: string; mobileLabel: string; iconEmoji: string }[] = [
-  { id: 'pustaka', label: 'Petualangan Belajar', mobileLabel: 'Buku Belajar', iconEmoji: '📚' },
-  { id: 'mesh', label: 'Teman Sekelas', mobileLabel: 'Teman Kelas', iconEmoji: '🤝' },
-  { id: 'tutor', label: 'Sahabat Belajar AI', mobileLabel: 'Sahabat AI', iconEmoji: '🤖' },
-  { id: 'guru', label: 'Ruang Guru', mobileLabel: 'Ruang Guru', iconEmoji: '🏫' },
+export const NAV_ITEMS: {
+  id: ActiveTab;
+  label: string;
+  mobileLabel: string;
+  Icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { id: 'pustaka', label: 'Materi Kelas', mobileLabel: 'Materi', Icon: BookOpen },
+  { id: 'mesh', label: 'Jaringan Kelas', mobileLabel: 'Kelas', Icon: Share2 },
+  { id: 'tutor', label: 'Tanya Pintar', mobileLabel: 'Tanya AI', Icon: MessageSquareText },
+  { id: 'guru', label: 'Ruang Guru', mobileLabel: 'Guru', Icon: GraduationCap },
 ];
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'S';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
 
 interface Props {
   onSync: () => void;
@@ -33,114 +54,110 @@ export const AppHeader: React.FC<Props> = ({ onSync, onReconnect }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-sky-100 shadow-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 py-2.5 sm:py-3">
-          {/* Zone 1: Friendly Wordmark + 3T Badge */}
+      <header className="sticky top-0 z-30 bg-[#FFFDF8]/95 backdrop-blur-md border-b border-[#DED4BE]">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 sm:px-6 py-2.5 sm:py-3">
+          {/* Zone 1: Authentic Brand Mark + Wordmark */}
           <a
             href="#top"
             onClick={(e) => {
               e.preventDefault();
               setActiveTab('pustaka');
             }}
-            className="flex items-center gap-2.5 group cursor-pointer shrink-0"
+            className="flex items-center group cursor-pointer shrink-0"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-indigo-600 to-teal-500 text-white flex items-center justify-center font-bold text-base sm:text-lg shadow-xs group-hover:scale-105 transition-transform">
-              RP
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900 leading-none group-hover:text-sky-700 transition-colors">
-                RuangPintar
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-emerald-700 leading-tight">
-                LMS Sahabat 3T · Bebas Kuota
-              </span>
-            </div>
+            <BrandLogo />
           </a>
 
-          {/* Zone 2: Navigation links with rounded pill tabs & active motion */}
+          {/* Zone 2: Editorial Segmented Navigation (Desktop) */}
           <nav
             aria-label="Navigasi Utama"
-            className="hidden md:flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80"
+            className="hidden md:flex items-center gap-1 p-1 bg-[#EFE9DC] rounded-xl border border-[#DED4BE]"
           >
-            {NAV_ITEMS.map((item) => {
-              const isActive = activeTab === item.id;
+            {NAV_ITEMS.map(({ id, label, Icon }) => {
+              const isActive = activeTab === id;
               return (
                 <button
-                  key={item.id}
+                  key={id}
                   type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className={`relative min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer active:scale-95 flex items-center gap-1.5 ${
+                  onClick={() => setActiveTab(id)}
+                  className={`relative min-h-[40px] px-3.5 py-2 rounded-lg text-xs sm:text-[13px] font-semibold transition-all whitespace-nowrap cursor-pointer active:scale-95 flex items-center gap-1.5 ${
                     isActive
-                      ? 'bg-white text-sky-800 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                      ? 'bg-[#163A5F] text-[#FFFDF8] shadow-xs'
+                      : 'text-[#4A5562] hover:text-[#17232F] hover:bg-[#FFFDF8]/70'
                   }`}
                 >
-                  <span>{item.iconEmoji}</span>
-                  <span>{item.label}</span>
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{label}</span>
                 </button>
               );
             })}
           </nav>
 
-          {/* Zone 3: Connection Indicator + Student Profile + PWA + Quick Sync */}
+          {/* Zone 3: Connection Indicator + Profile + Sync */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={socketConnected ? openQrScanner : onReconnect || openQrScanner}
               title={
                 socketConnected
-                  ? 'Terhubung langsung ke Laptop Guru (klik untuk pindah/scan QR)'
+                  ? 'Terhubung ke Laptop Guru (klik untuk pindai QR kelas lain)'
                   : isOfflineActive
-                    ? 'Mode Luring aktif (klik untuk sambung ke Laptop Guru)'
+                    ? 'Mode Luring aktif (klik untuk sambungkan ke Laptop Guru)'
                     : 'Belum tersambung ke Laptop Guru — klik untuk sambung ulang'
               }
-              className={`min-h-[42px] px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0 ${
+              className={`min-h-[40px] px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0 ${
                 socketConnected
-                  ? 'border-emerald-200 bg-emerald-50/90 text-emerald-800 hover:bg-emerald-100'
+                  ? 'border-[#B6D7CC] bg-[#ECF5F1] text-[#1F6E58] hover:bg-[#E0EFE8]'
                   : isOfflineActive
-                    ? 'border-amber-200 bg-amber-50/90 text-amber-900 hover:bg-amber-100'
-                    : 'border-rose-200 bg-rose-50/90 text-rose-800 hover:bg-rose-100'
+                    ? 'border-[#EAD6B0] bg-[#FBF4E7] text-[#8C540B] hover:bg-[#F6EAD2]'
+                    : 'border-[#E9C9BC] bg-[#FAF0EC] text-[#9E3E22] hover:bg-[#F5E1D9]'
               }`}
             >
               <span
                 className={`w-2 h-2 rounded-full shrink-0 ${
                   socketConnected
-                    ? 'bg-emerald-500 animate-pulse'
+                    ? 'bg-[#1F6E58] animate-pulse'
                     : isOfflineActive
-                      ? 'bg-amber-500'
-                      : 'bg-rose-500'
+                      ? 'bg-[#C67D1B]'
+                      : 'bg-[#C85A32]'
                 }`}
               />
               <span className="hidden lg:inline">
                 {socketConnected
                   ? 'Terhubung Guru'
                   : isOfflineActive
-                    ? 'Luring (HP)'
+                    ? 'Luring Lokal'
                     : 'Sambung Ulang'}
               </span>
-              <span className="lg:hidden">QR</span>
+              <QrCode className="w-3.5 h-3.5 lg:hidden shrink-0" />
             </button>
 
             <button
               type="button"
               onClick={() => setShowProfileModal(true)}
-              className="min-h-[42px] px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-100/80 text-xs font-semibold text-amber-950 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-2xs"
-              title="Klik untuk ubah profil siswa"
+              className="min-h-[40px] px-2 sm:px-2.5 py-1.5 rounded-xl border border-[#DED4BE] bg-[#FFFDF8] hover:bg-[#EFE9DC]/70 text-xs font-semibold text-[#17232F] flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+              title="Ubah profil siswa"
             >
-              <span className="text-base">{studentProfile.avatar.split(' ')[0]}</span>
-              <span className="hidden sm:inline font-bold max-w-[110px] truncate">{studentProfile.studentName}</span>
+              <span className="w-6 h-6 rounded-lg bg-[#C85A32] text-[#FFFDF8] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                {getInitials(studentProfile.studentName)}
+              </span>
+              <span className="hidden sm:inline font-semibold max-w-[100px] truncate">
+                {studentProfile.studentName}
+              </span>
             </button>
+
             <PWAInstallButton />
+
             <motion.button
               type="button"
               whileTap={{ scale: 0.95 }}
               disabled={isSyncing}
               onClick={onSync}
-              className="min-h-[42px] px-3 sm:px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 disabled:opacity-50 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-xs flex items-center gap-1.5"
+              className="min-h-[40px] px-3 sm:px-3.5 py-2 text-xs font-semibold text-[#FFFDF8] bg-[#1F6E58] hover:bg-[#27856B] disabled:opacity-50 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5"
             >
-              <span>📥</span>
+              <DownloadCloud className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">{isSyncing ? 'Menyinkron...' : 'Terima Materi'}</span>
-              <span className="sm:hidden">{isSyncing ? 'Unduh...' : 'Materi'}</span>
+              <span className="sm:hidden">{isSyncing ? 'Proses...' : 'Unduh'}</span>
             </motion.button>
           </div>
         </div>
