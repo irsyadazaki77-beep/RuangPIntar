@@ -1114,6 +1114,642 @@ export const INITIAL_MODULES: LearningModule[] = [
     ],
     updatedAt: 'Dipublikasikan 08:50 WITA · Tersedia di 4 Simpul Lokal',
   },
+  {
+    id: 'mod-sd-mat-berhitung',
+    code: 'MAT-SD-01',
+    title: 'Berhitung & Pengukuran Satuan Panjang-Berat Hasil Pesisir',
+    subject: 'Matematika Maritim',
+    gradeLevel: 'Kelas 1–3 SD · Fase A–B',
+    educationTier: 'SD',
+    authorTeacher: 'Ibu Maria Goreti, S.Pd.SD.',
+    schoolOrigin: 'SDN Inpres Waiwerang — Flores Timur, NTT',
+    sizeMB: 18.5,
+    totalChunks: 16,
+    chunkSizeKB: 1184,
+    chunkHashes: [
+      'sd1a0001', 'sd1a0002', 'sd1a0003', 'sd1a0004',
+      'sd1a0005', 'sd1a0006', 'sd1a0007', 'sd1a0008',
+      'sd1a0009', 'sd1a0010', 'sd1a0011', 'sd1a0012',
+      'sd1a0013', 'sd1a0014', 'sd1a0015', 'sd1a0016',
+    ],
+    mediaType: 'Modul Teks & Diagram',
+    imageUrl: '/src/assets/images/module_maritime_math_1793880029713.jpg',
+    summary:
+      'Dasar berhitung bilangan cacah (penjumlahan, pengurangan, perkalian, pembagian) dan konversi satuan panjang (cm ke m) serta berat (gram ke kg) menggunakan contoh hasil tangkapan nelayan dan kebun sekolah.',
+    sections: [
+      {
+        heading: '01. Nilai Tempat, Penjumlahan & Pengurangan Bilangan Cacah',
+        body: 'Setiap angka memiliki nilai tempat berbeda: ratusan, puluhan, dan satuan. Misalnya pada angka 245: angka 2 bernilai 200 (ratusan), angka 4 bernilai 40 (puluhan), dan angka 5 bernilai 5 (satuan). Saat menjumlahkan atau mengurangkan hasil panen, sejajarkan angka satuan dengan satuan, puluhan dengan puluhan, dan ratusan dengan ratusan.',
+        formula: '24 + 18 = 42  |  50 - 17 = 33',
+        keyTakeaway: 'Selalu hitung mulai dari nilai tempat satuan (kanan) ke kiri.',
+      },
+      {
+        heading: '02. Perkalian sebagai Penjumlahan Berulang & Pembagian Adil',
+        body: 'Perkalian adalah cara cepat menjumlahkan kelompok bilangan yang sama besar. Jika seorang nelayan membawa 4 keranjang dan tiap keranjang berisi 8 ekor ikan, totalnya adalah 8 + 8 + 8 + 8 = 4 × 8 = 32 ekor. Sebaliknya, pembagian membagi jumlah total ke dalam beberapa kelompok sama rata, misalnya 24 buah jeruk dibagikan ke 4 anak menjadi 24 ÷ 4 = 6 buah per anak.',
+        formula: 'a × b = b + b + ... (sebanyak a kali)  |  24 ÷ 4 = 6',
+        keyTakeaway: 'Perkalian adalah penjumlahan berulang; pembagian adalah kebalikan dari perkalian.',
+      },
+      {
+        heading: '03. Mengenal Satuan Baku Panjang (cm, m) dan Berat (gram, kg)',
+        body: 'Untuk mengukur panjang papan perahu atau tinggi tanaman sekolah secara tepat, kita memakai penggaris/meteran dengan satuan sentimeter (cm) dan meter (m), di mana 1 meter = 100 cm. Untuk menimbang beras atau ikan di pasar, kita memakai timbangan dengan satuan gram (g) dan kilogram (kg), di mana 1 kg = 1.000 gram.',
+        formula: '1 m = 100 cm  |  1 kg = 1.000 gram  |  1/2 kg = 500 gram',
+        keyTakeaway: 'Mengubah meter ke sentimeter dikali 100; mengubah kilogram ke gram dikali 1.000.',
+        calculator: {
+          id: 'sd_unit_convert',
+          title: 'Konverter Satuan Berat (kg → gram) & Panjang (m → cm)',
+          resultLabel: 'Hasil Konversi',
+          resultUnit: 'g · cm',
+          variables: [
+            { key: 'kg', label: 'Berat (kg)', unit: 'kg', min: 1, max: 20, step: 0.5, defaultValue: 2 },
+            { key: 'meter', label: 'Panjang (m)', unit: 'm', min: 1, max: 25, step: 1, defaultValue: 3 },
+          ],
+        },
+      },
+    ],
+    simulationType: 'navigation',
+    glossary: [
+      {
+        term: 'Nilai Tempat',
+        symbolOrUnit: 'Ratusan, Puluhan, Satuan',
+        definition: 'Posisi suatu angka dalam bilangan yang menentukan besar nilainya.',
+      },
+      {
+        term: 'Kilogram & Gram',
+        symbolOrUnit: '1 kg = 1.000 g',
+        definition: 'Satuan baku internasional untuk mengukur massa/berat benda sehari-hari.',
+      },
+      {
+        term: 'Meter & Sentimeter',
+        symbolOrUnit: '1 m = 100 cm',
+        definition: 'Satuan baku untuk mengukur panjang atau jarak benda.',
+      },
+    ],
+    caseStudy: {
+      title: 'Menimbang Hasil Kebun & Tangkapan di Pasar Pagi Waiwerang',
+      location: 'Pulau Adonara, Flores Timur, NTT',
+      challenge:
+        'Siswa kelas 3 perlu menggabungkan berat bahan makanan dalam satuan berbeda (kilogram dan gram) untuk kegiatan makan siang sehat bersama di sekolah.',
+      solution:
+        'Ubah seluruh satuan ke gram terlebih dahulu (2 kg = 2.000 gram), lalu jumlahkan langsung dengan 500 gram ikan teri kering.',
+      impactMetrics: [
+        'Berat beras: 2 kg = 2 × 1.000 gram = 2.000 gram',
+        'Berat ikan teri: 500 gram',
+        'Total berat belanjaan: 2.000 + 500 = 2.500 gram (2,5 kg)',
+      ],
+    },
+    checkpoints: [
+      {
+        question:
+          'Ibu membawa 2 kg beras dan 500 gram ikan teri dari pasar. Berapa total berat belanjaan Ibu dalam satuan gram?',
+        options: ['700 gram', '2.500 gram', '2.050 gram', '1.500 gram'],
+        correctIndex: 1,
+        explanation:
+          'Karena 1 kg = 1.000 gram, maka 2 kg = 2.000 gram. Ditambah 500 gram menjadi 2.000 + 500 = 2.500 gram.',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Seorang nelayan menangkap 4 keranjang ikan. Setiap keranjang berisi 8 ekor ikan tongkol. Berapa jumlah seluruh ikan tangkapan nelayan tersebut?',
+        options: ['32 ekor', '12 ekor', '28 ekor', '36 ekor'],
+        correctIndex: 0,
+        explanation:
+          '4 keranjang × 8 ekor = 8 + 8 + 8 + 8 = 32 ekor ikan tongkol.',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Panjang papan kayu untuk membuat bangku kelas adalah 3 meter. Jika diukur dalam sentimeter (cm), panjang papan itu adalah...',
+        options: ['30 cm', '3.000 cm', '300 cm', '103 cm'],
+        correctIndex: 2,
+        explanation:
+          '1 meter sama dengan 100 cm, sehingga 3 meter = 3 × 100 cm = 300 cm.',
+        difficulty: 'Dasar',
+      },
+    ],
+    updatedAt: 'Dipublikasikan 08:00 WITA · Modul Fase A–B SD',
+  },
+  {
+    id: 'mod-sd-bio-air-tumbuhan',
+    code: 'BIO-SD-02',
+    title: 'Siklus Air, Fotosintesis & Rantai Makanan Pesisir',
+    subject: 'Biologi Pesisir',
+    gradeLevel: 'Kelas 4–6 SD · Fase B–C',
+    educationTier: 'SD',
+    authorTeacher: 'Bapak Yosef Laba, S.Pd.',
+    schoolOrigin: 'SDN 2 Larantuka — Flores Timur, NTT',
+    sizeMB: 24.0,
+    totalChunks: 16,
+    chunkSizeKB: 1536,
+    chunkHashes: [
+      'sd2b0001', 'sd2b0002', 'sd2b0003', 'sd2b0004',
+      'sd2b0005', 'sd2b0006', 'sd2b0007', 'sd2b0008',
+      'sd2b0009', 'sd2b0010', 'sd2b0011', 'sd2b0012',
+      'sd2b0013', 'sd2b0014', 'sd2b0015', 'sd2b0016',
+    ],
+    mediaType: 'Modul Teks & Diagram',
+    imageUrl: '/src/assets/images/module_mangrove_biology_1793880029754.jpg',
+    summary:
+      'Memahami bagaimana tumbuhan membuat makanannya sendiri melalui fotosintesis, tahapan siklus air di alam, serta peran produsen, konsumen, dan pengurai dalam rantai makanan pesisir.',
+    sections: [
+      {
+        heading: '01. Bagian Tumbuhan & Proses Fotosintesis',
+        body: 'Akar menyerap air dan zat hara dari tanah, batang menyalurkannya ke daun, dan daun memasak makanan melalui fotosintesis. Dengan bantuan cahaya matahari dan zat hijau daun (klorofil), tumbuhan mengubah air (H₂O) dan gas karbon dioksida (CO₂) menjadi glukosa (energi) serta melepaskan gas oksigen (O₂) yang kita hirup.',
+        formula: '6CO₂ + 6H₂O + Cahaya Matahari → C₆H₁₂O₆ (Glukosa) + 6O₂',
+        keyTakeaway: 'Tumbuhan adalah satu-satunya makhluk hidup di darat yang dapat membuat makanannya sendiri lewat fotosintesis.',
+      },
+      {
+        heading: '02. Tahapan Siklus Air (Hidrologi) di Bumi',
+        body: 'Air di bumi terus berputar tanpa habis melalui siklus air: (1) Evaporasi, yaitu air laut dan sungai menguap karena panas matahari; (2) Transpirasi, yaitu penguapan air dari daun tumbuhan; (3) Kondensasi, yaitu uap air mendingin di langit menjadi titik-titik air pembentuk awan; (4) Presipitasi, yaitu jatuhnya titik air sebagai hujan; dan (5) Infiltrasi, yaitu meresapnya air hujan ke dalam tanah.',
+        formula: 'Evaporasi/Transpirasi → Kondensasi (Awan) → Presipitasi (Hujan) → Infiltrasi',
+        keyTakeaway: 'Menjaga hutan dan pohon membantu proses infiltrasi agar cadangan air tanah tidak kering.',
+      },
+      {
+        heading: '03. Rantai Makanan & Peran Makhluk Hidup',
+        body: 'Di perairan pesisir, tumbuhan hijau atau lamun berperan sebagai Produsen karena menghasilkan makanan sendiri. Hewan pemakan tumbuhan (herbivora) seperti penyu hijau atau ikan kecil adalah Konsumen I. Hewan pemakan daging seperti ikan kakap atau hiu adalah Konsumen II/III. Ketika makhluk hidup mati, bakteri dan jamur (Pengurai/Dekomposer) menguraikannya menjadi zat hara bagi tanah dan laut.',
+        keyTakeaway: 'Jika salah satu bagian rantai makanan rusak, keseimbangan seluruh ekosistem akan terganggu.',
+      },
+    ],
+    simulationType: 'mangrove',
+    glossary: [
+      {
+        term: 'Klorofil',
+        symbolOrUnit: 'Zat Hijau Daun',
+        definition: 'Pigmen pada daun yang menangkap energi cahaya matahari untuk proses fotosintesis.',
+      },
+      {
+        term: 'Kondensasi',
+        symbolOrUnit: 'Uap → Cair',
+        definition: 'Perubahan uap air di atmosfer menjadi titik-titik air pembentuk awan.',
+      },
+      {
+        term: 'Dekomposer',
+        symbolOrUnit: 'Pengurai',
+        definition: 'Makhluk hidup mikroskopis (bakteri dan jamur) yang menguraikan sisa organisme mati menjadi nutrisi alami.',
+      },
+    ],
+    caseStudy: {
+      title: 'Mengapa Mata Air Desa Tetap Jernih Saat Pohon Pesisir Dijaga',
+      location: 'Teluk Larantuka, NTT',
+      challenge:
+        'Membandingkan perbedaan serapan air hujan antara bukit gundul dan bukit bervegetasi pohon bakau serta kelapa di pesisir.',
+      solution:
+        'Menjaga tutupan akar pohon di sepanjang lereng pesisir untuk memaksimalkan infiltrasi air hujan dan mencegah erosi lumpur ke laut.',
+      impactMetrics: [
+        'Bukit bervegetasi menyerap lebih banyak air hujan melalui infiltrasi akar',
+        'Akar tumbuhan menahan tanah agar tidak terbawa arus menjadi lumpur di laut',
+        'Daun tumbuhan melepaskan O₂ segar setiap siang hari saat matahari bersinar',
+      ],
+    },
+    checkpoints: [
+      {
+        question:
+          'Dalam proses fotosintesis, gas apa yang dibutuhkan tumbuhan dari udara dan gas apa yang dilepaskan kembali?',
+        options: [
+          'Membutuhkan karbon dioksida (CO₂) dan melepaskan oksigen (O₂)',
+          'Membutuhkan oksigen (O₂) dan melepaskan karbon dioksida (CO₂)',
+          'Membutuhkan nitrogen dan melepaskan uap garam',
+          'Membutuhkan uap minyak dan melepaskan asap',
+        ],
+        correctIndex: 0,
+        explanation:
+          'Tumbuhan menyerap karbon dioksida (CO₂) dan air (H₂O) dengan bantuan cahaya matahari untuk menghasilkan glukosa serta melepaskan oksigen (O₂).',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Peristiwa berubahnya uap air yang dingin di langit menjadi titik-titik air pembentuk awan disebut...',
+        options: ['Evaporasi', 'Kondensasi', 'Presipitasi', 'Infiltrasi'],
+        correctIndex: 1,
+        explanation:
+          'Kondensasi adalah proses pendinginan uap air menjadi titik-titik air yang berkumpul membentuk awan, sebelum akhirnya jatuh sebagai presipitasi (hujan).',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Pada rantai makanan pesisir: Lamun → Penyu Hijau → Hiu. Peran Lamun dalam rantai makanan tersebut adalah sebagai...',
+        options: ['Produsen', 'Konsumen Tingkat I', 'Konsumen Puncak', 'Pengurai'],
+        correctIndex: 0,
+        explanation:
+          'Lamun adalah tumbuhan laut yang berfotosintesis sehingga berperan sebagai produsen (penghasil makanan pertama).',
+        difficulty: 'Menengah',
+      },
+    ],
+    updatedAt: 'Dipublikasikan 08:10 WITA · Modul Fase B–C SD',
+  },
+  {
+    id: 'mod-sd-energi-gaya',
+    code: 'ENG-SD-03',
+    title: 'Gaya, Gerak & Perubahan Bentuk Energi Sehari-hari',
+    subject: 'Teknik Energi',
+    gradeLevel: 'Kelas 4–6 SD · Fase B–C',
+    educationTier: 'SD',
+    authorTeacher: 'Ibu Agustina Koli, S.Pd.',
+    schoolOrigin: 'SDN Inpres Oelamasi — Kab. Kupang, NTT',
+    sizeMB: 21.6,
+    totalChunks: 16,
+    chunkSizeKB: 1382,
+    chunkHashes: [
+      'sd3e0001', 'sd3e0002', 'sd3e0003', 'sd3e0004',
+      'sd3e0005', 'sd3e0006', 'sd3e0007', 'sd3e0008',
+      'sd3e0009', 'sd3e0010', 'sd3e0011', 'sd3e0012',
+      'sd3e0013', 'sd3e0014', 'sd3e0015', 'sd3e0016',
+    ],
+    mediaType: 'Video & Simulasi Interaktif',
+    imageUrl: '/src/assets/images/module_solar_energy_1793880029354.jpg',
+    summary:
+      'Mengenal jenis-jenis gaya (otot, gesek, gravitasi, magnet), perubahan bentuk energi pada alat sehari-hari, serta perbedaan energi terbarukan dan tak terbarukan.',
+    sections: [
+      {
+        heading: '01. Gaya Tarikan-Dorongan, Gesek & Gravitasi',
+        body: 'Gaya adalah tarikan atau dorongan yang dapat mengubah gerak, kecepatan, atau bentuk suatu benda. Gaya gesek terjadi saat dua permukaan saling bersentuhan—gaya gesek memperlambat benda dan membuat ban sepeda tidak tergelincir di jalan basah. Sementara itu, gaya gravitasi bumi menarik seluruh benda menuju pusat bumi sehingga buah jatuh ke bawah.',
+        keyTakeaway: 'Gaya dapat menggerakkan benda diam, menghentikan benda bergerak, dan mengubah arah gerak.',
+      },
+      {
+        heading: '02. Perubahan Bentuk Energi di Sekitar Kita',
+        body: 'Energi tidak dapat diciptakan atau dimusnahkan, melainkan berubah bentuk. Contohnya: panel surya mengubah energi cahaya matahari menjadi energi listrik; lampu mengubah energi listrik menjadi cahaya dan panas; kipas angin mengubah energi listrik menjadi energi gerak; dan kompor gas mengubah energi kimia menjadi energi panas.',
+        formula: 'Panel Surya: Cahaya → Listrik  |  Lampu: Listrik → Cahaya + Panas',
+        keyTakeaway: 'Alat elektronik bekerja dengan mengubah satu bentuk energi menjadi bentuk energi lain yang bermanfaat.',
+      },
+      {
+        heading: '03. Sumber Energi Terbarukan vs Tak Terbarukan',
+        body: 'Matahari, angin, dan aliran air sungai adalah sumber energi terbarukan karena tersedia melimpah di alam dan tidak cepat habis. Sebaliknya, batu bara, bensin, dan solar adalah bahan bakar fosil (tak terbarukan) yang butuh jutaan tahun untuk terbentuk. Karena itu, kita perlu menghemat listrik dengan mematikan lampu dan kipas saat ruangan kosong.',
+        keyTakeaway: 'Energi surya dan angin adalah sumber energi bersih yang ramah lingkungan untuk masa depan sekolah.',
+      },
+    ],
+    simulationType: 'solar',
+    glossary: [
+      {
+        term: 'Gaya Gesek',
+        symbolOrUnit: 'Newton (N)',
+        definition: 'Gaya yang muncul akibat sentuhan dua permukaan benda dan arahnya berlawanan dengan arah gerak.',
+      },
+      {
+        term: 'Gaya Gravitasi',
+        symbolOrUnit: 'Tarikan Bumi',
+        definition: 'Gaya tarik bumi yang membuat semua benda tetap menapak dan jatuh ke arah bawah.',
+      },
+      {
+        term: 'Energi Terbarukan',
+        symbolOrUnit: 'Surya, Angin, Air',
+        definition: 'Sumber energi alami yang dapat terus diperbarui dan tidak habis dipakai manusia.',
+      },
+    ],
+    checkpoints: [
+      {
+        question:
+          'Perubahan bentuk energi yang terjadi pada panel surya di atap sekolah saat siang hari adalah...',
+        options: [
+          'Energi gerak menjadi energi panas',
+          'Energi cahaya matahari menjadi energi listrik',
+          'Energi listrik menjadi energi bunyi',
+          'Energi kimia menjadi energi gravitasi',
+        ],
+        correctIndex: 1,
+        explanation:
+          'Sel surya (fotovoltaik) menangkap energi cahaya matahari dan mengubahnya langsung menjadi arus listrik.',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Gaya yang menyebabkan buah kelapa jatuh ke tanah dan menahan air laut tetap berada di permukaan bumi adalah...',
+        options: ['Gaya gravitasi', 'Gaya magnet', 'Gaya pegas', 'Gaya gesek udara'],
+        correctIndex: 0,
+        explanation:
+          'Gaya gravitasi bumi menarik setiap benda bermassa menuju pusat bumi.',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Mengapa permukaan ban sepeda maupun sol sepatu sekolah dibuat beralur kasar dan tidak licin?',
+        options: [
+          'Agar berat sepeda menjadi nol',
+          'Agar energi listrik mengalir ke roda',
+          'Memperbesar gaya gesek supaya tidak mudah tergelincir di jalan licin',
+          'Mengurangi gaya gravitasi saat menanjak',
+        ],
+        correctIndex: 2,
+        explanation:
+          'Permukaan beralur memperbesar gaya gesek antara ban/sepatu dengan jalan sehingga cengkeramannya kuat dan aman.',
+        difficulty: 'Menengah',
+      },
+    ],
+    updatedAt: 'Dipublikasikan 08:15 WITA · Modul Fase B–C SD',
+  },
+  {
+    id: 'mod-smp-fis-kalor-listrik',
+    code: 'FIS-SMP-01',
+    title: 'Suhu, Kalor & Rangkaian Listrik Arus Searah (Hukum Ohm)',
+    subject: 'Fisika Terapan',
+    gradeLevel: 'Kelas 7–9 SMP · Fase D',
+    educationTier: 'SMP',
+    authorTeacher: 'Bapak Fransiskus Bria, S.Si.',
+    schoolOrigin: 'SMPN 1 Atambua — Belu, NTT',
+    sizeMB: 31.2,
+    totalChunks: 16,
+    chunkSizeKB: 1996,
+    chunkHashes: [
+      'smp1f001', 'smp1f002', 'smp1f003', 'smp1f004',
+      'smp1f005', 'smp1f006', 'smp1f007', 'smp1f008',
+      'smp1f009', 'smp1f010', 'smp1f011', 'smp1f012',
+      'smp1f013', 'smp1f014', 'smp1f015', 'smp1f016',
+    ],
+    mediaType: 'Video & Simulasi Interaktif',
+    imageUrl: '/src/assets/images/module_microhydro_physics_1793880029053.jpg',
+    summary:
+      'Konversi skala suhu (Celsius, Kelvin, Fahrenheit), perhitungan kalor jenis (Q = m·c·ΔT), serta penerapan Hukum Ohm (V = I·R) dan daya listrik (P = V·I) pada perangkat kelas.',
+    sections: [
+      {
+        heading: '01. Skala Suhu & Energi Kalor (Q = m · c · ΔT)',
+        body: 'Suhu menyatakan derajat panas benda dan diukur dengan termometer dalam satuan Celsius (°C), Kelvin (K), atau Fahrenheit (°F). Sementara kalor (Q) adalah energi panas yang berpindah dari benda bersuhu tinggi ke suhu rendah. Untuk menaikkan suhu air bermassa m dengan kalor jenis c (air = 4.200 J/kg°C) sebesar ΔT, dibutuhkan kalor Q = m · c · ΔT.',
+        formula: 'T_K = T_C + 273  |  T_F = (9/5 × T_C) + 32  |  Q = m · c · ΔT',
+        keyTakeaway: 'Semakin besar massa air dan kenaikan suhunya, semakin besar energi kalor (Joule) yang dibutuhkan.',
+        calculator: {
+          id: 'smp_heat_calorimetry',
+          title: 'Kalkulator Kalor Pemanasan Air (Q = m · c · ΔT)',
+          resultLabel: 'Energi Kalor (Q)',
+          resultUnit: 'kJ',
+          variables: [
+            { key: 'massaKg', label: 'Massa Air (m)', unit: 'kg', min: 1, max: 15, step: 1, defaultValue: 2 },
+            { key: 'deltaT', label: 'Kenaikan Suhu (ΔT)', unit: '°C', min: 5, max: 80, step: 5, defaultValue: 50 },
+          ],
+        },
+      },
+      {
+        heading: '02. Hukum Ohm & Rangkaian Seri-Paralel',
+        body: 'Dalam rangkaian listrik tertutup, kuat arus listrik (I, Ampere) berbanding lurus dengan tegangan (V, Volt) dan berbanding terbalik dengan hambatan (R, Ohm). Pada rangkaian seri, arus di setiap lampu sama dan hambatan totalnya R_total = R₁ + R₂. Pada rangkaian paralel, tegangan di tiap cabang sama dan jika satu lampu padam, lampu lain tetap menyala.',
+        formula: 'V = I · R  |  R_seri = R₁ + R₂  |  1/R_paralel = 1/R₁ + 1/R₂',
+        keyTakeaway: 'Instalasi lampu ruang kelas menggunakan rangkaian paralel agar tegangan merata dan tidak ikut mati jika satu bohlam putus.',
+        calculator: {
+          id: 'smp_ohms_law',
+          title: 'Kalkulator Hukum Ohm & Daya Listrik (I = V/R, P = V·I)',
+          resultLabel: 'Arus & Daya',
+          resultUnit: 'A · W',
+          variables: [
+            { key: 'volt', label: 'Tegangan (V)', unit: 'V', min: 3, max: 24, step: 3, defaultValue: 12 },
+            { key: 'ohm', label: 'Hambatan (R)', unit: 'Ω', min: 2, max: 30, step: 2, defaultValue: 6 },
+          ],
+        },
+      },
+      {
+        heading: '03. Daya & Energi Listrik Perangkat Sekolah',
+        body: 'Daya listrik (P, Watt) adalah laju penggunaan energi listrik setiap detik, dirumuskan P = V · I. Total energi listrik yang dipakai selama waktu t (detik atau jam) adalah W = P · t. Memahami daya membantu siswa menghitung berapa lama baterai 12V mampu menyalakan lampu belajar atau router kelas.',
+        formula: 'P = V · I  |  W = P · t  (1 kWh = 1.000 Wh)',
+        keyTakeaway: 'Mengganti lampu pijar 40W menjadi LED 8W menghemat konsumsi energi listrik hingga 80%.',
+      },
+    ],
+    simulationType: 'microhydro',
+    glossary: [
+      {
+        term: 'Kalor Jenis (c)',
+        symbolOrUnit: 'J/(kg·°C)',
+        definition: 'Banyaknya kalor yang diperlukan untuk menaikkan suhu 1 kg zat sebesar 1°C (untuk air = 4.200 J/kg°C).',
+      },
+      {
+        term: 'Hukum Ohm',
+        symbolOrUnit: 'V = I · R',
+        definition: 'Hubungan dasar antara tegangan (Volt), kuat arus (Ampere), dan hambatan listrik (Ohm).',
+      },
+      {
+        term: 'Daya Listrik (P)',
+        symbolOrUnit: 'Watt (W)',
+        definition: 'Energi listrik yang diserap atau dihasilkan suatu rangkaian setiap satuan waktu.',
+      },
+    ],
+    checkpoints: [
+      {
+        question:
+          'Air bermassa 2 kg dipanaskan dari suhu 30°C hingga 80°C (kalor jenis air c = 4.200 J/kg°C). Berapakah kalor (Q) yang diperlukan?',
+        options: ['210.000 Joule', '420.000 Joule', '336.000 Joule', '840.000 Joule'],
+        correctIndex: 1,
+        explanation:
+          'ΔT = 80°C − 30°C = 50°C. Maka Q = m · c · ΔT = 2 × 4.200 × 50 = 420.000 Joule (420 kJ).',
+        difficulty: 'Menengah',
+      },
+      {
+        question:
+          'Sebuah lampu DC 12 Volt dialiri arus sebesar 2 Ampere. Berapakah nilai hambatan (R) dan daya listrik (P) lampu tersebut?',
+        options: [
+          'R = 6 Ω dan P = 24 Watt',
+          'R = 24 Ω dan P = 6 Watt',
+          'R = 10 Ω dan P = 14 Watt',
+          'R = 0,16 Ω dan P = 24 Watt',
+        ],
+        correctIndex: 0,
+        explanation:
+          'Menggunakan Hukum Ohm: R = V / I = 12 / 2 = 6 Ω. Daya listrik: P = V · I = 12 × 2 = 24 Watt.',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Termometer ruang kelas menunjukkan suhu 30°C. Jika dinyatakan dalam skala Kelvin (K), suhu tersebut adalah...',
+        options: ['243 K', '330 K', '303 K', '273 K'],
+        correctIndex: 2,
+        explanation:
+          'Konversi Celsius ke Kelvin menggunakan T_K = T_C + 273 = 30 + 273 = 303 K.',
+        difficulty: 'Dasar',
+      },
+    ],
+    updatedAt: 'Dipublikasikan 08:25 WITA · Modul Fase D SMP',
+  },
+  {
+    id: 'mod-smp-bio-ekosistem',
+    code: 'BIO-SMP-02',
+    title: 'Sel, Interaksi Ekosistem & Pencegahan Pencemaran Air',
+    subject: 'Biologi Pesisir',
+    gradeLevel: 'Kelas 7–9 SMP · Fase D',
+    educationTier: 'SMP',
+    authorTeacher: 'Ibu Bernadeta Riti, S.Pd.',
+    schoolOrigin: 'SMPN 3 Maumere — Sikka, NTT',
+    sizeMB: 27.8,
+    totalChunks: 16,
+    chunkSizeKB: 1779,
+    chunkHashes: [
+      'smp2b001', 'smp2b002', 'smp2b003', 'smp2b004',
+      'smp2b005', 'smp2b006', 'smp2b007', 'smp2b008',
+      'smp2b009', 'smp2b010', 'smp2b011', 'smp2b012',
+      'smp2b013', 'smp2b014', 'smp2b015', 'smp2b016',
+    ],
+    mediaType: 'Modul Teks & Diagram',
+    imageUrl: '/src/assets/images/module_agroforestry_1793880029912.jpg',
+    summary:
+      'Mempelajari struktur sel tumbuhan dan hewan, tingkatan organisasi kehidupan, pola interaksi simbiosis dalam ekosistem pesisir, serta dampak eutrofikasi terhadap kualitas air.',
+    sections: [
+      {
+        heading: '01. Struktur Sel & Organisasi Kehidupan',
+        body: 'Sel adalah unit struktural dan fungsional terkecil makhluk hidup. Sel tumbuhan memiliki ciri khas yang tidak dimiliki sel hewan: dinding sel dari selulosa (memberi bentuk kaku), kloroplas (tempat fotosintesis), dan vakuola berukuran besar. Sel-sel sejenis bergabung membentuk jaringan → organ → sistem organ → organisme → populasi → komunitas → ekosistem → biosfer.',
+        keyTakeaway: 'Kloroplas dan dinding sel membedakan sel tumbuhan dari sel hewan.',
+      },
+      {
+        heading: '02. Pola Interaksi & Simbiosis di Ekosistem',
+        body: 'Setiap ekosistem tersusun dari komponen biotik (makhluk hidup) dan abiotik (air, cahaya, suhu, pH tanah). Hubungan erat antar-dua spesies berbeda disebut simbiosis: Mutualisme (keduanya untung, misal ikan badut & anemon laut), Komensalisme (satu untung dan satu tidak dirugikan, misal anggrek liar & pohon besar), serta Parasitisme (satu untung dan inangnya dirugikan, misal benalu & pohon mangga).',
+        keyTakeaway: 'Keseimbangan populasi dijaga oleh interaksi rantai makanan, predasi, kompetisi, dan simbiosis.',
+      },
+      {
+        heading: '03. Pencemaran Air, Eutrofikasi & Konservasi',
+        body: 'Limpasan pupuk pertanian (nitrat dan fosfat) maupun limbah deterjen ke sungai dan muara memicu eutrofikasi—pertumbuhan alga yang sangat cepat menutupi permukaan air. Saat alga mati dan membusuk, bakteri pengurai menghabiskan oksigen terlarut (DO) di air sehingga ikan dan terumbu karang mati lemas.',
+        keyTakeaway: 'Pengelolaan limbah organik dan zona penyangga tanaman pesisir mencegah eutrofikasi perairan.',
+      },
+    ],
+    simulationType: 'agroforestry',
+    glossary: [
+      {
+        term: 'Kloroplas',
+        symbolOrUnit: 'Organel Sel',
+        definition: 'Organel khusus pada sel tumbuhan dan alga yang mengandung klorofil untuk fotosintesis.',
+      },
+      {
+        term: 'Simbiosis Mutualisme',
+        symbolOrUnit: '(+, +)',
+        definition: 'Interaksi erat antara dua jenis makhluk hidup yang saling menguntungkan kedua belah pihak.',
+      },
+      {
+        term: 'Eutrofikasi',
+        symbolOrUnit: 'Algal Bloom',
+        definition: 'Pengayaan nutrien berlebih di perairan yang memicu ledakan alga dan menurunkan kadar oksigen terlarut.',
+      },
+    ],
+    checkpoints: [
+      {
+        question:
+          'Organel sel yang hanya terdapat pada sel tumbuhan dan berfungsi sebagai tempat berlangsungnya fotosintesis adalah...',
+        options: ['Mitokondria', 'Kloroplas', 'Ribosom', 'Lisosom'],
+        correctIndex: 1,
+        explanation:
+          'Kloroplas mengandung klorofil untuk menangkap cahaya matahari dalam proses fotosintesis, dan tidak dimiliki oleh sel hewan.',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Ikan badut mendapat perlindungan di antara tentakel anemon laut yang beracun, sementara ikan badut membersihkan parasit dan menarik mangsa bagi anemon. Pola interaksi ini disebut...',
+        options: [
+          'Simbiosis Mutualisme',
+          'Simbiosis Parasitisme',
+          'Simbiosis Komensalisme',
+          'Kompetisi',
+        ],
+        correctIndex: 0,
+        explanation:
+          'Keduanya memperoleh keuntungan langsung (+/+), sehingga termasuk simbiosis mutualisme.',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Masuknya limbah pupuk nitrat dan fosfat secara berlebihan ke muara atau danau menyebabkan ledakan pertumbuhan alga (eutrofikasi) yang berdampak pada...',
+        options: [
+          'Meningkatnya kejernihan air hingga dasar laut',
+          'Berubahnya air tawar menjadi es',
+          'Menurunnya kadar oksigen terlarut (DO) sehingga ikan dan biota air mati',
+          'Bertambahnya populasi terumbu karang secara instan',
+        ],
+        correctIndex: 2,
+        explanation:
+          'Pembusukan massa alga oleh bakteri pengurai menguras oksigen terlarut (DO) dalam air, menyebabkan hipoksia bagi ikan.',
+        difficulty: 'Menengah',
+      },
+    ],
+    updatedAt: 'Dipublikasikan 08:30 WITA · Modul Fase D SMP',
+  },
+  {
+    id: 'mod-smp-mat-geometri-perbandingan',
+    code: 'MAT-SMP-03',
+    title: 'Perbandingan, Skala Peta & Teorema Pythagoras Kepulauan',
+    subject: 'Matematika Maritim',
+    gradeLevel: 'Kelas 7–9 SMP · Fase D',
+    educationTier: 'SMP',
+    authorTeacher: 'Bapak Kristoforus Neno, S.Pd.',
+    schoolOrigin: 'SMPN 2 Rote Barat — Rote Ndao, NTT',
+    sizeMB: 26.4,
+    totalChunks: 16,
+    chunkSizeKB: 1689,
+    chunkHashes: [
+      'smp3m001', 'smp3m002', 'smp3m003', 'smp3m004',
+      'smp3m005', 'smp3m006', 'smp3m007', 'smp3m008',
+      'smp3m009', 'smp3m010', 'smp3m011', 'smp3m012',
+      'smp3m013', 'smp3m014', 'smp3m015', 'smp3m016',
+    ],
+    mediaType: 'Dokumen & Eksperimen',
+    imageUrl: '/src/assets/images/module_maritime_math_1793880029713.jpg',
+    summary:
+      'Memecahkan masalah sehari-hari menggunakan perbandingan senilai dan berbalik nilai, membaca skala peta kepulauan, serta menghitung jarak terpendek lintasan perahu dengan Teorema Pythagoras.',
+    sections: [
+      {
+        heading: '01. Perbandingan Senilai vs Berbalik Nilai',
+        body: 'Pada perbandingan senilai, jika satu besaran bertambah maka besaran pasangannya ikut bertambah dengan rasio tetap (contoh: jarak tempuh vs kebutuhan bahan bakar solar). Sebaliknya, pada perbandingan berbalik nilai, jika satu besaran bertambah maka besaran lain berkurang (contoh: kecepatan perahu vs waktu tempuh pada jarak yang sama, di mana v₁ · t₁ = v₂ · t₂).',
+        formula: 'Senilai: a₁/b₁ = a₂/b₂  |  Berbalik Nilai: a₁ · b₁ = a₂ · b₂',
+        keyTakeaway: 'Kecepatan dan waktu tempuh pada jarak tetap selalu berbanding terbalik.',
+      },
+      {
+        heading: '02. Skala Peta & Jarak Sebenarnya',
+        body: 'Skala peta menyatakan perbandingan antara jarak pada peta dan jarak sebenarnya di lapangan dalam satuan yang sama (biasanya cm). Jika peta berskala 1 : 250.000, artinya 1 cm di peta mewakili 250.000 cm (atau 2,5 km) di permukaan bumi.',
+        formula: 'Skala = Jarak Peta / Jarak Sebenarnya  (1 km = 100.000 cm)',
+        keyTakeaway: 'Selalu samakan satuan ke sentimeter (cm) sebelum menghitung skala peta.',
+      },
+      {
+        heading: '03. Teorema Pythagoras untuk Jarak Terpendek',
+        body: 'Pada segitiga siku-siku dengan sisi tegak a dan b serta sisi miring (hipotenusa) c, berlaku c² = a² + b². Pasangan bilangan bulat yang sering muncul disebut Tripel Pythagoras, seperti (3, 4, 5), (6, 8, 10), dan (5, 12, 13). Jika perahu berlayar 6 km ke timur lalu 8 km ke utara, jarak lurusnya adalah √(6² + 8²) = √100 = 10 km.',
+        formula: 'c² = a² + b²  →  c = √(a² + b²)',
+        keyTakeaway: 'Sisi miring (hipotenusa) selalu merupakan sisi terpanjang yang berhadapan dengan sudut 90°.',
+        calculator: {
+          id: 'smp_pythagoras',
+          title: 'Kalkulator Jarak Terpendek Teorema Pythagoras',
+          resultLabel: 'Hipotenusa (c)',
+          resultUnit: 'km',
+          variables: [
+            { key: 'sisiA', label: 'Lintasan Timur (a)', unit: 'km', min: 1, max: 24, step: 1, defaultValue: 6 },
+            { key: 'sisiB', label: 'Lintasan Utara (b)', unit: 'km', min: 1, max: 24, step: 1, defaultValue: 8 },
+          ],
+        },
+      },
+    ],
+    simulationType: 'navigation',
+    glossary: [
+      {
+        term: 'Perbandingan Berbalik Nilai',
+        symbolOrUnit: 'a₁·b₁ = a₂·b₂',
+        definition: 'Hubungan dua besaran di mana kenaikan salah satu nilai menurunkan nilai lainnya secara proporsional.',
+      },
+      {
+        term: 'Skala Peta',
+        symbolOrUnit: '1 : n',
+        definition: 'Rasio antara ukuran gambar di peta terhadap ukuran sebenarnya di lapangan.',
+      },
+      {
+        term: 'Hipotenusa',
+        symbolOrUnit: 'c = √(a² + b²)',
+        definition: 'Sisi miring terpanjang pada segitiga siku-siku yang berada di depan sudut siku-siku (90°).',
+      },
+    ],
+    checkpoints: [
+      {
+        question:
+          'Sebuah perahu motor berlayar 6 km ke arah timur, lalu berbelok tegak lurus 8 km ke arah utara. Berapa jarak lurus terpendek dari titik awal ke posisi akhir perahu?',
+        options: ['14 km', '10 km', '12 km', '7 km'],
+        correctIndex: 1,
+        explanation:
+          'Lintasan timur dan utara membentuk sudut siku-siku 90°. Dengan Teorema Pythagoras: c = √(6² + 8²) = √(36 + 64) = √100 = 10 km.',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Pada peta laut berskala 1 : 250.000, jarak antara dua dermaga adalah 4 cm. Berapakah jarak sebenarnya kedua dermaga tersebut?',
+        options: ['10 km', '100 km', '1 km', '6,25 km'],
+        correctIndex: 0,
+        explanation:
+          'Jarak sebenarnya = 4 cm × 250.000 = 1.000.000 cm. Karena 1 km = 100.000 cm, maka 1.000.000 / 100.000 = 10 km.',
+        difficulty: 'Dasar',
+      },
+      {
+        question:
+          'Perahu menempuh rute antarpulau selama 4 jam dengan kecepatan rata-rata 15 km/jam. Jika kecepatan dinaikkan menjadi 20 km/jam pada rute yang sama, waktu tempuhnya adalah...',
+        options: ['5 jam', '3,5 jam', '3 jam', '2 jam'],
+        correctIndex: 2,
+        explanation:
+          'Kecepatan dan waktu berbanding terbalik: t₂ = (15 × 4) / 20 = 60 / 20 = 3 jam.',
+        difficulty: 'Menengah',
+      },
+    ],
+    updatedAt: 'Dipublikasikan 08:35 WITA · Modul Fase D SMP',
+  },
 ];
 
 export const INITIAL_PEERS: PeerNode[] = [
@@ -1450,5 +2086,77 @@ export const INITIAL_CACHE_ENTRIES: CacheEntry[] = [
     hitCount: 13,
     savedQuotaKB: 62.4,
     originSource: 'GEMINI_CLOUD_GATEWAY',
+  },
+  {
+    id: 'cache-sd-konversi-satuan',
+    moduleId: 'mod-sd-mat-berhitung',
+    subject: 'Matematika Maritim',
+    questionCanonical:
+      'Bagaimana cara mudah mengubah satuan kilogram ke gram dan meter ke sentimeter untuk anak SD?',
+    normalizedTokens: normalizeQuestion(
+      'Bagaimana cara mudah mengubah satuan kilogram ke gram dan meter ke sentimeter untuk anak SD?'
+    ),
+    answerMarkdown:
+      'Mengubah satuan baku berat dan panjang sangat mudah jika mengingat dua patokan utama:\n\n- **Berat (`kg` ke `gram`):** `1 kg = 1.000 gram`. Jadi kalikan angka kilogram dengan `1.000` (tambahkan tiga nol di belakang). Contoh: `2 kg = 2.000 gram`, dan `1/2 kg = 500 gram`.\n- **Panjang (`m` ke `cm`):** `1 meter = 100 cm`. Jadi kalikan angka meter dengan `100` (tambahkan dua nol di belakang). Contoh: `3 meter = 300 cm`.',
+    keyConcepts: ['1 kg = 1.000 gram', '1 m = 100 cm', 'Satuan Baku SD'],
+    createdByStudent: 'Ibu Maria Goreti (Pre-warm Simpul Guru)',
+    createdAt: '07:35 WITA',
+    hitCount: 18,
+    savedQuotaKB: 86.4,
+    originSource: 'TEACHER_PREWARM',
+  },
+  {
+    id: 'cache-sd-siklus-air',
+    moduleId: 'mod-sd-bio-air-tumbuhan',
+    subject: 'Biologi Pesisir',
+    questionCanonical:
+      'Apa perbedaan evaporasi, kondensasi, dan presipitasi dalam siklus air?',
+    normalizedTokens: normalizeQuestion(
+      'Apa perbedaan evaporasi, kondensasi, dan presipitasi dalam siklus air?'
+    ),
+    answerMarkdown:
+      'Tiga istilah utama dalam **Siklus Air** mudah diingat secara berurutan:\n\n1. **Evaporasi (Penguapan):** Air laut, sungai, atau danau menguap ke udara karena panas matahari.\n2. **Kondensasi (Pengembunan):** Uap air naik ke langit yang dingin lalu berubah menjadi titik-titik air dan berkumpul membentuk **awan**.\n3. **Presipitasi (Hujan):** Ketika awan sudah terlalu berat menampung titik air, air jatuh kembali ke bumi sebagai **hujan**.',
+    keyConcepts: ['Evaporasi', 'Kondensasi Awan', 'Presipitasi Hujan'],
+    createdByStudent: 'Bapak Yosef Laba (Pre-warm Simpul Guru)',
+    createdAt: '07:38 WITA',
+    hitCount: 16,
+    savedQuotaKB: 76.8,
+    originSource: 'TEACHER_PREWARM',
+  },
+  {
+    id: 'cache-smp-kalor-ohm',
+    moduleId: 'mod-smp-fis-kalor-listrik',
+    subject: 'Fisika Terapan',
+    questionCanonical:
+      'Bagaimana cara menghitung kalor Q = m·c·ΔT dan daya listrik P = V·I pada materi Fisika SMP?',
+    normalizedTokens: normalizeQuestion(
+      'Bagaimana cara menghitung kalor Q = m·c·ΔT dan daya listrik P = V·I pada materi Fisika SMP?'
+    ),
+    answerMarkdown:
+      'Berikut dua rumus inti **Fisika Fase D SMP** beserta contoh perhitungannya:\n\n- **1. Menghitung Kalor (`Q = m · c · ΔT`):**\n  Untuk memanaskan `2 kg` air (`c = 4.200 J/kg°C`) dari `30°C` ke `80°C`, selisih suhunya `ΔT = 50°C`. Maka `Q = 2 × 4.200 × 50 = 420.000 Joule` (`420 kJ`).\n- **2. Hukum Ohm & Daya (`V = I · R` dan `P = V · I`):**\n  Jika lampu DC `12 V` dialiri arus `2 A`, maka hambatannya `R = V / I = 12 / 2 = 6 Ω` dan dayanya `P = 12 × 2 = 24 Watt`.',
+    keyConcepts: ['Rumus Kalor Q = m·c·ΔT', 'Hukum Ohm V = I·R', 'Daya Listrik Watt'],
+    createdByStudent: 'Bapak Fransiskus Bria (Pre-warm Simpul Guru)',
+    createdAt: '07:42 WITA',
+    hitCount: 14,
+    savedQuotaKB: 67.2,
+    originSource: 'TEACHER_PREWARM',
+  },
+  {
+    id: 'cache-smp-pythagoras',
+    moduleId: 'mod-smp-mat-geometri-perbandingan',
+    subject: 'Matematika Maritim',
+    questionCanonical:
+      'Bagaimana cara menggunakan Teorema Pythagoras c² = a² + b² untuk menghitung jarak terpendek di peta?',
+    normalizedTokens: normalizeQuestion(
+      'Bagaimana cara menggunakan Teorema Pythagoras c² = a² + b² untuk menghitung jarak terpendek di peta?'
+    ),
+    answerMarkdown:
+      '**Teorema Pythagoras** berlaku pada segitiga siku-siku (`90°`) untuk mencari sisi miring (`c`) atau jarak garis lurus terpendek:\n\n`c = √(a² + b²)`\n\n- **Contoh:** Perahu berlayar `6 km` ke timur (`a = 6`) lalu `8 km` ke utara (`b = 8`).\n- Hitung kuadrat masing-masing: `6² + 8² = 36 + 64 = 100`.\n- Tarik akar kuadratnya: `c = √100 = 10 km`.\n- Pasangan `(6, 8, 10)` dan `(3, 4, 5)` adalah **Tripel Pythagoras** yang sering muncul di soal SMP.',
+    keyConcepts: ['Teorema Pythagoras', 'Tripel 3-4-5 & 6-8-10', 'Hipotenusa'],
+    createdByStudent: 'Bapak Kristoforus Neno (Pre-warm Simpul Guru)',
+    createdAt: '07:44 WITA',
+    hitCount: 11,
+    savedQuotaKB: 52.8,
+    originSource: 'TEACHER_PREWARM',
   },
 ];

@@ -114,6 +114,19 @@ export function ensureDatabaseSeeded(): {
       INITIAL_MODULES.forEach((m, idx) => ModuleRepository.save(m, idx));
     });
     tx();
+  } else {
+    const existingModules = ModuleRepository.loadAll();
+    const existingIds = new Set(existingModules.map((m) => m.id));
+    const missingModules = INITIAL_MODULES.filter((m) => !existingIds.has(m.id));
+    if (missingModules.length > 0) {
+      const db = getDatabase();
+      const tx = db.transaction(() => {
+        missingModules.forEach((m, idx) =>
+          ModuleRepository.save(m, existingModules.length + idx)
+        );
+      });
+      tx();
+    }
   }
 
   if (CacheRepository.count() === 0) {
@@ -122,6 +135,19 @@ export function ensureDatabaseSeeded(): {
       INITIAL_CACHE_ENTRIES.forEach((c, idx) => CacheRepository.save(c, idx));
     });
     tx();
+  } else {
+    const existingCache = CacheRepository.loadAll();
+    const existingCacheIds = new Set(existingCache.map((c) => c.id));
+    const missingCache = INITIAL_CACHE_ENTRIES.filter((c) => !existingCacheIds.has(c.id));
+    if (missingCache.length > 0) {
+      const db = getDatabase();
+      const tx = db.transaction(() => {
+        missingCache.forEach((c, idx) =>
+          CacheRepository.save(c, existingCache.length + idx)
+        );
+      });
+      tx();
+    }
   }
 
   if (TransferRepository.count() === 0) {

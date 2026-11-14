@@ -23,8 +23,8 @@ export default defineConfig(() => {
           short_name: 'RuangPintar',
           description:
             'Platform LMS P2P berbasis WebRTC DataChannel dan Single-Gateway Cloud AI dengan cache lokal untuk sekolah wilayah 3T Indonesia.',
-          theme_color: '#163A5F',
-          background_color: '#F7F3EA',
+          theme_color: '#1D4ED8',
+          background_color: '#FFFFFF',
           display: 'standalone',
           start_url: '/',
           scope: '/',
@@ -101,11 +101,20 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks(id: string) {
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'vendor-react';
+            }
             if (id.includes('node_modules/motion')) {
               return 'vendor-motion';
             }
             if (id.includes('node_modules/lucide-react')) {
               return 'vendor-icons';
+            }
+            if (id.includes('node_modules/zod')) {
+              return 'vendor-zod';
+            }
+            if (id.includes('src/utils/seedData')) {
+              return 'curriculum-seed';
             }
           },
         },

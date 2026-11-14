@@ -328,9 +328,46 @@ test('new 3T simulation calculators (solar, agroforestry, desalination), inline 
   });
   assert.equal(inlineHydro.formattedValue.includes('kW'), true);
 
+  const sdConvert = evaluateInlineSectionCalculator('sd_unit_convert', { kg: 2, meter: 3 });
+  assert.equal(sdConvert.formattedValue.includes('2.000 g'), true);
+  assert.equal(sdConvert.formattedValue.includes('300 cm'), true);
+
+  const smpHeat = evaluateInlineSectionCalculator('smp_heat_calorimetry', {
+    massaKg: 2,
+    deltaT: 50,
+  });
+  assert.equal(smpHeat.formattedValue.includes('420 kJ'), true);
+
+  const smpOhm = evaluateInlineSectionCalculator('smp_ohms_law', { volt: 12, ohm: 6 });
+  assert.equal(smpOhm.formattedValue.includes('2.00 A'), true);
+  assert.equal(smpOhm.formattedValue.includes('24.0 W'), true);
+
+  const smpPythagoras = evaluateInlineSectionCalculator('smp_pythagoras', {
+    sisiA: 6,
+    sisiB: 8,
+  });
+  assert.equal(smpPythagoras.formattedValue, 'c = 10 km');
+
   const searchHits = searchCurriculumModules(INITIAL_MODULES, 'LiFePO4', 'ALL');
   assert.equal(searchHits.length >= 1, true);
   assert.equal(searchHits[0].module.id, 'mod-energi-surya');
+
+  const sdModules = searchCurriculumModules(INITIAL_MODULES, '', 'ALL', 'SD');
+  const smpModules = searchCurriculumModules(INITIAL_MODULES, '', 'ALL', 'SMP');
+  const smaModules = searchCurriculumModules(INITIAL_MODULES, '', 'ALL', 'SMA');
+  assert.equal(sdModules.length >= 3, true);
+  assert.equal(smpModules.length >= 3, true);
+  assert.equal(smaModules.length >= 6, true);
+
+  for (const mod of INITIAL_MODULES) {
+    assert.equal(mod.chunkHashes.length, mod.totalChunks);
+    assert.equal(mod.sections.length >= 2, true);
+    assert.equal(mod.checkpoints.length >= 2, true);
+    for (const cp of mod.checkpoints) {
+      assert.equal(cp.correctIndex >= 0 && cp.correctIndex < cp.options.length, true);
+      assert.equal(cp.explanation.trim().length > 10, true);
+    }
+  }
 
   const { getSubjectTheme, getStudentLevelInfo } = await import('./subjectTheme');
   assert.equal(getSubjectTheme('Fisika Terapan').id, 'fisika');

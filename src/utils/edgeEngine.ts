@@ -113,7 +113,11 @@ export type InlineCalculatorId =
   | 'infiltration_rate'
   | 'spring_debit'
   | 'still_distillate'
-  | 'biochar_tds';
+  | 'biochar_tds'
+  | 'sd_unit_convert'
+  | 'smp_heat_calorimetry'
+  | 'smp_ohms_law'
+  | 'smp_pythagoras';
 
 export interface InlineCalculatorVariable {
   key: string;
@@ -180,12 +184,15 @@ export interface ModuleGuidedExercise {
   finalConclusion: string;
 }
 
+export type EducationTier = 'SD' | 'SMP' | 'SMA';
+
 export interface LearningModule {
   id: string;
   code: string;
   title: string;
   subject: 'Fisika Terapan' | 'Biologi Pesisir' | 'Matematika Maritim' | 'Teknik Energi';
   gradeLevel: string;
+  educationTier?: EducationTier;
   authorTeacher: string;
   schoolOrigin: string;
   sizeMB: number;
@@ -1105,6 +1112,45 @@ export function evaluateInlineSectionCalculator(
         interpretation: `Kadar garam/padatan terlarut turun dari ${rawTds} ppm menjadi ${finalTds} ppm (jauh di bawah ambang aman air minum WHO 500 ppm).`,
       };
     }
+    case 'sd_unit_convert': {
+      const kg = values.kg ?? 2;
+      const meter = values.meter ?? 3;
+      const gram = Math.round(kg * 1000);
+      const cm = Math.round(meter * 100);
+      return {
+        formattedValue: `${gram.toLocaleString('id-ID')} g · ${cm.toLocaleString('id-ID')} cm`,
+        interpretation: `${kg} kg sama dengan ${gram.toLocaleString('id-ID')} gram (×1.000), dan ${meter} meter sama dengan ${cm.toLocaleString('id-ID')} cm (×100).`,
+      };
+    }
+    case 'smp_heat_calorimetry': {
+      const massa = values.massaKg ?? 2;
+      const deltaT = values.deltaT ?? 50;
+      const qJoule = massa * 4200 * deltaT;
+      const qKj = qJoule / 1000;
+      return {
+        formattedValue: `${qKj.toLocaleString('id-ID')} kJ (${qJoule.toLocaleString('id-ID')} J)`,
+        interpretation: `Untuk menaikkan suhu ${massa} kg air sebesar ${deltaT}°C (c = 4.200 J/kg°C) dibutuhkan energi kalor Q = ${qJoule.toLocaleString('id-ID')} Joule.`,
+      };
+    }
+    case 'smp_ohms_law': {
+      const volt = values.volt ?? 12;
+      const ohm = Math.max(1, values.ohm ?? 6);
+      const ampere = volt / ohm;
+      const watt = volt * ampere;
+      return {
+        formattedValue: `${ampere.toFixed(2)} A · ${watt.toFixed(1)} W`,
+        interpretation: `Pada tegangan ${volt} V dan hambatan ${ohm} Ω, kuat arus I = V/R = ${ampere.toFixed(2)} A dengan daya P = V·I = ${watt.toFixed(1)} Watt.`,
+      };
+    }
+    case 'smp_pythagoras': {
+      const a = values.sisiA ?? 6;
+      const b = values.sisiB ?? 8;
+      const c = Math.sqrt(a * a + b * b);
+      return {
+        formattedValue: `c = ${Number.isInteger(c) ? c : c.toFixed(2)} km`,
+        interpretation: `Dengan sisi tegak a = ${a} km dan b = ${b} km, jarak lurus terpendek c = √(${a}² + ${b}²) = ${Number.isInteger(c) ? c : c.toFixed(2)} km.`,
+      };
+    }
   }
 }
 
@@ -1118,17 +1164,36 @@ export interface DeepSearchMatch {
 }
 
 /**
+ * Infer education tier ('SD' | 'SMP' | 'SMA') from explicit metadata or gradeLevel string.
+ */
+export function getModuleEducationTier(
+  mod: Pick<LearningModule, 'educationTier' | 'gradeLevel'>
+): EducationTier {
+  if (mod.educationTier) return mod.educationTier;
+  const g = mod.gradeLevel.toUpperCase();
+  if (g.includes('SD') || /\bKELAS\s*[1-6]\b/.test(g) || /\b(I|II|III|IV|V|VI)\b/.test(g)) {
+    return 'SD';
+  }
+  if (g.includes('SMP') || /\bKELAS\s*[7-9]\b/.test(g) || /\b(VII|VIII|IX)\b/.test(g)) {
+    return 'SMP';
+  }
+  return 'SMA';
+}
+
+/**
  * Deep search across modules, chapter headings, formulas, glossary terms, and 3T case studies.
  */
 export function searchCurriculumModules(
   modules: LearningModule[],
   query: string,
-  subjectFilter: string
+  subjectFilter: string,
+  tierFilter: 'ALL' | EducationTier = 'ALL'
 ): DeepSearchMatch[] {
   const q = query.trim().toLowerCase();
 
   return modules
     .filter((m) => subjectFilter === 'ALL' || m.subject === subjectFilter)
+    .filter((m) => tierFilter === 'ALL' || getModuleEducationTier(m) === tierFilter)
     .map((m) => {
       if (!q) {
         return { module: m, matchedBadges: [] };
@@ -1139,6 +1204,7 @@ export function searchCurriculumModules(
       if (
         m.title.toLowerCase().includes(q) ||
         m.subject.toLowerCase().includes(q) ||
+        m.gradeLevel.toLowerCase().includes(q) ||
         m.summary.toLowerCase().includes(q) ||
         m.schoolOrigin.toLowerCase().includes(q)
       ) {

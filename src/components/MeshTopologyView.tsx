@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   Share2,
@@ -151,12 +151,12 @@ export const MeshTopologyView: React.FC<Props> = ({
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200">
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                <span className="px-2.5 py-1 rounded-lg bg-[#EDF3F7] border border-[#C5D6E3] text-[#163A5F] inline-flex items-center gap-1.5">
+                <span className="px-2.5 py-1 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE] text-[#1D4ED8] inline-flex items-center gap-1.5">
                   <Share2 className="w-3.5 h-3.5" />
                   <span>Jaringan Teman Sekelas</span>
                 </span>
-                <span aria-hidden="true" className="text-[#DED4BE]">·</span>
-                <span className="text-[#1F6E58] font-bold">
+                <span aria-hidden="true" className="text-[#E2E8F0]">·</span>
+                <span className="text-[#059669] font-bold">
                   Terhubung ke Guru: Aktif ({Math.max(1, activeWebRtcChannelsCount)} Jalur)
                 </span>
               </div>
@@ -448,23 +448,23 @@ export const MeshTopologyView: React.FC<Props> = ({
             >
               <div className="space-y-4">
                 <div>
-                  <h2 className="font-display text-base sm:text-lg font-bold text-[#17232F] flex items-center gap-2">
+                  <h2 className="font-display text-base sm:text-lg font-bold text-[#0F172A] flex items-center gap-2">
                     <Share2 className={`w-4 h-4 ${activeTheme.accentText}`} />
                     <span>Bantu Teman Melengkapi Buku</span>
                   </h2>
-                  <p className="text-xs text-[#4A5562] leading-relaxed mt-1">
+                  <p className="text-xs text-[#475569] leading-relaxed mt-1">
                     Kirim bagian buku langsung dari HP kamu ke teman sekelas melalui WiFi sekolah tanpa kuota internet.
                   </p>
                 </div>
 
                 {/* Target Peer Status Block */}
-                <div className="bg-[#FFFDF8] rounded-2xl p-4 border border-[#DED4BE] space-y-3.5">
+                <div className="bg-[#FFFFFF] rounded-2xl p-4 border border-[#E2E8F0] space-y-3.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-[#17232F] text-sm inline-flex items-center gap-1.5">
-                      <User className="w-4 h-4 text-[#163A5F]" />
+                    <span className="font-bold text-[#0F172A] text-sm inline-flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-[#1D4ED8]" />
                       <span>{targetPeer?.name}</span>
                     </span>
-                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-[#EFE9DC] text-[#17232F]">
+                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-[#F1F5F9] text-[#0F172A]">
                       {targetPeer?.localIp}
                     </span>
                   </div>
@@ -628,7 +628,7 @@ export const MeshTopologyView: React.FC<Props> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#e6e2d8] text-[11px] font-mono text-stone-500">
+                  <tr className="border-b border-[#E2E8F0] text-[11px] font-mono text-stone-500">
                     <th className="py-2.5 pr-4 font-semibold">Simpul Perangkat (IP Lokal)</th>
                     <th className="py-2.5 px-2 font-semibold">Peran</th>
                     <th className="py-2.5 px-2 font-semibold">Pecahan Tersimpan (0–15)</th>
@@ -640,7 +640,7 @@ export const MeshTopologyView: React.FC<Props> = ({
                   {peers.map((peer) => {
                     const held = peer.moduleChunks[activeModule.id] || [];
                     return (
-                      <tr key={peer.id} className="hover:bg-[#faf8f5] transition-colors">
+                      <tr key={peer.id} className="hover:bg-[#F8FAFC] transition-colors">
                         <td className="py-3 pr-4">
                           <div className="font-semibold text-stone-900">{peer.name}</div>
                           <div className="text-[11px] font-mono text-stone-500">
@@ -720,7 +720,7 @@ export const MeshTopologyView: React.FC<Props> = ({
                           ? 'bg-sky-50/60 border-sky-300'
                           : selectedTargetPeerId === peer.id
                           ? 'bg-[#f4f1ea] border-stone-400'
-                          : 'bg-[#faf8f5] border-[#e6e2d8] hover:border-stone-300'
+                          : 'bg-[#F8FAFC] border-[#E2E8F0] hover:border-stone-300'
                       }`}
                     >
                       <div className="space-y-1">
@@ -733,7 +733,7 @@ export const MeshTopologyView: React.FC<Props> = ({
                         </div>
                       </div>
 
-                      <div className="space-y-1.5 pt-2 border-t border-[#e6e2d8]">
+                      <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0]">
                         <div className="flex justify-between text-[11px] font-mono tabular-nums">
                           <span className="text-stone-500">Dibagikan:</span>
                           <strong className="text-emerald-700">{peer.uploadedMB.toFixed(1)} MB</strong>
@@ -772,7 +772,7 @@ export const MeshTopologyView: React.FC<Props> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#e6e2d8] text-[11px] font-mono text-stone-500">
+                  <tr className="border-b border-[#E2E8F0] text-[11px] font-mono text-stone-500">
                     <th className="py-2.5 pr-3">Waktu</th>
                     <th className="py-2.5 px-3">Modul &amp; Pecahan</th>
                     <th className="py-2.5 px-3">Rute Pertukaran (Pengirim → Penerima)</th>
@@ -782,7 +782,7 @@ export const MeshTopologyView: React.FC<Props> = ({
                 </thead>
                 <tbody className="divide-y divide-[#ece8df] text-xs">
                   {transferHistory.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-[#faf8f5] transition-colors">
+                    <tr key={tx.id} className="hover:bg-[#F8FAFC] transition-colors">
                       <td className="py-3 pr-3 font-mono text-stone-500 tabular-nums whitespace-nowrap">
                         {tx.timestamp}
                       </td>

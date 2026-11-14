@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   Server,
@@ -333,17 +333,17 @@ export const TeacherHostView: React.FC<Props> = ({
           aria-describedby="host-pin-modal-desc"
           className="bento-card overflow-hidden border border-slate-200/90 shadow-md"
         >
-          <div className="h-1.5 w-full bg-[#163A5F]" />
+          <div className="h-1.5 w-full bg-[#1D4ED8]" />
           <div className="p-6 sm:p-8 space-y-5">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-[#EDF3F7] border border-[#C5D6E3] flex items-center justify-center text-[#163A5F] shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-center text-[#1D4ED8] shrink-0">
                 <Lock className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-[11px] font-mono uppercase tracking-wider font-semibold text-[#9E3E22]">
+                <div className="text-[11px] font-mono uppercase tracking-wider font-semibold text-[#1D4ED8]">
                   Otorisasi Peran Simpul Guru (Host Node)
                 </div>
-                <h1 id="host-pin-modal-title" className="font-display text-lg font-bold text-[#17232F]">
+                <h1 id="host-pin-modal-title" className="font-display text-lg font-bold text-[#0F172A]">
                   Masukkan PIN Kendali Simpul Guru
                 </h1>
               </div>
@@ -372,7 +372,7 @@ export const TeacherHostView: React.FC<Props> = ({
                     value={pinInput}
                     onChange={(e) => setPinInput(e.target.value)}
                     placeholder={cooldownSeconds > 0 ? `Terkunci (${cooldownSeconds}s)` : 'Masukkan PIN (contoh: 1945)'}
-                    className="w-full px-3.5 py-2.5 text-sm font-mono tracking-widest bg-[#faf8f5] border border-[#d6d1c4] rounded-xl text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 disabled:opacity-50 transition-all"
+                    className="w-full px-3.5 py-2.5 text-sm font-mono tracking-widest bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 disabled:opacity-50 transition-all"
                     autoFocus
                   />
                   <button
@@ -405,7 +405,7 @@ export const TeacherHostView: React.FC<Props> = ({
                 type="submit"
                 whileTap={{ scale: 0.98 }}
                 disabled={isVerifyingPin || cooldownSeconds > 0}
-                className="w-full py-2.5 px-4 bg-[#163A5F] hover:bg-[#1E4D7B] disabled:opacity-50 text-[#FFFDF8] text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 bg-[#1D4ED8] hover:bg-[#1E40AF] disabled:opacity-50 text-[#FFFFFF] text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>
@@ -437,26 +437,26 @@ export const TeacherHostView: React.FC<Props> = ({
         aria-label="Status Simpul Pusat Laptop Guru"
         className="bento-card overflow-hidden"
       >
-        <div className="h-1.5 w-full bg-[#163A5F]" />
+        <div className="h-1.5 w-full bg-[#1D4ED8]" />
         <div className="p-6 sm:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#5A6572]">
-              <span className="text-[#163A5F] font-bold">Host Node: 192.168.43.1</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#64748B]">
+              <span className="text-[#1D4ED8] font-bold">Host Node: 192.168.43.1</span>
               <span aria-hidden="true">·</span>
               <span>Database: SQLite Persisten (WAL)</span>
               <span aria-hidden="true">·</span>
-              <span className="text-[#1F6E58] font-semibold flex items-center gap-1">
+              <span className="text-[#059669] font-semibold flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Sesi Guru Aktif (Bearer Token 8 Jam)</span>
               </span>
             </div>
             <h1
-              className="font-display text-xl sm:text-2xl font-bold text-[#17232F]"
+              className="font-display text-xl sm:text-2xl font-bold text-[#0F172A]"
               style={{ textWrap: 'balance' }}
             >
               Panel Kendali Simpul Guru (Host Node) &amp; Manajemen Arsip Lokal
             </h1>
-            <p className="text-xs sm:text-sm text-[#4A5562] max-w-3xl">
+            <p className="text-xs sm:text-sm text-[#475569] max-w-3xl">
               Kelola distribusi materi P2P ke seluruh perangkat kelas, atur koneksi tethering seluler
               satu pintu untuk AI, dan tambahkan cadangan materi atau jawaban ke arsip lokal.
             </p>
@@ -469,8 +469,8 @@ export const TeacherHostView: React.FC<Props> = ({
               onClick={onToggleGatewayTethering}
               className={`px-4 py-2.5 text-xs font-semibold rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer ${
                 gatewayTetheringOnline
-                  ? 'bg-[#1F6E58] text-[#FFFDF8] hover:bg-[#27856B]'
-                  : 'bg-[#B97217] text-[#FFFDF8] hover:bg-[#9E5F11]'
+                  ? 'bg-[#059669] text-[#FFFFFF] hover:bg-[#047857]'
+                  : 'bg-[#D97706] text-[#FFFFFF] hover:bg-[#B45309]'
               }`}
             >
               {gatewayTetheringOnline ? (
@@ -597,7 +597,7 @@ export const TeacherHostView: React.FC<Props> = ({
         aria-label="Kontrol Cepat Kelas dan Pengumuman"
         className="bento-card p-6 sm:p-7 space-y-5"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#e6e2d8]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E8F0]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 shrink-0">
               <Megaphone className="w-5 h-5" />
@@ -749,9 +749,9 @@ export const TeacherHostView: React.FC<Props> = ({
                   await onDistributeToAll(distributeModuleId || modules[0]?.id || '');
                   setIsDistributingAll(false);
                 }}
-                className="w-full px-4 py-2.5 text-xs font-semibold text-[#FFFDF8] bg-[#163A5F] hover:bg-[#1E4D7B] disabled:opacity-50 rounded-xl cursor-pointer inline-flex items-center justify-center gap-2 transition-colors"
+                className="w-full px-4 py-2.5 text-xs font-semibold text-[#FFFFFF] bg-[#1D4ED8] hover:bg-[#1E40AF] disabled:opacity-50 rounded-xl cursor-pointer inline-flex items-center justify-center gap-2 transition-colors"
               >
-                <Zap className="w-3.5 h-3.5 text-[#F2B857]" />
+                <Zap className="w-3.5 h-3.5 text-[#FBBF24]" />
                 <span>
                   {isDistributingAll
                     ? 'Mendistribusikan ke Kelas...'
@@ -760,7 +760,7 @@ export const TeacherHostView: React.FC<Props> = ({
               </button>
             </div>
 
-            <div className="pt-3 border-t border-[#e6e2d8] space-y-2">
+            <div className="pt-3 border-t border-[#E2E8F0] space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-stone-900">
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-600" />
@@ -826,7 +826,7 @@ export const TeacherHostView: React.FC<Props> = ({
       >
         {/* Left: Publish New Module to P2P Swarm */}
         <div className="lg:col-span-7 bento-card p-6 sm:p-7 space-y-5">
-          <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-[#e6e2d8]">
+          <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-[#E2E8F0]">
             <div>
               <h2 className="text-base font-bold text-stone-900">
                 01. Publikasikan Modul Baru ke Swarm P2P
@@ -871,7 +871,7 @@ export const TeacherHostView: React.FC<Props> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Contoh: Instalasi PLTS Atap Sekolah"
-                  className="w-full px-3 py-2 text-xs bg-[#faf8f5] border border-[#d6d1c4] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                  className="w-full px-3 py-2 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
                 />
               </div>
 
@@ -886,7 +886,7 @@ export const TeacherHostView: React.FC<Props> = ({
                   max={500}
                   value={sizeMB}
                   onChange={(e) => setSizeMB(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs font-mono bg-[#faf8f5] border border-[#d6d1c4] rounded-lg text-stone-900 tabular-nums focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                  className="w-full px-3 py-2 text-xs font-mono bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 tabular-nums focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
                 />
               </div>
             </div>
@@ -900,7 +900,7 @@ export const TeacherHostView: React.FC<Props> = ({
                   id="mod-subject-select"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value as typeof subject)}
-                  className="w-full px-3 py-2 text-xs bg-[#faf8f5] border border-[#d6d1c4] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                  className="w-full px-3 py-2 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
                 >
                   <option value="Teknik Energi">Teknik Energi</option>
                   <option value="Fisika Terapan">Fisika Terapan</option>
@@ -918,7 +918,7 @@ export const TeacherHostView: React.FC<Props> = ({
                   type="text"
                   value={gradeLevel}
                   onChange={(e) => setGradeLevel(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-[#faf8f5] border border-[#d6d1c4] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                  className="w-full px-3 py-2 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
                 />
               </div>
             </div>
@@ -933,7 +933,7 @@ export const TeacherHostView: React.FC<Props> = ({
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
                 placeholder="Ringkasan singkat tujuan pembelajaran..."
-                className="w-full px-3 py-2 text-xs bg-[#faf8f5] border border-[#d6d1c4] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                className="w-full px-3 py-2 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
               />
             </div>
 
@@ -947,7 +947,7 @@ export const TeacherHostView: React.FC<Props> = ({
                 value={sectionBody}
                 onChange={(e) => setSectionBody(e.target.value)}
                 placeholder="Tuliskan penjelasan materi yang akan didistribusikan ke perangkat siswa..."
-                className="w-full p-3 text-xs bg-[#faf8f5] border border-[#d6d1c4] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                className="w-full p-3 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
               />
             </div>
 
@@ -978,7 +978,7 @@ export const TeacherHostView: React.FC<Props> = ({
         {/* Right: Pre-Warm Local AI Cache Form */}
         <div className="lg:col-span-5 bento-card p-6 sm:p-7 flex flex-col justify-between space-y-5">
           <div className="space-y-4">
-            <div className="flex items-start justify-between gap-3 pb-4 border-b border-[#e6e2d8]">
+            <div className="flex items-start justify-between gap-3 pb-4 border-b border-[#E2E8F0]">
               <div>
                 <h2 className="text-base font-bold text-stone-900">
                   02. Pre-Warm Cache Lokal Tutor AI
@@ -999,7 +999,7 @@ export const TeacherHostView: React.FC<Props> = ({
                   id="seed-module-select"
                   value={seedModuleId}
                   onChange={(e) => setSeedModuleId(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-[#faf8f5] border border-[#d6d1c4] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                  className="w-full px-3 py-2 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
                 >
                   {modules.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -1019,7 +1019,7 @@ export const TeacherHostView: React.FC<Props> = ({
                   value={seedQuestion}
                   onChange={(e) => setSeedQuestion(e.target.value)}
                   placeholder="Contoh: Apa perbedaan turbin Pelton dan turbin Crossflow?"
-                  className="w-full px-3 py-2 text-xs bg-[#faf8f5] border border-[#d6d1c4] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                  className="w-full px-3 py-2 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
                 />
               </div>
 
@@ -1033,7 +1033,7 @@ export const TeacherHostView: React.FC<Props> = ({
                   value={seedAnswer}
                   onChange={(e) => setSeedAnswer(e.target.value)}
                   placeholder="Turbin Pelton cocok untuk tinggi jatuh air (head) tinggi dengan debit kecil, sedangkan turbin Crossflow cocok untuk head rendah dengan debit sungai besar..."
-                  className="w-full p-3 text-xs bg-[#faf8f5] border border-[#d6d1c4] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
+                  className="w-full p-3 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700 transition-all"
                 />
               </div>
 
@@ -1076,7 +1076,7 @@ export const TeacherHostView: React.FC<Props> = ({
         aria-label="Distribusi Fisik Sneakernet USB"
         className="bento-card p-6 sm:p-7 space-y-5"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e6e2d8]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E2E8F0]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0">
               <HardDrive className="w-5 h-5" />
@@ -1096,7 +1096,7 @@ export const TeacherHostView: React.FC<Props> = ({
               type="button"
               whileTap={{ scale: 0.97 }}
               onClick={onExportPackage}
-              className="px-4 py-2.5 text-xs font-semibold text-[#FFFDF8] bg-[#C85A32] hover:bg-[#B24D28] rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-4 py-2.5 text-xs font-semibold text-[#FFFFFF] bg-[#1D4ED8] hover:bg-[#1E40AF] rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>Unduh Paket Data Modul (.json)</span>
@@ -1117,7 +1117,7 @@ export const TeacherHostView: React.FC<Props> = ({
               </p>
             </div>
 
-            <div className="pt-3 border-t border-[#e6e2d8] space-y-1.5 text-[11px] font-mono text-stone-600">
+            <div className="pt-3 border-t border-[#E2E8F0] space-y-1.5 text-[11px] font-mono text-stone-600">
               <div className="flex justify-between">
                 <span>Total Modul Siap Ekspor:</span>
                 <strong className="text-stone-900">{modules.length} Modul</strong>
@@ -1208,7 +1208,7 @@ export const TeacherHostView: React.FC<Props> = ({
             aria-label="Buku Nilai dan Capaian Eksperimen Siswa"
             className="bento-card p-6 sm:p-7 space-y-5"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e6e2d8]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E2E8F0]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700 shrink-0">
                   <GraduationCap className="w-5 h-5" />
@@ -1292,7 +1292,7 @@ export const TeacherHostView: React.FC<Props> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-[#e6e2d8] text-[11px] font-mono text-stone-500">
+                    <tr className="border-b border-[#E2E8F0] text-[11px] font-mono text-stone-500">
                       <th className="py-2.5 pr-3">Siswa &amp; Simpul</th>
                       <th className="py-2.5 px-3">Modul Pembelajaran</th>
                       <th className="py-2.5 px-3 text-right">Skor Kuis</th>
@@ -1302,7 +1302,7 @@ export const TeacherHostView: React.FC<Props> = ({
                   </thead>
                   <tbody className="divide-y divide-[#ece8df] text-xs">
                     {submissions.map((sub) => (
-                      <tr key={sub.id} className="hover:bg-[#faf8f5] transition-colors">
+                      <tr key={sub.id} className="hover:bg-[#F8FAFC] transition-colors">
                         <td className="py-3 pr-3">
                           <div className="font-semibold text-stone-900">
                             {sub.avatar} {sub.studentName}

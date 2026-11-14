@@ -256,7 +256,7 @@ function MainLayout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-warm-canvas text-[#17232F] selection:bg-[#163A5F] selection:text-[#FFFDF8]">
+    <div className="min-h-screen flex flex-col bg-white text-slate-900 selection:bg-[#1D4ED8] selection:text-white">
       <OfflineBanner />
 
       <AppHeader
@@ -270,24 +270,24 @@ function MainLayout() {
         {classroomBroadcast && (classroomBroadcast.message || classroomBroadcast.examMode || classroomBroadcast.focusModuleId) && (
           <div
             role="status"
-            className="bg-[#FFFDF8] border border-[#DED4BE] border-l-4 border-l-[#C85A32] rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs"
+            className="bg-white border border-slate-200 border-l-4 border-l-[#1D4ED8] rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs"
           >
             <div className="flex items-start gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#FAF0EC] border border-[#E9C9BC] flex items-center justify-center text-[#9E3E22] shrink-0 mt-0.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1D4ED8] shrink-0 mt-0.5">
                 <Megaphone className="w-4 h-4" />
               </div>
               <div className="space-y-0.5">
-                <div className="font-bold text-[#17232F] flex flex-wrap items-center gap-2">
+                <div className="font-bold text-slate-900 flex flex-wrap items-center gap-2">
                   <span>Arahan Guru ({classroomBroadcast.updatedAt})</span>
                   {classroomBroadcast.examMode && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FBF4E7] border border-[#EAD6B0] text-[#8C540B] text-[10px] font-bold">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-bold">
                       <Lock className="w-3 h-3" />
                       <span>Mode Ujian Aktif</span>
                     </span>
                   )}
                 </div>
                 {classroomBroadcast.message && (
-                  <p className="text-[#4A5562]">{classroomBroadcast.message}</p>
+                  <p className="text-slate-600">{classroomBroadcast.message}</p>
                 )}
               </div>
             </div>
@@ -299,7 +299,7 @@ function MainLayout() {
                   setActiveModuleId(classroomBroadcast.focusModuleId!);
                   setActiveTab('pustaka');
                 }}
-                className="px-3 py-1.5 rounded-xl bg-[#163A5F] hover:bg-[#1E4D7B] text-[#FFFDF8] font-semibold text-xs cursor-pointer shrink-0 transition-colors"
+                className="px-3 py-1.5 rounded-xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-semibold text-xs cursor-pointer shrink-0 transition-colors"
               >
                 Buka Modul Arahan →
               </button>
@@ -309,7 +309,7 @@ function MainLayout() {
 
         <Suspense
           fallback={
-            <div className="bento-card p-8 text-center text-xs text-[#4A5562] font-medium">
+            <div className="bento-card p-8 text-center text-xs text-slate-500 font-medium">
               Menyiapkan halaman belajar...
             </div>
           }
@@ -419,7 +419,7 @@ function MainLayout() {
       {/* Mobile Bottom Tab Bar (Native-like PWA Navigation) */}
       <nav
         aria-label="Navigasi Bawah Seluler"
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#FFFDF8]/95 backdrop-blur-md border-t border-[#DED4BE] px-2 py-1.5 shadow-[0_-4px_20px_-8px_rgba(23,35,47,0.16)]"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-[0_-4px_20px_-8px_rgba(15,23,42,0.1)]"
       >
         <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
           {NAV_ITEMS.map(({ id, mobileLabel, Icon }) => {
@@ -431,11 +431,11 @@ function MainLayout() {
                 onClick={() => setActiveTab(id)}
                 className={`min-h-[50px] px-1.5 py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition-all active:scale-95 cursor-pointer ${
                   isActive
-                    ? 'bg-[#163A5F] text-[#FFFDF8]'
-                    : 'text-[#5A6572] hover:text-[#17232F]'
+                    ? 'bg-[#1D4ED8] text-white'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-[#F2B857]' : ''}`} />
+                <Icon className="w-4 h-4" />
                 <span className="truncate leading-tight">{mobileLabel}</span>
               </button>
             );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Lightbulb,
@@ -163,7 +163,7 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
                     Buka Langkah Berikutnya ({revealedCount + 1}/{ex.steps.length}) →
                   </button>
                 ) : (
-                  <div className="bg-[#ECF5F1] border border-[#BCDAD0] p-4 rounded-xl text-xs sm:text-sm text-[#123D31] leading-relaxed">
+                  <div className="bg-[#ECFDF5] border border-[#A7F3D0] p-4 rounded-xl text-xs sm:text-sm text-[#065F46] leading-relaxed">
                     <strong>Kesimpulan Rekayasa Lapangan: </strong>
                     {ex.finalConclusion}
                   </div>
@@ -175,13 +175,13 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
       )}
 
       {/* Timed Quiz Checkpoints Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#DED4BE]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E8F0]">
         <div>
-          <h3 className="font-display text-base sm:text-lg font-bold text-[#17232F] flex items-center gap-2">
+          <h3 className="font-display text-base sm:text-lg font-bold text-[#0F172A] flex items-center gap-2">
             <Target className={`w-4 h-4 ${theme.accentText}`} />
             <span>Kuis Pemahaman Konsep ({totalQuestions} Soal)</span>
           </h3>
-          <p className="text-xs text-[#4A5562] leading-relaxed mt-0.5">
+          <p className="text-xs text-[#475569] leading-relaxed mt-0.5">
             Pilih jawaban yang paling tepat untuk melihat pembahasan dan mencatat skormu ke kelas.
           </p>
         </div>
@@ -191,17 +191,17 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
           <button
             type="button"
             onClick={() => setMuted(toggleAudioMuted())}
-            className="min-h-[40px] px-3 py-1.5 rounded-xl border border-[#DED4BE] bg-[#FFFDF8] hover:bg-[#EFE9DC] text-xs font-semibold text-[#17232F] flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="min-h-[40px] px-3 py-1.5 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] hover:bg-[#F1F5F9] text-xs font-semibold text-[#0F172A] flex items-center gap-1.5 transition-colors cursor-pointer"
             title={muted ? 'Aktifkan efek suara' : 'Bisukan efek suara'}
           >
             {muted ? (
               <>
-                <VolumeX className="w-4 h-4 text-[#5A6572]" />
+                <VolumeX className="w-4 h-4 text-[#64748B]" />
                 <span>Suara: Senyap</span>
               </>
             ) : (
               <>
-                <Volume2 className="w-4 h-4 text-[#1F6E58]" />
+                <Volume2 className="w-4 h-4 text-[#059669]" />
                 <span>Suara: Aktif</span>
               </>
             )}
@@ -211,21 +211,21 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
             <button
               type="button"
               onClick={onStartTimedChallenge}
-              className="min-h-[40px] px-4 py-2 text-xs font-semibold text-[#FFFDF8] bg-[#C85A32] hover:bg-[#B24D28] rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
+              className="min-h-[40px] px-4 py-2 text-xs font-semibold text-[#FFFFFF] bg-[#1D4ED8] hover:bg-[#1E40AF] rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
             >
               <Timer className="w-4 h-4" />
               <span>Mulai Tantangan 30 Detik</span>
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold text-[#8C540B] bg-[#FBF4E7] border border-[#EAD6B0] px-3.5 py-2 rounded-xl tabular-nums flex items-center gap-1.5 min-h-[40px]">
-                <Zap className="w-4 h-4 text-[#B97217]" />
+              <span className="font-mono text-xs font-bold text-[#92400E] bg-[#FFFBEB] border border-[#FDE68A] px-3.5 py-2 rounded-xl tabular-nums flex items-center gap-1.5 min-h-[40px]">
+                <Zap className="w-4 h-4 text-[#D97706]" />
                 <span>Sisa Waktu: {remainingSeconds} dtk</span>
               </span>
               <button
                 type="button"
                 onClick={onExitTimedChallenge}
-                className="min-h-[40px] px-3.5 py-2 text-xs font-semibold text-[#17232F] bg-[#EFE9DC] hover:bg-[#E5DEC9] rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
+                className="min-h-[40px] px-3.5 py-2 text-xs font-semibold text-[#0F172A] bg-[#F1F5F9] hover:bg-[#E2E8F0] rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
               >
                 Mode Santai
               </button>
@@ -235,12 +235,12 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
       </div>
 
       {isTimedQuizMode && (
-        <div className="w-full h-3 bg-[#EFE9DC] rounded-full overflow-hidden border border-[#DED4BE]">
+        <div className="w-full h-3 bg-[#F1F5F9] rounded-full overflow-hidden border border-[#E2E8F0]">
           <div
             className={`h-full transition-all duration-300 ${
               remainingSeconds > 10
-                ? 'bg-[#B97217]'
-                : 'bg-[#C85A32]'
+                ? 'bg-[#D97706]'
+                : 'bg-[#1D4ED8]'
             }`}
             style={{ width: `${Math.round((remainingSeconds / 30) * 100)}%` }}
           />
@@ -391,19 +391,19 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
         <motion.section
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-[#FFFDF8] border border-[#DED4BE] rounded-2xl p-6 sm:p-7 space-y-5"
+          className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 space-y-5"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-[#C85A32]" />
-                <h4 className="font-display text-base sm:text-lg font-bold text-[#17232F]">
+                <Trophy className="w-5 h-5 text-[#1D4ED8]" />
+                <h4 className="font-display text-base sm:text-lg font-bold text-[#0F172A]">
                   {isAllAnswered
                     ? 'Selamat! Kamu Telah Menuntaskan Semua Soal'
                     : `Progres Kuis: ${answeredCount} dari ${totalQuestions} Soal Terjawab`}
                 </h4>
               </div>
-              <p className="text-xs sm:text-sm text-[#4A5562]">
+              <p className="text-xs sm:text-sm text-[#475569]">
                 {scorePercent >= 70
                   ? 'Pemahaman konsepmu sangat baik! Terus tingkatkan eksperimen di laboratorium kelas.'
                   : 'Bagus sudah mencoba! Kamu bisa membaca ulang materi bab untuk memperkuat konsep.'}
@@ -411,13 +411,13 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              <div className="bg-[#EDF3F7] border border-[#C5D6E3] px-4 py-2.5 rounded-2xl text-center">
-                <div className="text-[11px] font-semibold text-[#4A5562]">Skor Kuis</div>
-                <div className="text-xl sm:text-2xl font-bold text-[#163A5F] tabular-nums">{scorePercent}%</div>
+              <div className="bg-[#EFF6FF] border border-[#BFDBFE] px-4 py-2.5 rounded-2xl text-center">
+                <div className="text-[11px] font-semibold text-[#475569]">Skor Kuis</div>
+                <div className="text-xl sm:text-2xl font-bold text-[#1D4ED8] tabular-nums">{scorePercent}%</div>
               </div>
-              <div className="bg-[#ECF5F1] border border-[#BCDAD0] px-4 py-2.5 rounded-2xl text-center">
-                <div className="text-[11px] font-semibold text-[#4A5562]">Benar</div>
-                <div className="text-xl sm:text-2xl font-bold text-[#1F6E58] tabular-nums">
+              <div className="bg-[#ECFDF5] border border-[#A7F3D0] px-4 py-2.5 rounded-2xl text-center">
+                <div className="text-[11px] font-semibold text-[#475569]">Benar</div>
+                <div className="text-xl sm:text-2xl font-bold text-[#059669] tabular-nums">
                   {correctCount}/{answeredCount}
                 </div>
               </div>
@@ -425,7 +425,7 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
           </div>
 
           {/* Star Rating & Visual Recap Banner */}
-          <div className="p-4 sm:p-5 bg-[#EFE9DC]/75 rounded-2xl border border-[#DED4BE] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 sm:p-5 bg-[#F1F5F9]/75 rounded-2xl border border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 {/* Visual Stars Rating (1-3 stars) */}

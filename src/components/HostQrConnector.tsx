@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+﻿import React, { useEffect, useState, useRef, useCallback } from 'react';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
 import {
@@ -184,19 +184,19 @@ export const HostQrConnector: React.FC<Props> = ({ className = '' }) => {
   }, [stopScanner]);
 
   return (
-    <div className={`bg-[#FFFDF8] rounded-2xl border border-[#DED4BE] overflow-hidden ${className}`}>
+    <div className={`bg-[#FFFFFF] rounded-2xl border border-[#E2E8F0] overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="bg-[#EFE9DC]/70 border-b border-[#DED4BE] px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#F1F5F9]/70 border-b border-[#E2E8F0] px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-[#163A5F] text-[#FFFDF8]">
+          <div className="p-2 rounded-xl bg-[#1D4ED8] text-[#FFFFFF]">
             <QrCode className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-display text-sm font-bold text-[#17232F]">
+            <h3 className="font-display text-sm font-bold text-[#0F172A]">
               Konektivitas Zero-Config (QR Code &amp; mDNS Discovery)
             </h3>
-            <p className="text-xs text-[#4A5562]">
-              Siswa cukup memindai QR Code atau membuka <span className="font-mono text-[#163A5F] font-semibold">ruangpintar.local</span> tanpa kuota internet.
+            <p className="text-xs text-[#475569]">
+              Siswa cukup memindai QR Code atau membuka <span className="font-mono text-[#1D4ED8] font-semibold">ruangpintar.local</span> tanpa kuota internet.
             </p>
           </div>
         </div>
