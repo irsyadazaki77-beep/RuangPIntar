@@ -128,5 +128,17 @@ function initializeSchema(db: Database.Database): void {
       created_at TEXT NOT NULL,
       created_ms INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS module_discussions (
+      id TEXT PRIMARY KEY,
+      module_id TEXT NOT NULL,
+      author_name TEXT NOT NULL,
+      author_role TEXT NOT NULL,
+      avatar TEXT NOT NULL,
+      message TEXT NOT NULL,
+      is_pinned INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      created_ms INTEGER NOT NULL
+    );
   `);
 }

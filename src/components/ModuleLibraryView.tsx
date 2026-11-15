@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Download,
   RefreshCw,
+  ArrowLeft,
   ArrowRight,
   Search,
   Share2,
@@ -51,6 +52,7 @@ import { InlineChapterCalculator } from './modules/InlineChapterCalculator';
 import { ModuleCaseStudyView } from './modules/ModuleCaseStudyView';
 import { ModuleGlossaryDrawer } from './modules/ModuleGlossaryDrawer';
 import { ModuleQuizCard } from './modules/ModuleQuizCard';
+import { ModuleDiscussionBoard } from './modules/ModuleDiscussionBoard';
 
 interface Props {
   modules: LearningModule[];
@@ -66,7 +68,7 @@ interface Props {
   onSyncStudentSubmission?: (payload: { moduleId: string; moduleTitle: string; quizScore: number; totalQuestions: number; passed: boolean; simulationCompleted: boolean }) => void;
 }
 
-type ModuleWorkspaceSubTab = 'materi' | 'simulasi' | 'kuis';
+type ModuleWorkspaceSubTab = 'materi' | 'simulasi' | 'kuis' | 'diskusi';
 
 const bentoContainerVariants = {
   hidden: { opacity: 0 },
@@ -100,16 +102,38 @@ export const ModuleLibraryView: React.FC<Props> = ({
   isSyncing,
   onSyncStudentSubmission,
 }) => {
-  const { studentProfile } = useMeshNetwork();
+  const { studentProfile, classroomBroadcast } = useMeshNetwork();
   const [subjectFilter, setSubjectFilter] = useState<string>('ALL');
-  const [tierFilter, setTierFilter] = useState<'ALL' | EducationTier>('ALL');
+  const [tierFilter, setTierFilter] = useState<'ALL' | EducationTier>(
+    studentProfile.educationTier || 'ALL'
+  );
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeSubTab, setActiveSubTab] = useState<ModuleWorkspaceSubTab>('materi');
   const [isFocusReaderMode, setIsFocusReaderMode] = useState<boolean>(false);
   const [readerTextSize, setReaderTextSize] = useState<'normal' | 'large'>('normal');
   const [isHighContrastReader, setIsHighContrastReader] = useState<boolean>(false);
-  const [isBadgesExpanded, setIsBadgesExpanded] = useState<boolean>(true);
+  const [isBadgesExpanded, setIsBadgesExpanded] = useState<boolean>(false);
   const [isBitfieldExpanded, setIsBitfieldExpanded] = useState<boolean>(false);
+  const catalogPanelRef = useRef<HTMLDivElement>(null);
+  const readerPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (studentProfile.educationTier) {
+      setTierFilter(studentProfile.educationTier);
+    }
+  }, [studentProfile.educationTier]);
+
+  const handleSelectModuleWithScroll = useCallback(
+    (moduleId: string) => {
+      onSelectModule(moduleId);
+      if (typeof window !== 'undefined' && window.innerWidth < 1024 && readerPanelRef.current) {
+        window.setTimeout(() => {
+          readerPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 60);
+      }
+    },
+    [onSelectModule]
+  );
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>(() => {
     try {
       const saved = window.localStorage.getItem('ruangpintar_quiz_answers_v1');
@@ -763,19 +787,19 @@ export const ModuleLibraryView: React.FC<Props> = ({
       >
         {/* LEFT PANEL (4 cols): Subject-Coded Module Catalog & Deep Concept Search */}
         {!isFocusReaderMode && (
-          <div className="lg:col-span-4 bento-card p-5 space-y-4">
+          <div ref={catalogPanelRef} className="lg:col-span-4 bento-card p-5 space-y-4">
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                   <span>🗺️</span>
-                  <span>01. Jalur Petualangan Belajar</span>
+                  <span>01. Daftar Buku Pelajaran</span>
                 </h2>
-                <span className="text-xs font-bold text-sky-800 bg-sky-100 px-2.5 py-0.5 rounded-full">
+                <span className="text-xs font-bold text-blue-800 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
                   {deepSearchMatches.length}/{modules.length} Buku
                 </span>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Pilih buku petualangan sains Nusantara. Dilengkapi estimasi waktu baca dan siap dipelajari tanpa kuota.
+                Pilih jenjang kelas atau mata pelajaran di bawah, lalu ketuk buku untuk langsung membacanya tanpa kuota.
               </p>
             </div>
 
@@ -792,7 +816,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Cari buku, rumus, atau daerah (mis. LiFePO4, Alor)..."
-                  className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-600 transition-all min-h-[42px]"
+                  className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#1D4ED8] transition-all min-h-[42px]"
                 />
               </div>
 
@@ -921,7 +945,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   return (
                     <article
                       key={mod.id}
-                      onClick={() => onSelectModule(mod.id)}
+                      onClick={() => handleSelectModuleWithScroll(mod.id)}
                       className={`rounded-2xl overflow-hidden border transition-all cursor-pointer active:scale-[0.98] ${
                         isSelected
                           ? `${modTheme.selectedCardSurface} border-blue-500 ring-2 ring-blue-500/20 shadow-sm`
@@ -1034,13 +1058,13 @@ export const ModuleLibraryView: React.FC<Props> = ({
                                 disabled={isSyncing}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onSelectModule(mod.id);
+                                  handleSelectModuleWithScroll(mod.id);
                                   onSyncChunks(mod.id, 4);
                                 }}
-                                className="min-h-[40px] px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer bg-sky-600 hover:bg-sky-500 text-white shadow-2xs active:scale-95"
+                                className="min-h-[40px] px-3 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer bg-[#1D4ED8] hover:bg-[#1E40AF] text-white shadow-2xs active:scale-95"
                               >
                                 <Download className="w-3.5 h-3.5" />
-                                <span>Unduh (0 Kuota)</span>
+                                <span>Unduh Offline</span>
                               </button>
                             )}
                             <span
@@ -1064,10 +1088,11 @@ export const ModuleLibraryView: React.FC<Props> = ({
         {/* RIGHT PANEL (8 cols or 12 cols in Focus Mode): Subject-Themed Editorial Workspace */}
         {activeModule && (
           <div
+            ref={readerPanelRef}
             aria-label={`Pembaca Modul ${activeModule.title}`}
             className={`${
               isFocusReaderMode ? 'lg:col-span-12' : 'lg:col-span-8'
-            } bento-card overflow-hidden transition-all ${
+            } bento-card overflow-hidden transition-all scroll-mt-20 ${
               isHighContrastReader ? 'bg-white ring-2 ring-slate-900' : ''
             }`}
           >
@@ -1075,6 +1100,22 @@ export const ModuleLibraryView: React.FC<Props> = ({
             <div className={`h-2 w-full ${activeTheme.ribbonGradient}`} />
 
             <div className="p-6 sm:p-8 space-y-6">
+              {/* Mobile Quick Back to Catalog Button */}
+              {!isFocusReaderMode && (
+                <div className="lg:hidden">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      catalogPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Kembali ke Daftar Buku</span>
+                  </button>
+                </div>
+              )}
+
               {/* Editorial Module Header + Focus Mode Controls */}
               <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 pb-5 border-b border-slate-200">
                 <div className="space-y-2">
@@ -1133,7 +1174,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                         className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${activeTheme.primaryBtn}`}
                       >
                         <Download className="w-3.5 h-3.5" />
-                        <span>Unduh +4 Pecahan P2P</span>
+                        <span>Unduh Offline (+25%)</span>
                       </motion.button>
                       <motion.button
                         type="button"
@@ -1142,7 +1183,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                         onClick={() => onSyncChunks(activeModule.id, 16)}
                         className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200/80 disabled:opacity-50 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                       >
-                        Lengkapi 100%
+                        Simpan Penuh
                       </motion.button>
                     </>
                   ) : (
@@ -1154,7 +1195,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                       className="px-3.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200/80 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Reset Unduhan P2P</span>
+                      <span>Muat Ulang Offline</span>
                     </motion.button>
                   )}
                 </div>
@@ -1282,6 +1323,21 @@ export const ModuleLibraryView: React.FC<Props> = ({
 
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={activeSubTab === 'diskusi'}
+                    onClick={() => setActiveSubTab('diskusi')}
+                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                      activeSubTab === 'diskusi'
+                        ? activeTheme.activeTabGradient
+                        : 'text-[#475569] hover:text-[#0F172A] hover:bg-[#F1F5F9]/70 bg-[#FFFFFF]/70'
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4 shrink-0" />
+                    <span>4. Forum Kelas</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => {
                       if (onAskTutorWithPrompt) {
                         onAskTutorWithPrompt(
@@ -1364,7 +1420,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                         >
                           <Layers className="w-3.5 h-3.5" />
                           <span>
-                            Pecahan P2P: {heldChunksForActive.length}/{activeModule.totalChunks}
+                            Tersimpan Offline: {heldChunksForActive.length}/{activeModule.totalChunks} bagian
                           </span>
                           {isBitfieldExpanded ? (
                             <ChevronUp className="w-3.5 h-3.5" />
@@ -1757,6 +1813,8 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   revealedExerciseSteps={revealedExerciseSteps}
                   isTimedQuizMode={isTimedQuizMode}
                   remainingSeconds={remainingSeconds}
+                  studentSeed={studentProfile.peerId || 'peer-siswa-05'}
+                  isExamMode={Boolean(classroomBroadcast?.examMode)}
                   onStartTimedChallenge={handleStartTimedChallenge}
                   onExitTimedChallenge={() => {
                     setIsTimedQuizMode(false);
@@ -1806,6 +1864,17 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   onNextChapter={() => {
                     setActiveSubTab('simulasi');
                   }}
+                />
+              )}
+
+              {/* SUB-TAB 4: Zero-Quota Local Course Discussion Board */}
+              {activeSubTab === 'diskusi' && (
+                <ModuleDiscussionBoard
+                  moduleId={activeModule.id}
+                  moduleTitle={activeModule.title}
+                  authorName={studentProfile.studentName}
+                  authorAvatar={studentProfile.avatar}
+                  theme={activeTheme}
                 />
               )}
             </div>

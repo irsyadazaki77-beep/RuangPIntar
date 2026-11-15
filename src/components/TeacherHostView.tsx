@@ -25,9 +25,13 @@ import {
   Sparkles,
   FileSpreadsheet,
   Zap,
+  Printer,
+  AlertTriangle,
+  Search,
 } from 'lucide-react';
 import {
   calculateGradebookSummary,
+  computeWeightedFinalScore,
   type LearningModule,
   type CacheEntry,
   type SwarmMetrics,
@@ -142,6 +146,8 @@ export const TeacherHostView: React.FC<Props> = ({
   );
   const [isSendingBroadcast, setIsSendingBroadcast] = useState<boolean>(false);
   const [isProcessingQueue, setIsProcessingQueue] = useState<boolean>(false);
+  const [gradebookFilter, setGradebookFilter] = useState<'ALL' | 'PASSED' | 'AT_RISK'>('ALL');
+  const [gradebookSearch, setGradebookSearch] = useState<string>('');
 
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
@@ -1202,6 +1208,86 @@ export const TeacherHostView: React.FC<Props> = ({
       {/* 04. Buku Nilai & Capaian Eksperimen Siswa (Sinkronisasi Luring/Daring) */}
       {(() => {
         const gradebook = calculateGradebookSummary(submissions);
+        const qGrade = gradebookSearch.trim().toLowerCase();
+        const filteredSubmissions = submissions.filter((s) => {
+          const weighted = computeWeightedFinalScore(s.quizScore, s.simulationCompleted);
+          const isAtRisk = !s.passed || weighted < 70;
+          if (gradebookFilter === 'PASSED' && isAtRisk) return false;
+          if (gradebookFilter === 'AT_RISK' && !isAtRisk) return false;
+          if (!qGrade) return true;
+          return (
+            s.studentName.toLowerCase().includes(qGrade) ||
+            s.moduleTitle.toLowerCase().includes(qGrade) ||
+            s.peerId.toLowerCase().includes(qGrade)
+          );
+        });
+
+        const handlePrintTranscript = () => {
+          const printWin = window.open('', '_blank', 'width=900,height=700');
+          if (!printWin) return;
+          const escapeHtml = (str: string | number) =>
+            String(str)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;');
+          const rowsHtml = filteredSubmissions
+            .map((s, idx) => {
+              const finalScore = computeWeightedFinalScore(s.quizScore, s.simulationCompleted);
+              const status = s.passed && finalScore >= 70 ? 'LULUS' : 'PENDAMPINGAN';
+              return `<tr>
+                <td>${idx + 1}</td>
+                <td><strong>${escapeHtml(s.studentName)}</strong><br/><small>${escapeHtml(s.peerId)}</small></td>
+                <td>${escapeHtml(s.moduleTitle)}</td>
+                <td style="text-align:right">${s.quizScore}%</td>
+                <td style="text-align:center">${s.simulationCompleted ? 'Selesai (100%)' : 'Belum (0%)'}</td>
+                <td style="text-align:right"><strong>${finalScore}%</strong></td>
+                <td style="text-align:center">${status}</td>
+              </tr>`;
+            })
+            .join('');
+          printWin.document.write(`<!doctype html>
+            <html lang="id">
+            <head>
+              <meta charset="utf-8" />
+              <title>Transkrip Nilai Kelas — RuangPintar</title>
+              <style>
+                body { font-family: system-ui, -apple-system, sans-serif; color: #0f172a; padding: 28px; }
+                h1 { font-size: 20px; margin: 0 0 4px; }
+                .meta { font-size: 12px; color: #475569; margin-bottom: 18px; }
+                .summary { display: flex; gap: 16px; margin-bottom: 18px; font-size: 12px; }
+                .pill { background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 8px; }
+                table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                th, td { border: 1px solid #cbd5e1; padding: 8px 10px; }
+                th { background: #f1f5f9; text-align: left; }
+                @media print { body { padding: 0; } }
+              </style>
+            </head>
+            <body>
+              <h1>Transkrip Rekap Nilai Kelas — RuangPintar LMS</h1>
+              <div class="meta">Dicetak pada: ${escapeHtml(new Date().toLocaleString('id-ID'))} · Bobot Nilai Akhir: 70% Kuis + 30% Lab Simulasi</div>
+              <div class="summary">
+                <div class="pill">Total Rekaman: <strong>${filteredSubmissions.length}</strong></div>
+                <div class="pill">Rata-rata Kuis: <strong>${gradebook.averageScore}%</strong></div>
+                <div class="pill">Rata-rata Nilai Akhir: <strong>${gradebook.weightedAverageScore}%</strong></div>
+                <div class="pill">Tingkat Kelulusan: <strong>${gradebook.passRatePercent}%</strong></div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>No</th><th>Siswa &amp; Simpul</th><th>Modul</th>
+                    <th style="text-align:right">Kuis (70%)</th><th style="text-align:center">Lab (30%)</th>
+                    <th style="text-align:right">Nilai Akhir</th><th style="text-align:center">Predikat</th>
+                  </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+              <script>window.onload = () => { window.print(); };</script>
+            </body>
+            </html>`);
+          printWin.document.close();
+        };
+
         return (
           <motion.section
             variants={hostItemVariants}
@@ -1210,73 +1296,130 @@ export const TeacherHostView: React.FC<Props> = ({
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E2E8F0]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700 shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
                   <GraduationCap className="w-5 h-5" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-stone-900">
-                    04. Buku Nilai &amp; Capaian Eksperimen Siswa (Real-Time SQLite)
+                    04. Buku Nilai Berbobot &amp; Capaian Eksperimen Siswa (Real-Time SQLite)
                   </h2>
                   <p className="text-xs text-stone-600 mt-0.5">
-                    Rekaman skor kuis dan penyelesaian misi laboratorium virtual yang disinkronkan otomatis dari perangkat siswa.
+                    Nilai Akhir dihitung otomatis (70% Kuis + 30% Misi Lab) dengan deteksi dini siswa yang perlu pendampingan.
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5 text-xs font-mono tabular-nums">
-                <span className="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 font-semibold flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-mono tabular-nums">
+                <span className="px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 font-semibold flex items-center gap-1.5">
                   <BarChart3 className="w-3.5 h-3.5" />
-                  <span>Rata-rata Kelas: {gradebook.averageScore}%</span>
+                  <span>Nilai Akhir: {gradebook.weightedAverageScore}%</span>
                 </span>
                 <span className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold flex items-center gap-1.5">
                   <Award className="w-3.5 h-3.5" />
-                  <span>Lab Tuntas: {gradebook.simulationsCompletedCount} Misi</span>
+                  <span>Lulus: {gradebook.passRatePercent}%</span>
                 </span>
+                {gradebook.atRiskCount > 0 && (
+                  <span className="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-semibold flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Perlu Pendampingan: {gradebook.atRiskCount}</span>
+                  </span>
+                )}
                 {submissions.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const headers = [
-                        'Nama Siswa',
-                        'ID Simpul',
-                        'Modul',
-                        'Skor Kuis (%)',
-                        'Status Kuis',
-                        'Status Lab',
-                        'Waktu Sinkronisasi',
-                      ];
-                      const escapeCsv = (val: string | number) =>
-                        `"${String(val).replace(/"/g, '""')}"`;
-                      const rows = submissions.map((s) =>
-                        [
-                          escapeCsv(s.studentName),
-                          escapeCsv(s.peerId),
-                          escapeCsv(s.moduleTitle),
-                          escapeCsv(s.quizScore),
-                          escapeCsv(s.passed ? 'Lulus' : 'Remedial'),
-                          escapeCsv(s.simulationCompleted ? 'Lab Selesai' : 'Proses Baca'),
-                          escapeCsv(s.timestamp),
-                        ].join(',')
-                      );
-                      const csvContent = [headers.join(','), ...rows].join('\n');
-                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `rekap-nilai-ruangpintar-${new Date().toISOString().slice(0, 10)}.csv`;
-                      document.body.appendChild(a);
-                      a.click();
-                      URL.revokeObjectURL(url);
-                      document.body.removeChild(a);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-stone-800 font-sans font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Unduh Rekap (.csv)</span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={handlePrintTranscript}
+                      className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-stone-800 font-sans font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-blue-700" />
+                      <span>Cetak Rapor</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const headers = [
+                          'Nama Siswa',
+                          'ID Simpul',
+                          'Modul',
+                          'Skor Kuis (%)',
+                          'Status Lab',
+                          'Nilai Akhir Berbobot (%)',
+                          'Status Kelulusan',
+                          'Waktu Sinkronisasi',
+                        ];
+                        const escapeCsv = (val: string | number) =>
+                          `"${String(val).replace(/"/g, '""')}"`;
+                        const rows = filteredSubmissions.map((s) =>
+                          [
+                            escapeCsv(s.studentName),
+                            escapeCsv(s.peerId),
+                            escapeCsv(s.moduleTitle),
+                            escapeCsv(s.quizScore),
+                            escapeCsv(s.simulationCompleted ? 'Lab Selesai' : 'Proses Baca'),
+                            escapeCsv(computeWeightedFinalScore(s.quizScore, s.simulationCompleted)),
+                            escapeCsv(s.passed ? 'Lulus' : 'Remedial'),
+                            escapeCsv(s.timestamp),
+                          ].join(',')
+                        );
+                        const csvContent = [headers.join(','), ...rows].join('\n');
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `rekap-nilai-ruangpintar-${new Date().toISOString().slice(0, 10)}.csv`;
+                        document.body.appendChild(a);
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-stone-800 font-sans font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Unduh (.csv)</span>
+                    </button>
+                  </>
                 )}
               </div>
             </div>
+
+            {submissions.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {(
+                    [
+                      { id: 'ALL', label: `Semua (${submissions.length})` },
+                      { id: 'PASSED', label: 'Lulus' },
+                      { id: 'AT_RISK', label: `Perlu Pendampingan (${gradebook.atRiskCount})` },
+                    ] as const
+                  ).map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setGradebookFilter(f.id)}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
+                        gradebookFilter === f.id
+                          ? 'bg-blue-700 text-white border-blue-700'
+                          : 'bg-white text-stone-700 border-slate-200 hover:border-blue-300'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={gradebookSearch}
+                    onChange={(e) => setGradebookSearch(e.target.value)}
+                    placeholder="Cari nama siswa atau modul..."
+                    aria-label="Cari siswa di buku nilai"
+                    className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            )}
 
             {submissions.length === 0 ? (
               <div className="surface-warm-recessed p-5 rounded-2xl text-center space-y-1.5">
@@ -1288,6 +1431,10 @@ export const TeacherHostView: React.FC<Props> = ({
                   <strong>Petualangan Belajar</strong>, nilai mereka akan langsung tampil di sini secara real-time.
                 </p>
               </div>
+            ) : filteredSubmissions.length === 0 ? (
+              <div className="surface-warm-recessed p-5 rounded-2xl text-center text-xs text-stone-600">
+                Tidak ada data siswa yang cocok dengan filter saat ini.
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -1295,46 +1442,61 @@ export const TeacherHostView: React.FC<Props> = ({
                     <tr className="border-b border-[#E2E8F0] text-[11px] font-mono text-stone-500">
                       <th className="py-2.5 pr-3">Siswa &amp; Simpul</th>
                       <th className="py-2.5 px-3">Modul Pembelajaran</th>
-                      <th className="py-2.5 px-3 text-right">Skor Kuis</th>
-                      <th className="py-2.5 px-3 text-center">Status Lab</th>
+                      <th className="py-2.5 px-3 text-right">Kuis (70%)</th>
+                      <th className="py-2.5 px-3 text-center">Lab (30%)</th>
+                      <th className="py-2.5 px-3 text-right">Nilai Akhir</th>
                       <th className="py-2.5 pl-3 text-right">Waktu Sinkronisasi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#ece8df] text-xs">
-                    {submissions.map((sub) => (
-                      <tr key={sub.id} className="hover:bg-[#F8FAFC] transition-colors">
-                        <td className="py-3 pr-3">
-                          <div className="font-semibold text-stone-900">
-                            {sub.avatar} {sub.studentName}
-                          </div>
-                          <div className="text-[11px] font-mono text-stone-500">{sub.peerId}</div>
-                        </td>
-                        <td className="py-3 px-3 font-medium text-stone-800">{sub.moduleTitle}</td>
-                        <td className="py-3 px-3 text-right font-mono font-bold tabular-nums">
-                          <span
-                            className={
-                              sub.passed ? 'text-emerald-700' : 'text-amber-700'
-                            }
-                          >
-                            {sub.quizScore}% ({sub.passed ? 'Lulus' : 'Remedial'})
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-center font-mono text-[11px]">
-                          {sub.simulationCompleted ? (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                              ✓ Lab Selesai
+                    {filteredSubmissions.map((sub) => {
+                      const finalScore = computeWeightedFinalScore(
+                        sub.quizScore,
+                        sub.simulationCompleted
+                      );
+                      const isAtRisk = !sub.passed || finalScore < 70;
+                      return (
+                        <tr key={sub.id} className="hover:bg-[#F8FAFC] transition-colors">
+                          <td className="py-3 pr-3">
+                            <div className="font-semibold text-stone-900">
+                              {sub.avatar} {sub.studentName}
+                            </div>
+                            <div className="text-[11px] font-mono text-stone-500">{sub.peerId}</div>
+                          </td>
+                          <td className="py-3 px-3 font-medium text-stone-800">{sub.moduleTitle}</td>
+                          <td className="py-3 px-3 text-right font-mono font-bold tabular-nums">
+                            <span className={sub.passed ? 'text-emerald-700' : 'text-amber-700'}>
+                              {sub.quizScore}% ({sub.passed ? 'Lulus' : 'Remedial'})
                             </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
-                              Proses Baca
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono text-[11px]">
+                            {sub.simulationCompleted ? (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
+                                ✓ Lab Selesai
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
+                                Proses Baca
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono font-bold tabular-nums">
+                            <span
+                              className={`px-2 py-0.5 rounded-md ${
+                                isAtRisk
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                  : 'bg-blue-50 text-blue-800 border border-blue-200'
+                              }`}
+                            >
+                              {finalScore}%
                             </span>
-                          )}
-                        </td>
-                        <td className="py-3 pl-3 text-right font-mono text-stone-500 tabular-nums">
-                          {sub.timestamp}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-3 pl-3 text-right font-mono text-stone-500 tabular-nums">
+                            {sub.timestamp}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

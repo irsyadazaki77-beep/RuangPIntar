@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Lightbulb,
@@ -16,8 +16,10 @@ import {
   Award,
   Target,
   Trophy,
+  Shuffle,
+  ShieldCheck,
 } from 'lucide-react';
-import type { LearningModule } from '../../utils/edgeEngine';
+import { buildShuffledQuizOrder, type LearningModule } from '../../utils/edgeEngine';
 import type { SubjectVisualTheme } from '../../utils/subjectTheme';
 import {
   playSuccessSound,
@@ -33,6 +35,8 @@ export interface ModuleQuizCardProps {
   revealedExerciseSteps: Record<string, number>;
   isTimedQuizMode: boolean;
   remainingSeconds: number;
+  studentSeed?: string;
+  isExamMode?: boolean;
   onStartTimedChallenge: () => void;
   onExitTimedChallenge: () => void;
   onSelectQuizOption: (questionIdx: number, optionIdx: number, correctIndex: number) => void;
@@ -52,6 +56,8 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
   revealedExerciseSteps,
   isTimedQuizMode,
   remainingSeconds,
+  studentSeed = 'peer-default',
+  isExamMode = false,
   onStartTimedChallenge,
   onExitTimedChallenge,
   onSelectQuizOption,
@@ -62,6 +68,20 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
   onNextChapter,
 }) => {
   const [muted, setMuted] = useState<boolean>(() => isAudioMuted());
+  const [manualShuffle, setManualShuffle] = useState<boolean>(false);
+  const isShuffleActive = isExamMode || manualShuffle;
+
+  const renderedQuestions = useMemo(
+    () =>
+      buildShuffledQuizOrder(
+        activeModule.id,
+        studentSeed,
+        activeModule.checkpoints,
+        isShuffleActive
+      ),
+    [activeModule.id, activeModule.checkpoints, studentSeed, isShuffleActive]
+  );
+
   const totalQuestions = activeModule.checkpoints.length;
   let answeredCount = 0;
   let correctCount = 0;
@@ -187,6 +207,36 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* Anti-Cheat Shuffle Toggle */}
+          <button
+            type="button"
+            disabled={isExamMode}
+            onClick={() => setManualShuffle((prev) => !prev)}
+            className={`min-h-[40px] px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+              isShuffleActive
+                ? 'border-blue-300 bg-blue-50 text-blue-800'
+                : 'border-[#E2E8F0] bg-[#FFFFFF] hover:bg-[#F1F5F9] text-[#0F172A]'
+            } ${isExamMode ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'}`}
+            title={
+              isExamMode
+                ? 'Mode Ujian Aktif: urutan soal & opsi diacak otomatis'
+                : 'Acak urutan soal dan opsi jawaban per perangkat'
+            }
+          >
+            {isExamMode ? (
+              <ShieldCheck className="w-4 h-4 text-blue-700" />
+            ) : (
+              <Shuffle className="w-4 h-4 text-blue-700" />
+            )}
+            <span>
+              {isExamMode
+                ? 'Ujian: Soal Diacak'
+                : isShuffleActive
+                  ? 'Urutan: Acak'
+                  : 'Urutan: Standar'}
+            </span>
+          </button>
+
           {/* Mute Audio Toggle Button */}
           <button
             type="button"
@@ -249,20 +299,20 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
 
       {/* Questions list with Large A/B/C/D Touch Options and Supportive Micro-interactions */}
       <div className="space-y-5">
-        {activeModule.checkpoints.map((cp, qIdx) => {
-          const answerKey = `${activeModule.id}-${qIdx}`;
+        {renderedQuestions.map(({ originalQuestionIdx, checkpoint: cp, shuffledOptions }, displayIdx) => {
+          const answerKey = `${activeModule.id}-${originalQuestionIdx}`;
           const chosen = selectedAnswers[answerKey];
           const isAnswered = typeof chosen === 'number';
           const isCorrect = chosen === cp.correctIndex;
 
           return (
             <div
-              key={qIdx}
+              key={`${activeModule.id}-q-${originalQuestionIdx}`}
               className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs"
             >
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className={`font-bold px-3 py-1 rounded-full ${theme.softBg} ${theme.accentText}`}>
-                  SOAL 0{qIdx + 1}
+                  SOAL 0{displayIdx + 1}
                 </span>
                 {cp.difficulty && (
                   <span className="text-slate-500 font-semibold">Tingkat: {cp.difficulty}</span>
@@ -275,12 +325,12 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
 
               {/* Large Options with A, B, C, D (min-h-[56px] for touch accessibility) */}
               <div className="space-y-3">
-                {cp.options.map((opt, oIdx) => {
-                  const isThisChosen = chosen === oIdx;
+                {shuffledOptions.map(({ text: opt, originalOptionIdx }, oIdx) => {
+                  const isThisChosen = chosen === originalOptionIdx;
                   const letter = OPTION_LETTERS[oIdx] || `${oIdx + 1}`;
 
                   let optionStyle =
-                    'bg-slate-50/80 border-slate-200 text-slate-800 hover:bg-sky-50/50 hover:border-sky-300';
+                    'bg-slate-50/80 border-slate-200 text-slate-800 hover:bg-blue-50/50 hover:border-blue-300';
                   let letterStyle = 'bg-white border-slate-300 text-slate-700';
 
                   if (isThisChosen) {
@@ -297,13 +347,13 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
 
                   return (
                     <motion.button
-                      key={oIdx}
+                      key={originalOptionIdx}
                       type="button"
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => {
-                        onSelectQuizOption(qIdx, oIdx, cp.correctIndex);
-                        if (oIdx === cp.correctIndex) {
+                        onSelectQuizOption(originalQuestionIdx, originalOptionIdx, cp.correctIndex);
+                        if (originalOptionIdx === cp.correctIndex) {
                           playSuccessSound();
                         } else {
                           playRetrySound();

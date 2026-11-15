@@ -6,6 +6,7 @@ import { PeerRepository } from './repositories/peer.repository.js';
 import { TransferRepository } from './repositories/transfer.repository.js';
 import { HostConfigRepository } from './repositories/config.repository.js';
 import { PendingQuestionRepository } from './repositories/pendingQuestion.repository.js';
+import { DiscussionRepository } from './repositories/discussion.repository.js';
 import {
   INITIAL_MODULES,
   INITIAL_PEERS,
@@ -31,6 +32,7 @@ export {
   TransferRepository,
   HostConfigRepository,
   PendingQuestionRepository,
+  DiscussionRepository,
 };
 
 // Aliases matching existing signatures for seamless compatibility

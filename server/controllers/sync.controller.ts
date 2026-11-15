@@ -9,10 +9,12 @@ import {
   type ChunkTransferEvent,
   type StudentSubmission,
   type CacheEntry,
+  type ModuleDiscussionPost,
 } from '../../src/utils/edgeEngine.js';
 import { classroomState, formatTimeWITA } from '../state/classroomState.js';
 import {
   QuizRepository,
+  DiscussionRepository,
   exportSneakernetPackage,
   importSneakernetPackage,
 } from '../db/index.js';
@@ -23,11 +25,13 @@ import {
   ClientChunksSyncSchema,
   DistributeAllSchema,
   ClassroomBroadcastSchema,
+  DiscussionCreateSchema,
   type ProgressSyncPayload,
   type TransferPackagePayload,
   type ClientChunksSyncPayload,
   type DistributeAllPayload,
   type ClassroomBroadcastPayload,
+  type DiscussionCreatePayload,
 } from '../schemas/sync.schema.js';
 
 export class SyncController {
@@ -553,5 +557,61 @@ export class SyncController {
     classroomState.setClassroomBroadcast(nextBroadcast);
     classroomState.broadcastState();
     res.json({ ok: true, broadcast: nextBroadcast, state: classroomState.getFullState() });
+  }
+
+  /**
+   * Lists local classroom discussion posts (0-KB internet quota) optionally filtered by moduleId.
+   */
+  public static listDiscussions(req: Request, res: Response): void {
+    const moduleId =
+      typeof req.query.moduleId === 'string' && req.query.moduleId.trim().length > 0
+        ? req.query.moduleId.trim()
+        : undefined;
+    const posts = DiscussionRepository.listByModule(moduleId);
+    res.json({ ok: true, posts });
+  }
+
+  /**
+   * Creates a new discussion post in SQLite and broadcasts update via WebSocket.
+   */
+  public static createDiscussion(req: Request, res: Response): void {
+    const parsed: DiscussionCreatePayload =
+      (req.validatedBody as DiscussionCreatePayload | undefined) ??
+      DiscussionCreateSchema.parse(req.body);
+
+    const post: ModuleDiscussionPost = {
+      id: `disc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      moduleId: parsed.moduleId,
+      authorName: parsed.authorName,
+      authorRole: parsed.authorRole,
+      avatar: parsed.avatar,
+      message: parsed.message,
+      isPinned: false,
+      createdAt: formatTimeWITA(),
+      createdMs: Date.now(),
+    };
+
+    DiscussionRepository.insert(post);
+    classroomState.broadcastState();
+    res.status(201).json({ ok: true, post });
+  }
+
+  /**
+   * Toggles pinned status on a discussion post (Teacher Host only).
+   */
+  public static togglePinDiscussion(req: Request, res: Response): void {
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    if (!id) {
+      res.status(400).json({ ok: false, error: 'ID diskusi wajib diisi' });
+      return;
+    }
+    const updated = DiscussionRepository.togglePin(id);
+    if (!updated) {
+      res.status(404).json({ ok: false, error: 'Komentar diskusi tidak ditemukan' });
+      return;
+    }
+    classroomState.broadcastState();
+    res.json({ ok: true, post: updated });
   }
 }

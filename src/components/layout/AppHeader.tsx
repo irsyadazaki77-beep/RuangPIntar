@@ -68,27 +68,37 @@ export const AppHeader: React.FC<Props> = ({ onSync, onReconnect }) => {
             <BrandLogo />
           </a>
 
-          {/* Zone 2: Clean Segmented Navigation (Desktop) */}
+          {/* Zone 2: Clean Segmented Navigation (Desktop — Belajar vs Pengajar/Jaringan) */}
           <nav
             aria-label="Navigasi Utama"
             className="hidden md:flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200"
           >
-            {NAV_ITEMS.map(({ id, label, Icon }) => {
+            {NAV_ITEMS.map(({ id, label, Icon }, idx) => {
               const isActive = activeTab === id;
+              const isSecondary = id === 'mesh' || id === 'guru';
               return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setActiveTab(id)}
-                  className={`relative min-h-[40px] px-3.5 py-2 rounded-lg text-xs sm:text-[13px] font-semibold transition-all whitespace-nowrap cursor-pointer active:scale-95 flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-[#1D4ED8] text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span>{label}</span>
-                </button>
+                <React.Fragment key={id}>
+                  {idx === 2 && (
+                    <span
+                      aria-hidden="true"
+                      className="w-px h-5 bg-slate-300/80 mx-1 shrink-0"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    className={`relative min-h-[40px] px-3.5 py-2 rounded-lg text-xs sm:text-[13px] font-semibold transition-all whitespace-nowrap cursor-pointer active:scale-95 flex items-center gap-1.5 ${
+                      isActive
+                        ? 'bg-[#1D4ED8] text-white shadow-xs'
+                        : isSecondary
+                          ? 'text-slate-500 hover:text-slate-900 hover:bg-white'
+                          : 'text-slate-700 hover:text-slate-900 hover:bg-white'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{label}</span>
+                  </button>
+                </React.Fragment>
               );
             })}
           </nav>

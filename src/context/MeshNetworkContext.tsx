@@ -29,6 +29,8 @@ export interface StudentProfile {
   peerId: string;
   studentName: string;
   avatar: string;
+  userRole?: 'STUDENT' | 'TEACHER';
+  educationTier?: 'ALL' | 'SD' | 'SMP' | 'SMA';
 }
 
 export const STUDENT_PEER_ID = 'peer-siswa-05';
@@ -171,6 +173,13 @@ export const MeshNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
           peerId: normalizedPeerId,
           studentName: parsed.studentName || 'Siswa Baru',
           avatar: parsed.avatar || '🐬 Lumba-lumba',
+          userRole: parsed.userRole === 'TEACHER' ? 'TEACHER' : 'STUDENT',
+          educationTier:
+            parsed.educationTier === 'SD' ||
+            parsed.educationTier === 'SMP' ||
+            parsed.educationTier === 'SMA'
+              ? parsed.educationTier
+              : 'ALL',
         };
       }
     } catch {}
@@ -178,6 +187,8 @@ export const MeshNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
       peerId: generateUniqueStudentPeerId(),
       studentName: 'Hendrikus D.',
       avatar: '🐬 Lumba-lumba',
+      userRole: 'STUDENT',
+      educationTier: 'ALL',
     };
   });
 

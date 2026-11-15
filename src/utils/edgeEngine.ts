@@ -1598,11 +1598,35 @@ export interface StudentSubmission {
   updatedMs: number;
 }
 
+export interface ModuleDiscussionPost {
+  id: string;
+  moduleId: string;
+  authorName: string;
+  authorRole: 'STUDENT' | 'TEACHER';
+  avatar: string;
+  message: string;
+  isPinned: boolean;
+  createdAt: string;
+  createdMs: number;
+}
+
 export interface GradebookSummary {
   totalSubmissions: number;
   averageScore: number;
+  weightedAverageScore: number;
   passRatePercent: number;
   simulationsCompletedCount: number;
+  atRiskCount: number;
+}
+
+export function computeWeightedFinalScore(
+  quizScore: number,
+  simulationCompleted: boolean,
+  quizWeight = 0.7,
+  labWeight = 0.3
+): number {
+  const labScore = simulationCompleted ? 100 : 0;
+  return Math.round(quizScore * quizWeight + labScore * labWeight);
 }
 
 export function calculateGradebookSummary(submissions: StudentSubmission[]): GradebookSummary {
@@ -1610,19 +1634,99 @@ export function calculateGradebookSummary(submissions: StudentSubmission[]): Gra
     return {
       totalSubmissions: 0,
       averageScore: 0,
+      weightedAverageScore: 0,
       passRatePercent: 0,
       simulationsCompletedCount: 0,
+      atRiskCount: 0,
     };
   }
   const totalSubmissions = submissions.length;
   const scoreSum = submissions.reduce((sum, s) => sum + s.quizScore, 0);
+  const weightedSum = submissions.reduce(
+    (sum, s) => sum + computeWeightedFinalScore(s.quizScore, s.simulationCompleted),
+    0
+  );
   const passedCount = submissions.filter((s) => s.passed).length;
   const simulationsCompletedCount = submissions.filter((s) => s.simulationCompleted).length;
+  const atRiskCount = submissions.filter(
+    (s) => !s.passed || computeWeightedFinalScore(s.quizScore, s.simulationCompleted) < 70
+  ).length;
 
   return {
     totalSubmissions,
     averageScore: Math.round(scoreSum / totalSubmissions),
+    weightedAverageScore: Math.round(weightedSum / totalSubmissions),
     passRatePercent: Math.round((passedCount / totalSubmissions) * 100),
     simulationsCompletedCount,
+    atRiskCount,
   };
+}
+
+export interface ShuffledQuizQuestion {
+  originalQuestionIdx: number;
+  checkpoint: ModuleCheckpoint;
+  shuffledOptions: {
+    text: string;
+    originalOptionIdx: number;
+  }[];
+}
+
+function deterministicHashSeed(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function createSeededRandom(seed: number): () => number {
+  let state = seed || 1;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Deterministically shuffle quiz questions and answer options per student & module
+ * for anti-cheating Exam Mode while preserving exact original indices for grading.
+ */
+export function buildShuffledQuizOrder(
+  moduleId: string,
+  studentSeed: string,
+  checkpoints: ModuleCheckpoint[],
+  enabled = true
+): ShuffledQuizQuestion[] {
+  const baseItems: ShuffledQuizQuestion[] = checkpoints.map((cp, qIdx) => ({
+    originalQuestionIdx: qIdx,
+    checkpoint: cp,
+    shuffledOptions: cp.options.map((text, oIdx) => ({
+      text,
+      originalOptionIdx: oIdx,
+    })),
+  }));
+
+  if (!enabled || baseItems.length <= 1) {
+    return baseItems;
+  }
+
+  const rng = createSeededRandom(deterministicHashSeed(`${moduleId}::${studentSeed}`));
+
+  for (let i = baseItems.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [baseItems[i], baseItems[j]] = [baseItems[j], baseItems[i]];
+  }
+
+  for (const item of baseItems) {
+    const opts = item.shuffledOptions;
+    for (let i = opts.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [opts[i], opts[j]] = [opts[j], opts[i]];
+    }
+  }
+
+  return baseItems;
 }

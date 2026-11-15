@@ -20,13 +20,17 @@ export const StudentProfileModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { studentProfile, setStudentProfile, setStatusBanner } = useMeshNetwork();
   const [nameInput, setNameInput] = useState(studentProfile.studentName);
   const [avatarInput, setAvatarInput] = useState(studentProfile.avatar);
+  const [tierInput, setTierInput] = useState<'ALL' | 'SD' | 'SMP' | 'SMA'>(
+    studentProfile.educationTier || 'ALL'
+  );
 
   useEffect(() => {
     if (isOpen) {
       setNameInput(studentProfile.studentName);
       setAvatarInput(studentProfile.avatar);
+      setTierInput(studentProfile.educationTier || 'ALL');
     }
-  }, [isOpen, studentProfile.avatar, studentProfile.studentName]);
+  }, [isOpen, studentProfile.avatar, studentProfile.studentName, studentProfile.educationTier]);
 
   if (!isOpen) return null;
 
@@ -36,6 +40,7 @@ export const StudentProfileModal: React.FC<Props> = ({ isOpen, onClose }) => {
       ...studentProfile,
       studentName: nameInput.trim() || 'Hendrikus D.',
       avatar: avatarInput,
+      educationTier: tierInput,
     };
     setStudentProfile(updated);
     try {
@@ -112,6 +117,35 @@ export const StudentProfileModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          <div>
+            <span className="block text-xs font-semibold text-slate-800 mb-2">
+              Jenjang Materi Bawaan
+            </span>
+            <div className="grid grid-cols-4 gap-1.5">
+              {(
+                [
+                  { id: 'SD', label: 'SD' },
+                  { id: 'SMP', label: 'SMP' },
+                  { id: 'SMA', label: 'SMA/SMK' },
+                  { id: 'ALL', label: 'Semua' },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTierInput(t.id)}
+                  className={`px-2 py-2 text-xs font-semibold rounded-xl border transition-colors cursor-pointer ${
+                    tierInput === t.id
+                      ? 'border-[#1D4ED8] bg-[#1D4ED8] text-white'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
           </div>
 

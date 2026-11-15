@@ -414,7 +414,7 @@ test('computeDeterministicChunkHash generates stable deterministic hashes for id
   assert.notEqual(hash1, hashDiff);
   assert.equal(hash1.startsWith('chk-'), true);
 });
-test('calculateGradebookSummary aggregates student quiz scores and simulation badges accurately', () => {
+test('calculateGradebookSummary aggregates student quiz scores and simulation badges accurately', async () => {
   const sampleSubs: StudentSubmission[] = [
     {
       id: 'sub-1',
@@ -449,8 +449,31 @@ test('calculateGradebookSummary aggregates student quiz scores and simulation ba
   const summary = calculateGradebookSummary(sampleSubs);
   assert.equal(summary.totalSubmissions, 2);
   assert.equal(summary.averageScore, 80);
+  assert.equal(summary.weightedAverageScore, 71);
   assert.equal(summary.passRatePercent, 50);
   assert.equal(summary.simulationsCompletedCount, 1);
+  assert.equal(summary.atRiskCount, 1);
+
+  const { buildShuffledQuizOrder, computeWeightedFinalScore } = await import('./edgeEngine');
+  const { INITIAL_MODULES } = await import('./seedData');
+  assert.equal(computeWeightedFinalScore(100, true), 100);
+  assert.equal(computeWeightedFinalScore(100, false), 70);
+
+  const modSample = INITIAL_MODULES[0];
+  const shuffleA = buildShuffledQuizOrder(modSample.id, 'peer-siswa-01', modSample.checkpoints, true);
+  const shuffleB = buildShuffledQuizOrder(modSample.id, 'peer-siswa-01', modSample.checkpoints, true);
+  assert.equal(shuffleA.length, modSample.checkpoints.length);
+  assert.deepEqual(
+    shuffleA.map((q) => q.originalQuestionIdx),
+    shuffleB.map((q) => q.originalQuestionIdx)
+  );
+  for (const q of shuffleA) {
+    assert.equal(q.shuffledOptions.length, q.checkpoint.options.length);
+    const hasOriginalCorrect = q.shuffledOptions.some(
+      (opt) => opt.originalOptionIdx === q.checkpoint.correctIndex
+    );
+    assert.equal(hasOriginalCorrect, true);
+  }
 });
 
 test('chunk integrity verification detects tampered bytes and corrupt payloads', async () => {

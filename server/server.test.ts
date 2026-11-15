@@ -530,6 +530,36 @@ test('FASE 6: Cache hit deduplication, offline AI queue, exam mode lock, distrib
     });
     assert.equal(badImportRes.status, 400);
 
+    // 5b. Local zero-quota course discussion board works and teacher can pin posts
+    const postDiscRes = await fetch(`${baseUrl}/api/sync/discussions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        moduleId: 'mod-fisika-mikrohidro',
+        authorName: 'Hendrikus D.',
+        authorRole: 'STUDENT',
+        avatar: '🎓',
+        message: 'Bagaimana cara menghitung tinggi jatuh efektif pipa pesat?',
+      }),
+    });
+    assert.equal(postDiscRes.status, 201);
+    const postDiscData = await postDiscRes.json();
+    assert.equal(postDiscData.ok, true);
+    assert.equal(postDiscData.post.isPinned, false);
+
+    const pinDiscRes = await fetch(`${baseUrl}/api/sync/discussions/${postDiscData.post.id}/pin`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(pinDiscRes.status, 200);
+    const pinDiscData = await pinDiscRes.json();
+    assert.equal(pinDiscData.post.isPinned, true);
+
+    const listDiscRes = await fetch(`${baseUrl}/api/sync/discussions?moduleId=mod-fisika-mikrohidro`);
+    assert.equal(listDiscRes.status, 200);
+    const listDiscData = await listDiscRes.json();
+    assert.equal(listDiscData.posts.some((p: { id: string }) => p.id === postDiscData.post.id), true);
+
     // 6. Changing PIN revokes old config.hostPin in verifyPinTimingSafe
     const { HostConfigRepository } = await import('./db/index.js');
     const prevDbPin = HostConfigRepository.get('host_pin', config.hostPin);

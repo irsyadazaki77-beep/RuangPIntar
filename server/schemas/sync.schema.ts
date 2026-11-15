@@ -123,3 +123,24 @@ export const ClassroomBroadcastSchema = z.object({
 });
 
 export type ClassroomBroadcastPayload = z.infer<typeof ClassroomBroadcastSchema>;
+
+/**
+ * Skema pengiriman pesan forum diskusi lokal per modul
+ */
+export const DiscussionCreateSchema = z.object({
+  moduleId: z.string({ message: 'moduleId wajib berupa string' }).trim().min(1, 'moduleId wajib diisi'),
+  authorName: z
+    .string({ message: 'authorName wajib berupa string' })
+    .trim()
+    .min(1, 'Nama pengirim wajib diisi')
+    .max(80, 'Nama pengirim maksimal 80 karakter'),
+  authorRole: z.enum(['STUDENT', 'TEACHER']).default('STUDENT'),
+  avatar: z.string().trim().min(1).default('🎓'),
+  message: z
+    .string({ message: 'Pesan diskusi wajib diisi' })
+    .trim()
+    .min(3, 'Pesan diskusi minimal 3 karakter')
+    .max(800, 'Pesan diskusi maksimal 800 karakter'),
+});
+
+export type DiscussionCreatePayload = z.infer<typeof DiscussionCreateSchema>;

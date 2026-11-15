@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QrCode, ArrowRight, BookOpen } from 'lucide-react';
+import { QrCode, ArrowRight, BookOpen, GraduationCap, UserCheck } from 'lucide-react';
 import {
   useMeshNetwork,
   DEFAULT_AVATARS,
@@ -19,9 +19,16 @@ export const StudentOnboardingModal: React.FC = () => {
     setStudentProfile,
     setStatusBanner,
     openQrScanner,
+    setActiveTab,
   } = useMeshNetwork();
 
   const [nameInput, setNameInput] = useState<string>('');
+  const [roleInput, setRoleInput] = useState<'STUDENT' | 'TEACHER'>(
+    studentProfile.userRole || 'STUDENT'
+  );
+  const [tierInput, setTierInput] = useState<'ALL' | 'SD' | 'SMP' | 'SMA'>(
+    studentProfile.educationTier || 'ALL'
+  );
   const [avatarInput, setAvatarInput] = useState<string>(studentProfile.avatar || DEFAULT_AVATARS[0]);
 
   if (!needsOnboarding) return null;
@@ -29,8 +36,10 @@ export const StudentOnboardingModal: React.FC = () => {
   const saveAndClose = (finalName: string, openScannerAfter = false) => {
     const updated = {
       ...studentProfile,
-      studentName: finalName.trim() || 'Siswa RuangPintar',
+      studentName: finalName.trim() || (roleInput === 'TEACHER' ? 'Guru Kelas' : 'Siswa RuangPintar'),
       avatar: avatarInput,
+      userRole: roleInput,
+      educationTier: roleInput === 'TEACHER' ? ('ALL' as const) : tierInput,
     };
     setStudentProfile(updated);
     try {
@@ -39,7 +48,17 @@ export const StudentOnboardingModal: React.FC = () => {
       // Ignore storage quota errors
     }
     setNeedsOnboarding(false);
-    setStatusBanner(`Selamat datang di kelas, ${updated.studentName}.`);
+    if (roleInput === 'TEACHER') {
+      setActiveTab('guru');
+      setStatusBanner(`Mode Guru aktif — silakan verifikasi PIN di Ruang Guru, ${updated.studentName}.`);
+    } else {
+      setActiveTab('pustaka');
+      setStatusBanner(
+        `Selamat datang di kelas, ${updated.studentName}${
+          tierInput !== 'ALL' ? ` (Jenjang ${tierInput})` : ''
+        }.`
+      );
+    }
     if (openScannerAfter) {
       openQrScanner();
     }
@@ -74,9 +93,42 @@ export const StudentOnboardingModal: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Step 1: Role Switcher */}
+            <div>
+              <span className="block text-xs font-semibold text-slate-800 mb-1.5">
+                Saya Masuk Sebagai
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRoleInput('STUDENT')}
+                  className={`min-h-[44px] px-3 py-2 text-xs font-semibold rounded-xl border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    roleInput === 'STUDENT'
+                      ? 'border-[#1D4ED8] bg-blue-50 text-[#1D4ED8] ring-1 ring-[#1D4ED8]'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4 shrink-0" />
+                  <span>Siswa / Murid</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoleInput('TEACHER')}
+                  className={`min-h-[44px] px-3 py-2 text-xs font-semibold rounded-xl border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    roleInput === 'TEACHER'
+                      ? 'border-[#1D4ED8] bg-blue-50 text-[#1D4ED8] ring-1 ring-[#1D4ED8]'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <GraduationCap className="w-4 h-4 shrink-0" />
+                  <span>Guru / Pengajar</span>
+                </button>
+              </div>
+            </div>
+
             <div>
               <label htmlFor="onboarding-name" className="block text-xs font-semibold text-slate-800 mb-1.5">
-                Nama Lengkap atau Panggilan
+                {roleInput === 'TEACHER' ? 'Nama Guru / Pengajar' : 'Nama Lengkap atau Panggilan'}
               </label>
               <input
                 id="onboarding-name"
@@ -85,10 +137,45 @@ export const StudentOnboardingModal: React.FC = () => {
                 onChange={(e) => setNameInput(e.target.value)}
                 maxLength={32}
                 autoFocus
-                placeholder="Contoh: Hendrikus D. / Siti A."
+                placeholder={
+                  roleInput === 'TEACHER'
+                    ? 'Contoh: Ibu Wilhelmina / Pak Frans'
+                    : 'Contoh: Hendrikus D. / Siti A.'
+                }
                 className="w-full min-h-[44px] px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] bg-white text-slate-900"
               />
             </div>
+
+            {roleInput === 'STUDENT' && (
+              <div>
+                <span className="block text-xs font-semibold text-slate-800 mb-1.5">
+                  Pilih Jenjang Kelasmu
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {(
+                    [
+                      { id: 'SD', label: 'SD (1–6)' },
+                      { id: 'SMP', label: 'SMP (7–9)' },
+                      { id: 'SMA', label: 'SMA (10–12)' },
+                      { id: 'ALL', label: 'Semua' },
+                    ] as const
+                  ).map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTierInput(t.id)}
+                      className={`min-h-[38px] px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                        tierInput === t.id
+                          ? 'border-[#1D4ED8] bg-[#1D4ED8] text-white shadow-2xs'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <span className="block text-xs font-semibold text-slate-800 mb-2">

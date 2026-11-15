@@ -13,6 +13,7 @@ import {
   SneakernetImportSchema,
   DistributeAllSchema,
   ClassroomBroadcastSchema,
+  DiscussionCreateSchema,
 } from '../schemas/sync.schema.js';
 
 export const syncRouter = Router();
@@ -90,6 +91,19 @@ syncRouter.post(
   requireHostPin,
   validateBody(ClassroomBroadcastSchema),
   SyncController.setClassroomBroadcast
+);
+
+// Local zero-quota course discussion board per module
+syncRouter.get('/discussions', SyncController.listDiscussions);
+syncRouter.post(
+  '/discussions',
+  validateBody(DiscussionCreateSchema),
+  SyncController.createDiscussion
+);
+syncRouter.post(
+  '/discussions/:id/pin',
+  requireHostPin,
+  SyncController.togglePinDiscussion
 );
 
 // Host network & QR discovery info
