@@ -1,0 +1,27 @@
+services:
+  ruangpintar-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ruangpintar-edge-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOST_PIN=1945
+      - RUANGPINTAR_DB_PATH=/app/data/ruangpintar-edge.db
+      # Optional: set your Gemini API key if internet/tethering is available on the Teacher Node
+      # - GEMINI_API_KEY=AIzaSy...
+    volumes:
+      - ruangpintar_data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 20s
+      timeout: 4s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  ruangpintar_data:
+    name: ruangpintar_edge_data

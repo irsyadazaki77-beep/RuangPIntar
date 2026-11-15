@@ -1,4 +1,4 @@
-import { getDatabase, closeDatabase } from './connection.js';
+import { getDatabase, closeDatabase, backupDatabase } from './connection.js';
 import { ModuleRepository } from './repositories/module.repository.js';
 import { CacheRepository } from './repositories/cache.repository.js';
 import { QuizRepository } from './repositories/quiz.repository.js';
@@ -7,6 +7,7 @@ import { TransferRepository } from './repositories/transfer.repository.js';
 import { HostConfigRepository } from './repositories/config.repository.js';
 import { PendingQuestionRepository } from './repositories/pendingQuestion.repository.js';
 import { DiscussionRepository } from './repositories/discussion.repository.js';
+import { DeviceRepository } from './repositories/device.repository.js';
 import {
   INITIAL_MODULES,
   INITIAL_PEERS,
@@ -25,6 +26,7 @@ import { config } from '../config/env.js';
 export {
   getDatabase,
   closeDatabase,
+  backupDatabase,
   ModuleRepository,
   CacheRepository,
   QuizRepository,
@@ -33,6 +35,7 @@ export {
   HostConfigRepository,
   PendingQuestionRepository,
   DiscussionRepository,
+  DeviceRepository,
 };
 
 // Aliases matching existing signatures for seamless compatibility

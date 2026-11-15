@@ -26,8 +26,26 @@ export default defineConfig(() => {
           theme_color: '#1D4ED8',
           background_color: '#FFFFFF',
           display: 'standalone',
+          orientation: 'any',
+          categories: ['education', 'productivity'],
           start_url: '/',
           scope: '/',
+          shortcuts: [
+            {
+              name: 'Pustaka Pelajaran Luring',
+              short_name: 'Pustaka',
+              description: 'Buka modul sains dan materi pelajaran tanpa kuota',
+              url: '/',
+              icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }],
+            },
+            {
+              name: 'Tanya Pintar (Tutor AI)',
+              short_name: 'Tanya Pintar',
+              description: 'Ajukan pertanyaan dan dapatkan jawaban dari arsip cerdas lokal',
+              url: '/',
+              icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }],
+            },
+          ],
           icons: [
             {
               src: 'pwa-192x192.png',

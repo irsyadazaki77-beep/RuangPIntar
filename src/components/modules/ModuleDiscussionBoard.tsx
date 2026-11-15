@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MessageSquare, Pin, Send, RefreshCw, ShieldCheck } from 'lucide-react';
 import { apiFetch, safeParseJson } from '../../utils/apiClient';
+import { signStudentPayload } from '../../utils/studentCrypto';
 import type { ModuleDiscussionPost } from '../../utils/edgeEngine';
 import type { SubjectVisualTheme } from '../../utils/subjectTheme';
 
@@ -61,15 +62,21 @@ export const ModuleDiscussionBoard: React.FC<ModuleDiscussionBoardProps> = ({
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
+      const authorEffective = authorName || 'Siswa Lokal';
+      const payloadToSign = `${moduleId}:${authorEffective}:${trimmed}`;
+      const sigData = await signStudentPayload(payloadToSign);
+
       const res = await apiFetch('/api/sync/discussions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           moduleId,
-          authorName: authorName || 'Siswa Lokal',
+          authorName: authorEffective,
           authorRole: 'STUDENT',
           avatar: authorAvatar || '🎓',
           message: trimmed,
+          clientSignature: sigData?.signatureBase64,
+          clientPublicKey: sigData?.publicKeyBase64,
         }),
       });
       const data = (await safeParseJson(res)) as {

@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import Database from 'better-sqlite3';
 import { config } from '../config/env.js';
 
@@ -5,13 +7,60 @@ let dbInstance: Database.Database | null = null;
 
 export function getDatabase(): Database.Database {
   if (!dbInstance) {
-    dbInstance = new Database(config.dbPath);
+    try {
+      dbInstance = new Database(config.dbPath);
+    } catch (err) {
+      // BROWNOUT AUTORECOVERY: If primary SQLite DB is corrupted due to sudden power loss,
+      // recover from the latest rolling snapshot if available.
+      const backupPath = `${config.dbPath}.backup`;
+      if (fs.existsSync(backupPath)) {
+        console.warn(`[SQLITE RECOVERY] Primary DB corrupt, recovering from snapshot ${backupPath}`);
+        try {
+          fs.copyFileSync(backupPath, config.dbPath);
+          dbInstance = new Database(config.dbPath);
+        } catch {
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
+
     dbInstance.pragma('journal_mode = WAL');
     dbInstance.pragma('synchronous = NORMAL');
     dbInstance.pragma('cache_size = -8000'); // 8MB memory cache for resource-constrained 3T edge hosts
     initializeSchema(dbInstance);
   }
   return dbInstance;
+}
+
+/**
+ * Creates an atomic, online non-blocking snapshot of the database for resilience against sudden power loss.
+ */
+export async function backupDatabase(targetPath?: string): Promise<string> {
+  const db = getDatabase();
+  const backupFile = targetPath || `${config.dbPath}.backup`;
+  const tempBackup = `${backupFile}.tmp`;
+
+  try {
+    const parentDir = path.dirname(backupFile);
+    if (!fs.existsSync(parentDir)) {
+      fs.mkdirSync(parentDir, { recursive: true });
+    }
+    await db.backup(tempBackup);
+    if (fs.existsSync(backupFile)) {
+      fs.unlinkSync(backupFile);
+    }
+    fs.renameSync(tempBackup, backupFile);
+    return backupFile;
+  } catch (err) {
+    if (fs.existsSync(tempBackup)) {
+      try {
+        fs.unlinkSync(tempBackup);
+      } catch {}
+    }
+    throw err;
+  }
 }
 
 export function closeDatabase(): void {
@@ -139,6 +188,14 @@ function initializeSchema(db: Database.Database): void {
       is_pinned INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       created_ms INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS student_devices (
+      student_id TEXT PRIMARY KEY,
+      public_key_spki TEXT NOT NULL,
+      device_name TEXT NOT NULL,
+      registered_at TEXT NOT NULL,
+      registered_ms INTEGER NOT NULL
     );
   `);
 }

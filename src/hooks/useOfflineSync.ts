@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { StudentSubmission } from '../utils/edgeEngine';
 import { useMeshNetwork } from '../context/MeshNetworkContext';
 import { apiFetch, safeParseJson } from '../utils/apiClient';
+import { signStudentPayload } from '../utils/studentCrypto';
 
 const OFFLINE_QUEUE_KEY = 'ruangpintar_offline_pending_submissions_v1';
 
@@ -45,10 +46,17 @@ export function useOfflineSync() {
       for (const item of itemsToSync) {
         try {
           const computedScore = Math.min(100, Math.max(0, Math.round(item.quizScore)));
+          const timestamp = item.timestamp || new Date().toISOString();
+          const payloadToSign = `${item.peerId}:${item.moduleId}:${computedScore}:${timestamp}`;
+          const sigData = await signStudentPayload(payloadToSign);
+
           const payloadWithSchema = {
             studentId: item.peerId,
             score: computedScore,
             completedChapters: item.simulationCompleted ? [0, 1] : [0],
+            timestamp,
+            clientSignature: sigData?.signatureBase64,
+            clientPublicKey: sigData?.publicKeyBase64,
             ...item,
           };
           const res = await apiFetch('/api/students/sync-submission', {

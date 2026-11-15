@@ -76,6 +76,44 @@ test('findBestCacheMatch returns zero-quota local cache hit when similarity exce
   assert.equal(miss, null);
 });
 
+test('findBestCacheMatch with Indonesian dialect, typos, and semantic concepts achieves instant cache hit', () => {
+  const waterCycleCache: CacheEntry = {
+    id: 'cache-sd-siklus-air',
+    moduleId: 'mod-sd-siklus-air',
+    subject: 'IPA Dasar',
+    questionCanonical: 'Bagaimana proses siklus air dan terjadinya hujan?',
+    normalizedTokens: normalizeQuestion('Bagaimana proses siklus air dan terjadinya hujan?'),
+    answerMarkdown: 'Air di laut dan sungai menguap (evaporasi), membentuk awan (kondensasi), lalu turun sebagai hujan (presipitasi).',
+    keyConcepts: ['Evaporasi (Penguapan)', 'Kondensasi (Pengembunan)', 'Presipitasi (Hujan)'],
+    createdByStudent: 'Budi (SD Inpres Alor)',
+    createdAt: '09:00 WITA',
+    hitCount: 5,
+    savedQuotaKB: 40,
+    originSource: 'TEACHER_PREWARM',
+  };
+
+  // Colloquial question: "gimana aer bisa jadi uap pas kena panas"
+  const hitColloquial = findBestCacheMatch(
+    'gimana aer bisa jadi uap pas kena panas',
+    'mod-sd-siklus-air',
+    [waterCycleCache],
+    0.35
+  );
+  assert.notEqual(hitColloquial, null, 'Colloquial dialect query must trigger zero-quota cache hit');
+  assert.equal(hitColloquial?.entry.id, 'cache-sd-siklus-air');
+  assert.equal(hitColloquial?.similarityScore! >= 0.35, true);
+
+  // Slight typo question: "Bagaimanakah prses siklus aer dan terjadiny hujn?"
+  const hitTypo = findBestCacheMatch(
+    'Bagaimanakah prses siklus aer dan terjadiny hujn?',
+    'mod-sd-siklus-air',
+    [waterCycleCache],
+    0.42
+  );
+  assert.notEqual(hitTypo, null, 'Typo query must trigger zero-quota cache hit');
+  assert.equal(hitTypo?.entry.id, 'cache-sd-siklus-air');
+});
+
 test('selectOptimalChunkSource prioritizes student peers over Teacher Host to prevent router bottleneck', () => {
   const peers: PeerNode[] = [
     {

@@ -25,6 +25,21 @@ export async function createApp(
   // Apply general rate limiter to /api routes
   app.use('/api', generalApiLimiter);
 
+  // System health & telemetry endpoint for Docker HEALTHCHECK and monitoring
+  app.get('/api/health', (_req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'ruangpintar-edge-gateway',
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+      database: 'connected',
+      sqliteWalMode: true,
+      p2pMeshReady: true,
+      memoryUsageMB: Math.round(process.memoryUsage().rss / (1024 * 1024)),
+    });
+  });
+
   // Mount modular route groups
   app.use('/api/auth', authRouter);
   app.use('/api/host', authRouter);

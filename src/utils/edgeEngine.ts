@@ -316,12 +316,110 @@ const INDONESIAN_STOPWORDS = new Set([
   'bisa', 'dapat', 'akan', 'sudah', 'telah', 'sedang', 'oleh', 'karena',
   'jika', 'kalau', 'bila', 'saat', 'ketika', 'tolong', 'jelaskan', 'sebutkan',
   'uraikan', 'ceritakan', 'kasih', 'tahu', 'dong', 'ya', 'pak', 'bu', 'guru',
-  'kak', 'saya', 'aku', 'kami', 'kita', 'cara', 'maksud', 'arti', 'fungsi'
+  'kak', 'saya', 'aku', 'kami', 'kita', 'cara', 'maksud', 'arti', 'fungsi',
+  'jadi', 'pas', 'bila', 'pun', 'sih', 'kok', 'tuh', 'nih'
 ]);
 
 /**
- * Normalizes an Indonesian educational query into lowercase alphanumeric root tokens
- * and strips common conversational fillers and light suffixes (-nya, -kan, -lah).
+ * Common Indonesian dialect, colloquial slang, chemical formula, and 3T regional variants.
+ */
+const INDONESIAN_DIALECT_MAP: Record<string, string> = {
+  aer: 'air',
+  aek: 'air',
+  banyu: 'air',
+  h2o: 'air',
+  co2: 'karbon',
+  karbondioksida: 'karbon',
+  gimana: 'bagaimana',
+  gmn: 'bagaimana',
+  bgm: 'bagaimana',
+  kenape: 'mengapa',
+  knp: 'mengapa',
+  knpah: 'mengapa',
+  ngapa: 'mengapa',
+  krn: 'karena',
+  karna: 'karena',
+  krna: 'karena',
+  pake: 'pakai',
+  pakek: 'pakai',
+  pkai: 'pakai',
+  make: 'pakai',
+  uap: 'uap',
+  nguap: 'uap',
+  penguapan: 'uap',
+  evaporasi: 'uap',
+  ngembun: 'embun',
+  pengembunan: 'embun',
+  kondensasi: 'embun',
+  presipitasi: 'hujan',
+  anget: 'panas',
+  anget2: 'panas',
+  skrg: 'sekarang',
+  skarang: 'sekarang',
+  dgn: 'dengan',
+  sm: 'dengan',
+  sama: 'dengan',
+  utk: 'untuk',
+  bwt: 'untuk',
+  buat: 'untuk',
+  smbr: 'sumber',
+  letrik: 'listrik',
+  stroom: 'listrik',
+  strom: 'listrik',
+  batre: 'baterai',
+  batere: 'baterai',
+  batrei: 'baterai',
+  plta: 'mikrohidro',
+  hidro: 'mikrohidro',
+  dinamo: 'generator',
+  desal: 'desalinasi',
+  suling: 'desalinasi',
+  penyulingan: 'desalinasi',
+  surya: 'matahari',
+  solar: 'matahari',
+};
+
+/**
+ * Computes standard Levenshtein distance between two short token strings.
+ */
+function computeLevenshteinDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = i;
+    for (let j = 1; j <= b.length; j++) {
+      const val = a[i - 1] === b[j - 1] ? row[j - 1] : Math.min(row[j - 1], row[j], prev) + 1;
+      row[j - 1] = prev;
+      prev = val;
+    }
+    row[b.length] = prev;
+  }
+  return row[b.length];
+}
+
+/**
+ * Determines whether two tokens match exact or within an acceptable 1-2 edit typo boundary.
+ */
+export function isFuzzyTokenMatch(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (a.includes(b) || b.includes(a)) {
+    if (Math.min(a.length, b.length) >= 3) return true;
+  }
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen >= 4) {
+    const dist = computeLevenshteinDistance(a, b);
+    if (dist <= 1) return true;
+    if (maxLen >= 7 && dist <= 2) return true;
+  }
+  return false;
+}
+
+/**
+ * Normalizes an Indonesian educational query into lowercase alphanumeric root tokens,
+ * resolves colloquial/dialect variants, and strips common conversational fillers and light suffixes.
  */
 export function normalizeQuestion(raw: string): string[] {
   if (!raw || typeof raw !== 'string') return [];
@@ -336,13 +434,15 @@ export function normalizeQuestion(raw: string): string[] {
   const tokens = cleaned
     .split(' ')
     .map((word) => {
-      let stem = word;
-      if (stem.length > 5 && stem.endsWith('nya')) {
-        stem = stem.slice(0, -3);
-      } else if (stem.length > 5 && stem.endsWith('lah')) {
-        stem = stem.slice(0, -3);
+      let mapped = INDONESIAN_DIALECT_MAP[word] || word;
+      if (mapped.length > 5 && mapped.endsWith('nya')) {
+        mapped = mapped.slice(0, -3);
+      } else if (mapped.length > 5 && mapped.endsWith('lah')) {
+        mapped = mapped.slice(0, -3);
+      } else if (mapped.length > 5 && mapped.endsWith('kan')) {
+        mapped = mapped.slice(0, -3);
       }
-      return stem;
+      return INDONESIAN_DIALECT_MAP[mapped] || mapped;
     })
     .filter((word) => word.length >= 2 && !INDONESIAN_STOPWORDS.has(word));
 
@@ -364,7 +464,7 @@ function getCharTrigrams(text: string): Set<string> {
 
 /**
  * Computes semantic/lexical similarity [0..1] between two questions in Bahasa Indonesia
- * combining token overlap (Jaccard + containment) and character trigram similarity.
+ * combining token overlap (Jaccard + fuzzy containment) and character trigram similarity.
  */
 export function computeQuestionSimilarity(queryA: string, queryB: string): number {
   const tokensA = normalizeQuestion(queryA);
@@ -381,8 +481,8 @@ export function computeQuestionSimilarity(queryA: string, queryB: string): numbe
       intersection += 1;
     } else {
       for (const b of setB) {
-        if (t.length >= 4 && b.length >= 4 && (t.includes(b) || b.includes(t))) {
-          intersection += 0.75;
+        if (isFuzzyTokenMatch(t, b)) {
+          intersection += 0.85;
           break;
         }
       }
@@ -414,7 +514,7 @@ export interface CacheMatchResult {
 
 /**
  * Searches the Teacher Host Node's local cache for a matching question.
- * Prioritizes same-module matches while also allowing high-confidence cross-module hits.
+ * Prioritizes same-module matches, semantic concept alignment, and allows high-confidence hits.
  */
 export function findBestCacheMatch(
   question: string,
@@ -425,10 +525,40 @@ export function findBestCacheMatch(
   let bestEntry: CacheEntry | null = null;
   let bestScore = 0;
 
+  const queryTokens = normalizeQuestion(question);
+
   for (const entry of cacheEntries) {
     const rawScore = computeQuestionSimilarity(question, entry.questionCanonical);
-    const moduleBonus = entry.moduleId === moduleId ? 0.06 : 0;
-    const effectiveScore = Math.min(1, Number((rawScore + (rawScore >= 0.3 ? moduleBonus : 0)).toFixed(4)));
+
+    // Concept text similarity score
+    const conceptString =
+      entry.keyConcepts && entry.keyConcepts.length > 0 ? entry.keyConcepts.join(' ') : '';
+    const conceptScore = conceptString ? computeQuestionSimilarity(question, conceptString) : 0;
+
+    // Direct concept token coverage
+    let conceptCoverage = 0;
+    if (entry.keyConcepts && entry.keyConcepts.length > 0 && queryTokens.length > 0) {
+      let matchedCount = 0;
+      for (const concept of entry.keyConcepts) {
+        const cTokens = normalizeQuestion(concept);
+        if (cTokens.some((ct) => queryTokens.some((qt) => isFuzzyTokenMatch(qt, ct)))) {
+          matchedCount++;
+        }
+      }
+      conceptCoverage = matchedCount / entry.keyConcepts.length;
+    }
+
+    // Blend: canonical match + concept alignment
+    const blendedBase = Math.max(rawScore, rawScore * 0.5 + conceptScore * 0.6);
+    const conceptBoost = conceptCoverage * 0.25;
+    const moduleBonus = entry.moduleId === moduleId ? 0.08 : 0;
+
+    const effectiveScore = Math.min(
+      1,
+      Number(
+        (blendedBase + conceptBoost + (blendedBase >= 0.14 ? moduleBonus : 0)).toFixed(4)
+      )
+    );
 
     if (effectiveScore > bestScore) {
       bestScore = effectiveScore;

@@ -1,0 +1,16 @@
+node_modules
+dist
+dev-dist
+build
+coverage
+*.log
+.git
+.env
+.env.*
+!package*.json
+*.db
+*.db*
+ruangpintar-edge.db*
+.DS_Store
+.aistudio
+.playwright-cli

@@ -88,6 +88,15 @@ test('server REST API and WebSocket integration test', async () => {
   const activePin = getCurrentHostPin();
 
   try {
+    // 0. Test /api/health
+    const healthRes = await fetch(`${baseUrl}/api/health`);
+    assert.equal(healthRes.status, 200);
+    const healthData = await healthRes.json();
+    assert.equal(healthData.status, 'ok');
+    assert.equal(healthData.service, 'ruangpintar-edge-gateway');
+    assert.equal(healthData.database, 'connected');
+    assert.equal(typeof healthData.uptimeSeconds, 'number');
+
     // 1. Test /api/state
     const stateRes = await fetch(`${baseUrl}/api/state`);
     assert.equal(stateRes.status, 200);
@@ -559,6 +568,69 @@ test('FASE 6: Cache hit deduplication, offline AI queue, exam mode lock, distrib
     assert.equal(listDiscRes.status, 200);
     const listDiscData = await listDiscRes.json();
     assert.equal(listDiscData.posts.some((p: { id: string }) => p.id === postDiscData.post.id), true);
+
+    // 5c. Student cryptographic device signature verification & anti-impersonation
+    const cryptoNode = await import('crypto');
+    const keyPair1 = cryptoNode.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const pubKey1Base64 = keyPair1.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+
+    const testStudentId = `peer-siswa-sig-test-${Date.now()}`;
+    const testTimestamp = new Date().toISOString();
+    const payloadString = `${testStudentId}:mod-fisika-mikrohidro:95:${testTimestamp}`;
+
+    const signer = cryptoNode.createSign('SHA256');
+    signer.update(payloadString);
+    signer.end();
+    const validSignature = signer.sign(keyPair1.privateKey).toString('base64');
+
+    // 1. First submission registers keyPair1 for testStudentId -> 200 OK
+    const signedSubRes = await fetch(`${baseUrl}/api/students/sync-submission`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studentId: testStudentId,
+        moduleId: 'mod-fisika-mikrohidro',
+        score: 95,
+        timestamp: testTimestamp,
+        clientSignature: validSignature,
+        clientPublicKey: pubKey1Base64,
+        studentName: 'Siswa Terverifikasi',
+      }),
+    });
+    assert.equal(signedSubRes.status, 200);
+
+    // 2. An attacker generates keyPair2 and tries to submit as testStudentId -> 403 Forbidden
+    const keyPair2 = cryptoNode.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const pubKey2Base64 = keyPair2.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+    const attackerSigner = cryptoNode.createSign('SHA256');
+    attackerSigner.update(payloadString);
+    attackerSigner.end();
+    const attackerSignature = attackerSigner.sign(keyPair2.privateKey).toString('base64');
+
+    const impersonateRes = await fetch(`${baseUrl}/api/students/sync-submission`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studentId: testStudentId,
+        moduleId: 'mod-fisika-mikrohidro',
+        score: 100,
+        timestamp: testTimestamp,
+        clientSignature: attackerSignature,
+        clientPublicKey: pubKey2Base64,
+        studentName: 'Attacker Impersonator',
+      }),
+    });
+    assert.equal(impersonateRes.status, 403);
+    const impersonateData = await impersonateRes.json();
+    assert.equal(impersonateData.error.includes('pemalsuan identitas'), true);
+
+    // 5d. Online non-blocking SQLite database backup
+    const { backupDatabase } = await import('./db/index.js');
+    const backupResult = await backupDatabase();
+    assert.equal(typeof backupResult, 'string');
+    assert.equal(backupResult.endsWith('.backup'), true);
+    const fsNode = await import('fs');
+    assert.equal(fsNode.existsSync(backupResult), true);
 
     // 6. Changing PIN revokes old config.hostPin in verifyPinTimingSafe
     const { HostConfigRepository } = await import('./db/index.js');

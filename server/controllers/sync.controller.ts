@@ -18,6 +18,7 @@ import {
   exportSneakernetPackage,
   importSneakernetPackage,
 } from '../db/index.js';
+import { verifyStudentSignature } from '../utils/studentSignature.js';
 import { config } from '../config/env.js';
 import {
   ProgressSyncSchema,
@@ -46,6 +47,25 @@ export class SyncController {
 
     const effectivePeerId = parsed.peerId || parsed.studentId;
     const effectiveStudentName = parsed.studentName || parsed.studentId;
+
+    // Verify ECDSA student device cryptographic signature (Anti-Impersonation)
+    const payloadToVerify = `${parsed.studentId}:${parsed.moduleId}:${parsed.score}:${parsed.timestamp}`;
+    const sigCheck = verifyStudentSignature(
+      parsed.studentId,
+      payloadToVerify,
+      parsed.clientSignature,
+      parsed.clientPublicKey,
+      effectiveStudentName
+    );
+
+    if (!sigCheck.valid) {
+      res.status(403).json({
+        ok: false,
+        error: sigCheck.reason || 'Autentikasi identitas perangkat siswa gagal.',
+      });
+      return;
+    }
+
     const totalQuestions = parsed.totalQuestions ?? 1;
     const quizScore =
       parsed.quizScore ?? Math.round((parsed.score / 100) * totalQuestions);
@@ -578,6 +598,24 @@ export class SyncController {
     const parsed: DiscussionCreatePayload =
       (req.validatedBody as DiscussionCreatePayload | undefined) ??
       DiscussionCreateSchema.parse(req.body);
+
+    const authorId = `${parsed.authorName}-${parsed.avatar}`;
+    const payloadToVerify = `${parsed.moduleId}:${parsed.authorName}:${parsed.message}`;
+    const sigCheck = verifyStudentSignature(
+      authorId,
+      payloadToVerify,
+      parsed.clientSignature,
+      parsed.clientPublicKey,
+      parsed.authorName
+    );
+
+    if (!sigCheck.valid) {
+      res.status(403).json({
+        ok: false,
+        error: sigCheck.reason || 'Autentikasi identitas perangkat forum gagal.',
+      });
+      return;
+    }
 
     const post: ModuleDiscussionPost = {
       id: `disc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,

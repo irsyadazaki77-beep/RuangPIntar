@@ -39,6 +39,9 @@ export const ProgressSyncSchema = z.object({
   totalQuestions: z.number().int().min(1).optional(),
   passed: z.boolean().optional(),
   simulationCompleted: z.boolean().optional(),
+  // Kriptografi identitas perangkat (ECDSA P-256) anti-pemalsuan
+  clientSignature: z.string().trim().optional(),
+  clientPublicKey: z.string().trim().optional(),
 });
 
 export type ProgressSyncPayload = z.infer<typeof ProgressSyncSchema>;
@@ -141,6 +144,9 @@ export const DiscussionCreateSchema = z.object({
     .trim()
     .min(3, 'Pesan diskusi minimal 3 karakter')
     .max(800, 'Pesan diskusi maksimal 800 karakter'),
+  // Kriptografi identitas perangkat (ECDSA P-256) anti-pemalsuan
+  clientSignature: z.string().trim().optional(),
+  clientPublicKey: z.string().trim().optional(),
 });
 
 export type DiscussionCreatePayload = z.infer<typeof DiscussionCreateSchema>;

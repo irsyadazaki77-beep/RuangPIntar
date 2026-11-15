@@ -8,6 +8,7 @@ coverage/
 .env*
 !.env.example
 *.db
+*.db*
 *.db-shm
 *.db-wal
 .playwright-cli/

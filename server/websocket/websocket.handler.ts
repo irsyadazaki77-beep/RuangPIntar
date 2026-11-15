@@ -55,23 +55,32 @@ export class WebSocketHandler {
         })
       );
 
-      // Notify other connected peer tabs to initiate WebRTC DataChannel handshake
+      // CLUSTER TOPOLOGY: Limit initial WebRTC peer handshakes to max 4 peers per client (K-cluster)
+      // to protect low-end mobile devices and cheap 3T Wi-Fi routers from O(N^2) connection crashes.
+      let peerHandshakeCount = 0;
+      const MAX_CLUSTER_PEERS = 4;
+
       for (const [otherWs, meta] of this.clients.entries()) {
         if (otherWs !== ws && otherWs.readyState === WebSocket.OPEN) {
-          otherWs.send(
-            JSON.stringify({
-              type: 'webrtc:peer-joined',
-              remoteClientId: clientId,
-            })
-          );
+          if (peerHandshakeCount < MAX_CLUSTER_PEERS) {
+            otherWs.send(
+              JSON.stringify({
+                type: 'webrtc:peer-joined',
+                remoteClientId: clientId,
+              })
+            );
+            peerHandshakeCount++;
+          }
         }
         if (otherWs !== ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(
-            JSON.stringify({
-              type: 'webrtc:existing-peer',
-              remoteClientId: meta.clientId,
-            })
-          );
+          if (peerHandshakeCount < MAX_CLUSTER_PEERS) {
+            ws.send(
+              JSON.stringify({
+                type: 'webrtc:existing-peer',
+                remoteClientId: meta.clientId,
+              })
+            );
+          }
         }
       }
 
@@ -84,10 +93,31 @@ export class WebSocketHandler {
               : new Uint8Array(raw as ArrayBuffer);
             const decoded = decodeBinaryChunkPayload(buf);
             if (decoded && decoded.valid) {
-              // Relay binary frame to other connected peer tabs
-              for (const [targetWs] of this.clients.entries()) {
-                if (targetWs !== ws && targetWs.readyState === WebSocket.OPEN) {
-                  targetWs.send(buf, { binary: true });
+              // TARGETED UNICAST RELAY:
+              // Only deliver to the intended recipient peer to eliminate AP router flooding.
+              const targetPeerId = decoded.toPeerId;
+              let delivered = false;
+
+              if (targetPeerId) {
+                for (const [targetWs, meta] of this.clients.entries()) {
+                  if (
+                    targetWs !== ws &&
+                    targetWs.readyState === WebSocket.OPEN &&
+                    meta.peerId === targetPeerId
+                  ) {
+                    targetWs.send(buf, { binary: true });
+                    delivered = true;
+                    break;
+                  }
+                }
+              }
+
+              // Fallback: If targetPeerId wasn't identified by peerId, deliver only to target by clientId if matching
+              if (!delivered && !targetPeerId) {
+                for (const [targetWs] of this.clients.entries()) {
+                  if (targetWs !== ws && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(buf, { binary: true });
+                  }
                 }
               }
             }

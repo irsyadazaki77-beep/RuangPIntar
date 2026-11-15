@@ -1,25 +1,28 @@
 # 🌊 RuangPintar Edge (LMS Terdesentralisasi Wilayah 3T)
 
+[![CI](https://github.com/irsyadazaki77-beep/RuangPIntar/actions/workflows/ci.yml/badge.svg)](https://github.com/irsyadazaki77-beep/RuangPIntar/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.0-61dafb.svg)](https://react.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4.0-38bdf8.svg)](https://tailwindcss.com/)
 [![SQLite](https://img.shields.io/badge/SQLite-WAL--Mode-003b57.svg)](https://www.sqlite.org/)
 [![PWA](https://img.shields.io/badge/PWA-Offline--Ready-orange.svg)](https://web.dev/progressive-web-apps/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ed.svg)](Dockerfile)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> **Platform Learning Management System (LMS) terdesentralisasi offline-first berbasis WebRTC P2P Data Channels dan Single-Gateway Cloud AI dengan cache lokal untuk mendukung pendidikan berkualitas di wilayah 3T (Tertinggal, Terdepan, Terluar) Indonesia.**
+> **Platform Learning Management System (LMS) terdesentralisasi offline-first berbasis WebRTC P2P Data Channels, Kriptografi Perangkat Siswa (ECDSA P-256), dan Single-Gateway Cloud AI dengan cache lokal untuk mendukung pendidikan berkualitas di wilayah 3T (Tertinggal, Terdepan, Terluar) Indonesia.**
 
 ---
 
 ## 🎯 Latar Belakang & Masalah di Wilayah 3T
 Sekolah-sekolah di wilayah kepulauan dan pedalaman Indonesia menghadapi tantangan nyata:
-1. **Konektivitas Internet Minim / Mahal:** Sinyal seluler tidak stabil dan kuota internet satelit sangat mahal bagi sekolah dan siswa.
-2. **Keterbatasan Bandwidth Router Kelas:** Jika 30 siswa mengunduh modul bersamaan dari laptop guru, router Wi-Fi lokal akan mengalami *bottleneck*.
+1. **Konektivitas Internet Minim & Mahal:** Sinyal seluler tidak stabil dan kuota internet satelit sangat mahal bagi sekolah dan siswa.
+2. **Keterbatasan Bandwidth Router Kelas:** Jika 30 siswa mengunduh modul bersamaan dari laptop guru, router Wi-Fi lokal akan mengalami *bottleneck* dan freeze.
 3. **Ketergantungan Pembelajaran Digital pada Cloud:** Sebagian besar platform LMS modern lumpuh total saat koneksi internet terputus.
+4. **Keaslian Nilai & Keamanan Tanpa Akun Cloud:** Dalam jaringan luring tanpa server OAuth terpusat, pengiriman nilai rawan dipalsukan antar-siswa (*identity impersonation*).
 
 ---
 
-## 🚀 Solusi & Pilar Arsitektur RuangPintar Edge
+## 🚀 Solusi & Arsitektur Sistem
 
 ```
                      ┌───────────────────────────────────┐
@@ -33,38 +36,57 @@ Sekolah-sekolah di wilayah kepulauan dan pedalaman Indonesia menghadapi tantanga
                      │  - Express + WebSocket Signaling  │
                      │  - SQLite (WAL Mode) Local Cache  │
                      │  - Authoritative Module Chunks    │
+                     │  - ECDSA P-256 Device Verifier    │
+                     │  - Hot Backup & Brownout Recovery │
                      └───────▲───────────────────▲───────┘
                              │                   │
-         WebRTC DataChannel  │                   │ WebRTC DataChannel
+         WebRTC DataChannel  │ (Unicast Relay)   │ WebRTC DataChannel
            (Chunk Biner)     │                   │   (Chunk Biner)
                              ▼                   ▼
                      ┌───────────────┐   ┌───────────────┐
                      │ Siswa A (Peer)│◄─►│ Siswa B (Peer)│
                      │ IndexedDB IDB │   │ IndexedDB IDB │
+                     │ ECDSA KeyPair │   │ ECDSA KeyPair │
                      └───────────────┘   └───────────────┘
                                 ▲             ▲
                                 └─── WebRTC ──┘
                              (P2P Mesh Swarm Kelas)
 ```
 
-### 1. Jaringan Mesh P2P WebRTC DataChannel (SCTP)
+---
+
+## 💎 6 Pilar Keunggulan Rekayasa
+
+### 1. Jaringan Mesh P2P WebRTC DataChannel (SCTP) & K-Cluster Topology
 * Modul kurikulum dipecah menjadi **16 pecahan biner (RPE1 Binary Frame)** dengan header 32-byte.
-* Siswa yang telah mengunduh beberapa pecahan bertindak sebagai *seeder* bagi rekan sekelasnya via WebRTC DataChannel.
-* **0 KB Kuota Internet ISP:** Seluruh distribusi materi antar gawai berlangsung 100% di jaringan Wi-Fi lokal.
+* **Targeted Unicast Relay**: Menggantikan broadcast biner yang memenuhi router kelas dengan transmisi terarah langsung ke peer target (`toPeerId`).
+* **K-Cluster Topology**: Membatasi handshake WebRTC maksimal **4 peer per gawai** (`MAX_CLUSTER_PEERS = 4`) guna mencegah $O(N^2)$ koneksi yang dapat membuat browser pada ponsel siswa Android murah mengalami crash.
+* **0 KB Kuota Internet ISP:** Seluruh distribusi materi antar gawai berlangsung 100% di jaringan Wi-Fi lokal sekolah.
 
-### 2. Single-Gateway Cloud AI & Local Semantic Cache
+### 2. Single-Gateway Cloud AI & Cache Semantik Cerdas Berbahasa Daerah
 * Hanya laptop guru yang membutuhkan sambungan internet/tethering satelit (*Single-Gateway*).
-* Pertanyaan siswa ke Tutor AI terlebih dahulu dicocokkan dengan **Cache Semantik Lokal di SQLite** (threshold kesamaan kata kunci $\ge 0.45$).
-* Jika ada kecocokan (*Cache Hit*), jawaban dilayani seketika (**0 ms latensi, 0 KB kuota**).
+* **Kamus Dialek Lisan 3T (`INDONESIAN_DIALECT_MAP`)**: Memetakan kata sehari-hari siswa (contoh: `aer`/`banyu` $\rightarrow$ `air`, `gimana` $\rightarrow$ `bagaimana`, `pake` $\rightarrow$ `pakai`, `krn` $\rightarrow$ `karena`, `h2o` $\rightarrow$ `air`, `co2` $\rightarrow$ `karbon`, `evaporasi` $\rightarrow$ `uap`, `presipitasi` $\rightarrow$ `hujan`).
+* **Pencocokan Tipografi Toleran & Pembobotan Konsep**: Pertanyaan lisan seperti *"gimana aer bisa jadi uap pas kena panas"* langsung cocok dengan arsip *"Bagaimana proses siklus air dan terjadinya hujan?"*, menghasilkan jawaban instan (**0 ms latensi, 0 KB kuota**).
 * Jika *Cache Miss* dan guru online, request diteruskan ke **Gemini 3.8 Flash**. Jawaban yang diperoleh otomatis di-cache ke SQLite lokal agar pertanyaan berikutnya dari rekan sekelas gratis kuota.
-* Jika offline total, sistem otomatis menggunakan **Local Curriculum Edge Synthesis**.
+* Jika offline total, sistem otomatis mengaktifkan **Local Curriculum Edge Synthesis**.
 
-### 3. Progressive Web App (PWA) & IndexedDB Persistence
+### 3. Tanda Tangan Kriptografis Perangkat Siswa (ECDSA P-256 via Web Crypto)
+* Kunci privat ECDSA P-256 dibuat langsung di peramban siswa dan disimpan aman di `IndexedDB` lokal.
+* Setiap pengiriman nilai kuis dan pos forum ditandatangani secara digital dengan format DER Base64.
+* Server Simpul Guru memvalidasi tanda tangan dan mengikat *public key* ke `studentId` pada tabel `student_devices`. Siswa lain tidak dapat memalsukan nama temannya (*impersonation rejected with HTTP 403*).
+
+### 4. Hot Backup Non-Blocking & Brownout Auto-Recovery
+* Pemadaman listrik mendadak di daerah 3T sering merusak berkas database SQLite.
+* `backupDatabase()` menjalankan pencadangan hot non-blocking ke berkas pementasan `.tmp` lalu di-*atomic rename* ke `${config.dbPath}.backup`.
+* Mekanisme *brownout startup recovery* mendeteksi kerusakan berkas saat booting dan memulihkan data dari salinan backup secara otomatis.
+
+### 5. Progressive Web App (PWA) & IndexedDB Persistence
 * Seluruh asset frontend dan simulasi di-precache menggunakan Service Worker (`vite-plugin-pwa` & Workbox).
-* Potongan modul yang telah diunduh siswa tersimpan aman di `IndexedDB` (`RuangPintarEdgeIDB`) dengan *fallback* `localStorage`, sehingga tidak hilang saat tab browser ditutup atau di-reload.
+* Potongan modul yang telah diunduh siswa tersimpan aman di `IndexedDB` (`RuangPintarEdgeIDB`) dengan *fallback* `localStorage`.
+* Dilengkapi *Web App Shortcuts* (Pustaka Luring & Tanya Pintar) dan dukungan *Add to Home Screen* di Android.
 
-### 4. 6 Simulasi Sains & Vokasi Terapan Interaktif
-Dilengkapi modul pembelajaran dan kalkulator interaktif kontekstual alam kepulauan Indonesia:
+### 6. 6 Simulasi Sains & Vokasi Terapan Kontekstual 3T
+Dilengkapi modul pembelajaran dan kalkulator sains interaktif:
 1. 🌊 **Mikrohidro Pesisir & Sungai:** Perhitungan debit ($Q$), tinggi jatuh air ($H$), dan efisiensi turbin Pelton/Crossflow.
 2. 🌿 **Biologi Ekosistem Mangrove:** Kalkulasi zona redaman gelombang dan mitigasi abrasi pantai.
 3. ☀️ **PLTS Terdesentralisasi & Baterai LiFePO4:** Perancangan kapasitas panel surya dan *Depth-of-Discharge (DoD)* baterai desa.
@@ -78,16 +100,18 @@ Dilengkapi modul pembelajaran dan kalkulator interaktif kontekstual alam kepulau
 
 * **Frontend:** React 19, TypeScript 5.8, Tailwind CSS v4, Motion (Framer Motion), Lucide React.
 * **Build Tool & PWA:** Vite 8, `vite-plugin-pwa` (Workbox).
-* **Backend & P2P:** Node.js, Express, WebSocket (`ws`), WebRTC (RTCDataChannel).
-* **Database:** `better-sqlite3` (SQLite dengan mode Write-Ahead Logging / WAL).
+* **Backend & P2P:** Node.js 20, Express, WebSocket (`ws`), WebRTC (RTCDataChannel).
+* **Database:** `better-sqlite3` (SQLite mode WAL & Online Backup API).
+* **Security & Auth:** Web Crypto API (Client ECDSA P-256), Node.js `crypto` (Server SHA-256 verification), Zod runtime validation.
 * **AI Engine:** Google GenAI SDK (`@google/genai` - Gemini 3.8 Flash).
+* **Containerization:** Docker multi-stage build, Docker Compose.
 
 ---
 
 ## 📦 Panduan Instalasi & Penggunaan
 
 ### 1. Prasyarat
-* [Node.js](https://nodejs.org/) v20+ atau [Bun](https://bun.sh/)
+* [Node.js](https://nodejs.org/) v20+ atau [Docker](https://www.docker.com/)
 * Git
 
 ### 2. Clone Repository
@@ -96,19 +120,14 @@ git clone https://github.com/irsyadazaki77-beep/RuangPIntar.git
 cd RuangPIntar
 ```
 
-### 3. Instalasi Dependensi
+### 3. Instalasi Dependensi & Lingkungan
 ```bash
 npm install
-```
-
-### 4. Konfigurasi Lingkungan (`.env`)
-Salin file `.env.example` menjadi `.env`:
-```bash
 cp .env.example .env
 ```
 Isi konfigurasi pada `.env`:
 ```env
-# Gemini API Key untuk Gateway AI Guru (Dapatkan gratis di https://aistudio.google.com/app/apikey)
+# Gemini API Key untuk Gateway AI Guru (Opsional jika offline)
 GEMINI_API_KEY="AIzaSy..."
 
 # Port server lokal Laptop Guru (default: 3000)
@@ -121,35 +140,52 @@ HOST_PIN="1945"
 RUANGPINTAR_DB_PATH="./ruangpintar-edge.db"
 ```
 
-### 5. Menjalankan Server Pengembangan
-* **Cara Cepat (Windows):** Cukup klik ganda (double click) file **`jalankan-simpul-guru.bat`** di folder utama. Server akan aktif dan browser otomatis membuka `http://localhost:3000`.
-* **Cara Manual (Terminal):**
+### 4. Menjalankan Server Pengembangan
+
+* **Opsi A — Cara Cepat (Windows):** Klik ganda berkas **`jalankan-simpul-guru.bat`**. Browser akan otomatis membuka `http://localhost:3000`.
+* **Opsi B — Terminal:**
   ```bash
   npm run dev
   ```
-Buka browser di `http://localhost:3000`.
+* **Opsi C — Docker / Edge Server (Raspberry Pi & Linux):**
+  ```bash
+  docker compose up -d
+  ```
+
+---
+
+## ⚡ Live Multi-Peer Swarm Simulator CLI
+
+Ingin melihat simulasi pertukaran pecahan antar 3 gawai siswa secara langsung di terminal tanpa perlu 3 ponsel fisik?
+
+1. Jalankan server di satu terminal:
+   ```bash
+   npm run dev
+   ```
+2. Buka terminal kedua dan jalankan simulator swarm:
+   ```bash
+   npm run demo:swarm
+   ```
+Sistem akan menghubungkan 3 siswa virtual (Alor, Rote, Natuna) dan menukar pecahan biner modul secara live via WebRTC DataChannel dengan kalkulasi penghematan kuota ISP!
 
 ---
 
 ## 🔒 Hak Akses Simpul Guru & Distribusi Sneakernet
 * Untuk membuka tab **Simpul Guru & Cache**, masukkan PIN default: **`1945`**.
 * Guru dapat mengubah PIN kapan saja di panel pengaturan Simpul Guru.
-* Endpoint verifikasi PIN dilengkapi proteksi *cooldown* otomatis (maksimal 5 kali salah per menit) untuk mencegah percobaan tebakan siswa.
-* **Fitur Sneakernet (USB Flashdisk):** Guru dapat mengunduh paket data modul kurikulum & cache (`.json`) saat berada di kota berinternet, lalu membawanya via flashdisk untuk diimpor ke laptop sekolah pedalaman tanpa kuota internet satelit.
+* Endpoint verifikasi PIN dilengkapi proteksi *cooldown rate-limiting* otomatis untuk mencegah *brute-force*.
+* **Fitur Sneakernet (USB Flashdisk):** Guru dapat mengekspor paket data modul kurikulum & cache (`.json`) saat berada di kota berinternet, lalu mengimpornya via flashdisk ke laptop sekolah pedalaman tanpa kuota satelit.
 
 ---
 
-## 🧪 Pengujian Unit & Validasi Kode
+## 🧪 Pengujian Kualitas Kode (Quality Gate)
 
 ```bash
-# Menjalankan 10 unit test engine edge, checksum, dan simulasi
+# Menjalankan seluruh Quality Gate (Lint + 20 Unit & Integration Tests + Vite Build)
+npm run check
+
+# Atau jalankan pengujian unit secara spesifik:
 npm test
-
-# Pengecekan tipe data TypeScript
-npm run lint
-
-# Kompilasi build PWA produksi
-npm run build
 ```
 
 ---
@@ -158,35 +194,43 @@ npm run build
 
 ```text
 RuangPIntar/
+├── .github/workflows/      # CI/CD Pipeline GitHub Actions
 ├── public/                 # Favicon, ikon PWA manifest, dan aset statis
+├── scripts/
+│   └── simulate-mesh-swarm.ts # Simulator 3 siswa virtual pertukaran chunk
+├── server/
+│   ├── config/             # Konfigurasi env & konstanta keamanan
+│   ├── controllers/        # Controller AI, Auth, dan Sync
+│   ├── db/                 # SQLite connection, hot-backup & repositories
+│   ├── middleware/         # Auth, validation, rateLimiter, errorHandler
+│   ├── routes/             # Modular express routes (/api/auth, /api/sync, dll)
+│   ├── schemas/            # Skema validasi Zod
+│   ├── state/              # In-memory authoritative classroom state
+│   ├── utils/              # Verifikasi tanda tangan kriptografi siswa
+│   ├── websocket/          # WebSocket signaling & targeted unicast relay
+│   ├── app.ts              # Express factory & /api/health endpoint
+│   └── server.test.ts      # Automated server API & security integration tests
 ├── src/
-│   ├── assets/images/      # Ilustrasi kurikulum & hero banner
 │   ├── components/
-│   │   ├── modules/        # Kartu kuis, glosarium, kalkulator inline
+│   │   ├── modules/        # ModuleHeroHeader, ModuleSidebarCatalog, Quiz, Discussion
 │   │   ├── simulations/    # 6 Komponen simulasi interaktif sains 3T
 │   │   ├── AiTutorGatewayView.tsx    # Antarmuka Single-Gateway AI & Cache
-│   │   ├── InteractiveSimulations.tsx # Switcher simulasi
+│   │   ├── InteractiveSimulations.tsx # Switcher simulasi sains
 │   │   ├── MeshTopologyView.tsx      # Visualisasi topologi jaringan P2P
-│   │   ├── ModuleLibraryView.tsx     # Pustaka materi & reader mode
-│   │   ├── PWAInstallButton.tsx      # Tombol install PWA & status online
+│   │   ├── ModuleLibraryView.tsx     # Pustaka materi terbagi modular
 │   │   └── TeacherHostView.tsx       # Simpul Guru (Manajemen modul & PIN)
 │   ├── utils/
-│   │   ├── clientStorage.ts          # IndexedDB & localStorage manager
-│   │   ├── db.ts                     # SQLite (better-sqlite3) data layer
-│   │   ├── edgeEngine.ts             # Algoritma P2P chunking, RPE1 binary, cache matcher
-│   │   ├── edgeEngine.test.ts        # Unit test suite
-│   │   ├── seedData.ts               # Data modul, peers, dan cache awal
-│   │   └── subjectTheme.ts           # Desain tema warna tiap mata pelajaran
-│   ├── App.tsx             # Root application component & WebRTC orchestration
-│   ├── index.css           # Tailwind v4 styles, ambient background, bento cards
+│   │   ├── edgeEngine.ts             # Algoritma P2P chunking, dialek, cache matcher
+│   │   ├── edgeEngine.test.ts        # Unit test suite engine edge
+│   │   ├── studentCrypto.ts          # Web Crypto ECDSA P-256 keypair manager
+│   │   └── seedData.ts               # Data modul, peers, dan cache awal
+│   ├── App.tsx             # Root application component
 │   └── main.tsx            # React root DOM mount
-├── .env.example            # Template variabel lingkungan
-├── .gitignore              # Daftar file yang diabaikan Git
-├── index.html              # HTML entry point PWA
-├── package.json            # Daftar dependensi & npm scripts
-├── server.ts               # Express, WebSocket signaling, SQLite host, Gemini gateway
-├── tsconfig.json           # Konfigurasi TypeScript
-└── vite.config.ts          # Vite & VitePWA configuration
+├── Dockerfile              # Multi-stage container untuk edge/Raspberry Pi
+├── docker-compose.yml      # Orchestration container Simpul Guru
+├── LICENSE                 # Lisensi resmi MIT
+├── CONTRIBUTING.md         # Panduan kontribusi modul & kurikulum
+└── vite.config.ts          # Vite & PWA configuration
 ```
 
 ---

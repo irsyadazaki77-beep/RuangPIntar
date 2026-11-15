@@ -10,6 +10,10 @@
     "start": "tsx server.ts",
     "preview": "vite preview",
     "test": "tsx --test src/utils/edgeEngine.test.ts server/server.test.ts",
+    "check": "npm run lint && npm test && npm run build",
+    "demo:swarm": "tsx scripts/simulate-mesh-swarm.ts",
+    "docker:build": "docker build -t ruangpintar-edge .",
+    "docker:run": "docker run -p 3000:3000 -v ruangpintar_data:/app/data ruangpintar-edge",
     "clean": "node -e \"try { fs.rmSync('dist', { recursive: true, force: true }); } catch {}\"",
     "lint": "tsc --noEmit"
   },
