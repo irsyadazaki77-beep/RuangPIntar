@@ -43,6 +43,17 @@ export function formatTimeWITA(): string {
   return `${hh}:${mm}:${ss} WITA`;
 }
 
+export type DeltaTopic =
+  | 'modules'
+  | 'peers'
+  | 'transfers'
+  | 'cache'
+  | 'submissions'
+  | 'broadcast'
+  | 'discussions'
+  | 'gateway'
+  | 'pending_ai';
+
 class ClassroomStateManager {
   private modules: LearningModule[] = [];
   private peers: PeerNode[] = [];
@@ -55,6 +66,10 @@ class ClassroomStateManager {
   private cloudQueriesCount = 4;
   private broadcaster: (() => void) | null = null;
   private binaryBroadcaster: ((frame: Uint8Array) => void) | null = null;
+  private deltaBroadcaster:
+    | ((topic: DeltaTopic, payload: unknown, metrics: SwarmMetrics) => void)
+    | null = null;
+  private connectedWsClientsGetter: (() => number) | null = null;
 
   constructor() {
     this.reloadFromDatabase();
@@ -106,14 +121,39 @@ class ClassroomStateManager {
 
   public setBroadcaster(
     stateBroadcaster: () => void,
-    binaryBroadcaster: (frame: Uint8Array) => void
+    binaryBroadcaster: (frame: Uint8Array) => void,
+    deltaBroadcaster?: (topic: DeltaTopic, payload: unknown, metrics: SwarmMetrics) => void,
+    connectedWsClientsGetter?: () => number
   ): void {
     this.broadcaster = stateBroadcaster;
     this.binaryBroadcaster = binaryBroadcaster;
+    this.deltaBroadcaster = deltaBroadcaster ?? null;
+    this.connectedWsClientsGetter = connectedWsClientsGetter ?? null;
+  }
+
+  public getConnectedWsClientsCount(): number {
+    return this.connectedWsClientsGetter ? this.connectedWsClientsGetter() : 0;
+  }
+
+  public getMetrics(): SwarmMetrics {
+    return calculateSwarmMetrics(
+      this.peers,
+      this.transferHistory,
+      this.cacheEntries,
+      this.cloudQueriesCount
+    );
   }
 
   public broadcastState(): void {
     if (this.broadcaster) {
+      this.broadcaster();
+    }
+  }
+
+  public broadcastDelta(topic: DeltaTopic, payload: unknown): void {
+    if (this.deltaBroadcaster) {
+      this.deltaBroadcaster(topic, payload, this.getMetrics());
+    } else if (this.broadcaster) {
       this.broadcaster();
     }
   }
@@ -125,12 +165,7 @@ class ClassroomStateManager {
   }
 
   public getFullState(): ClassroomFullState {
-    const metrics = calculateSwarmMetrics(
-      this.peers,
-      this.transferHistory,
-      this.cacheEntries,
-      this.cloudQueriesCount
-    );
+    const metrics = this.getMetrics();
     const submissions = QuizRepository.loadSubmissions(100);
 
     return {
@@ -161,6 +196,29 @@ class ClassroomStateManager {
     ModuleRepository.saveAll(this.modules);
   }
 
+  public updateModule(id: string, updated: LearningModule): boolean {
+    const idx = this.modules.findIndex((m) => m.id === id);
+    if (idx < 0) return false;
+    this.modules[idx] = updated;
+    ModuleRepository.save(updated, idx);
+    return true;
+  }
+
+  public deleteModule(id: string): boolean {
+    const idx = this.modules.findIndex((m) => m.id === id);
+    if (idx < 0) return false;
+    this.modules.splice(idx, 1);
+    ModuleRepository.delete(id);
+    // Clean module chunk references on peers
+    for (const p of this.peers) {
+      if (p.moduleChunks[id]) {
+        delete p.moduleChunks[id];
+      }
+    }
+    PeerRepository.saveAll(this.peers);
+    return true;
+  }
+
   // Peers
   public getPeers(): PeerNode[] {
     return this.peers;
@@ -168,6 +226,14 @@ class ClassroomStateManager {
 
   public savePeers(): void {
     PeerRepository.saveAll(this.peers);
+  }
+
+  public removePeer(id: string): boolean {
+    const target = this.peers.find((p) => p.id === id);
+    if (!target || target.role === 'HOST') return false;
+    this.peers = this.peers.filter((p) => p.id !== id);
+    PeerRepository.saveAll(this.peers);
+    return true;
   }
 
   // Transfer history
@@ -198,6 +264,22 @@ class ClassroomStateManager {
     }
     this.cacheEntries.unshift(entry);
     CacheRepository.saveAll(this.cacheEntries);
+  }
+
+  public updateCacheEntry(id: string, updated: CacheEntry): boolean {
+    const idx = this.cacheEntries.findIndex((c) => c.id === id);
+    if (idx < 0) return false;
+    this.cacheEntries[idx] = updated;
+    CacheRepository.save(updated, idx);
+    return true;
+  }
+
+  public deleteCacheEntry(id: string): boolean {
+    const idx = this.cacheEntries.findIndex((c) => c.id === id);
+    if (idx < 0) return false;
+    this.cacheEntries.splice(idx, 1);
+    CacheRepository.delete(id);
+    return true;
   }
 
   // Pending AI Questions (Offline Queue)
@@ -238,6 +320,9 @@ class ClassroomStateManager {
   // Recent queries
   public addRecentQuery(query: TutorAskResponse): void {
     this.recentQueries.unshift(query);
+    if (this.recentQueries.length > 30) {
+      this.recentQueries.length = 30;
+    }
   }
 
   // Gateway Tethering

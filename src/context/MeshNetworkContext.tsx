@@ -116,6 +116,8 @@ interface MeshNetworkContextType {
   tutorPromptDraft: string | null;
   setTutorPromptDraft: (prompt: string | null) => void;
   applyServerState: (data: ServerStatePayload) => void;
+  applyDeltaEvent: (topic: string, data: unknown, nextMetrics?: SwarmMetrics) => void;
+  discussionEventRevision: number;
   isQrScannerOpen: boolean;
   setIsQrScannerOpen: (open: boolean) => void;
   openQrScanner: () => void;
@@ -148,6 +150,7 @@ export const MeshNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [simulatedOfflineMode, setSimulatedOfflineMode] = useState<boolean>(false);
   const [isQrScannerOpen, setIsQrScannerOpen] = useState<boolean>(false);
   const [customHostUrl, setCustomHostUrl] = useState<string | null>(() => loadCustomHostUrl());
+  const [discussionEventRevision, setDiscussionEventRevision] = useState<number>(0);
 
   const openQrScanner = useCallback(() => setIsQrScannerOpen(true), []);
   const closeQrScanner = useCallback(() => setIsQrScannerOpen(false), []);
@@ -227,6 +230,100 @@ export const MeshNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, []);
 
+  const applyDeltaEvent = useCallback(
+    (topic: string, data: unknown, nextMetrics?: SwarmMetrics) => {
+      if (nextMetrics) {
+        setMetrics(nextMetrics);
+      }
+
+      switch (topic) {
+        case 'modules': {
+          const payload = data as { modules?: LearningModule[]; peers?: PeerNode[] } | LearningModule[];
+          if (Array.isArray(payload)) {
+            setModules(payload);
+          } else if (payload && typeof payload === 'object') {
+            if (Array.isArray(payload.modules)) setModules(payload.modules);
+            if (Array.isArray(payload.peers)) setPeers(payload.peers);
+          }
+          break;
+        }
+        case 'peers': {
+          if (Array.isArray(data)) {
+            const peerList = data as PeerNode[];
+            setPeers(peerList);
+            const currentPeerId = studentPeerIdRef.current || STUDENT_PEER_ID;
+            const studentPeer = peerList.find((p) => p.id === currentPeerId);
+            if (studentPeer) {
+              void saveClientDownloadedChunks(currentPeerId, studentPeer.moduleChunks);
+            }
+          }
+          break;
+        }
+        case 'transfers': {
+          const payload = data as {
+            peers?: PeerNode[];
+            transferHistory?: ChunkTransferEvent[];
+          };
+          if (Array.isArray(payload?.peers)) {
+            setPeers(payload.peers);
+            const currentPeerId = studentPeerIdRef.current || STUDENT_PEER_ID;
+            const studentPeer = payload.peers.find((p) => p.id === currentPeerId);
+            if (studentPeer) {
+              void saveClientDownloadedChunks(currentPeerId, studentPeer.moduleChunks);
+            }
+          }
+          if (Array.isArray(payload?.transferHistory)) {
+            setTransferHistory(payload.transferHistory);
+          }
+          break;
+        }
+        case 'cache': {
+          const payload = data as {
+            cacheEntries?: CacheEntry[];
+            recentQueries?: TutorAskResponse[];
+            pendingAiQuestions?: PendingAiQuestion[];
+          };
+          if (Array.isArray(payload?.cacheEntries)) setCacheEntries(payload.cacheEntries);
+          if (Array.isArray(payload?.recentQueries)) setRecentQueries(payload.recentQueries);
+          if (Array.isArray(payload?.pendingAiQuestions)) {
+            setPendingAiQuestions(payload.pendingAiQuestions);
+          }
+          break;
+        }
+        case 'pending_ai': {
+          if (Array.isArray(data)) {
+            setPendingAiQuestions(data as PendingAiQuestion[]);
+          }
+          break;
+        }
+        case 'submissions': {
+          if (Array.isArray(data)) {
+            setSubmissions(data as StudentSubmission[]);
+          }
+          break;
+        }
+        case 'broadcast': {
+          setClassroomBroadcast((data as ClassroomBroadcast | null) ?? null);
+          break;
+        }
+        case 'gateway': {
+          const payload = data as { gatewayTetheringOnline?: boolean };
+          if (typeof payload?.gatewayTetheringOnline === 'boolean') {
+            setGatewayTetheringOnline(payload.gatewayTetheringOnline);
+          }
+          break;
+        }
+        case 'discussions': {
+          setDiscussionEventRevision((rev) => rev + 1);
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    []
+  );
+
   const value = useMemo(
     () => ({
       activeTab,
@@ -276,6 +373,8 @@ export const MeshNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
       tutorPromptDraft,
       setTutorPromptDraft,
       applyServerState,
+      applyDeltaEvent,
+      discussionEventRevision,
       isQrScannerOpen,
       setIsQrScannerOpen,
       openQrScanner,
@@ -309,6 +408,8 @@ export const MeshNetworkProvider: React.FC<{ children: React.ReactNode }> = ({ c
       isOfflineActive,
       tutorPromptDraft,
       applyServerState,
+      applyDeltaEvent,
+      discussionEventRevision,
       isQrScannerOpen,
       openQrScanner,
       closeQrScanner,

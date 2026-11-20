@@ -39,6 +39,12 @@ export class PeerRepository {
     return rows.map((r) => JSON.parse(r.peer_json) as PeerNode);
   }
 
+  static delete(id: string): boolean {
+    const db = getDatabase();
+    const result = db.prepare('DELETE FROM peer_nodes WHERE id = ?').run(id);
+    return result.changes > 0;
+  }
+
   static count(): number {
     const db = getDatabase();
     const row = db.prepare('SELECT COUNT(*) as cnt FROM peer_nodes').get() as { cnt: number };

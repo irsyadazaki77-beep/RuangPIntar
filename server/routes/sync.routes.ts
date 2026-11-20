@@ -14,6 +14,8 @@ import {
   DistributeAllSchema,
   ClassroomBroadcastSchema,
   DiscussionCreateSchema,
+  ModuleUpdateSchema,
+  SubmissionUpdateSchema,
 } from '../schemas/sync.schema.js';
 
 export const syncRouter = Router();
@@ -32,6 +34,17 @@ syncRouter.post(
   validateBody(ProgressSyncSchema),
   SyncController.syncSubmission
 );
+syncRouter.put(
+  '/submissions/:id',
+  requireHostPin,
+  validateBody(SubmissionUpdateSchema),
+  SyncController.updateSubmission
+);
+syncRouter.delete(
+  '/submissions/:id',
+  requireHostPin,
+  SyncController.deleteSubmission
+);
 
 // P2P WebRTC mesh synchronization (Zod validated, no dummy fallbacks)
 syncRouter.post(
@@ -49,6 +62,7 @@ syncRouter.post(
   validateBody(TransferPackageSchema),
   SyncController.resetPeer
 );
+syncRouter.delete('/peers/:id', requireHostPin, SyncController.deletePeer);
 
 // Sneakernet Package Export / Import (Rate limited + Protected by Teacher PIN)
 syncRouter.get(
@@ -74,8 +88,15 @@ syncRouter.post(
 // Gateway tethering control (Protected by Teacher PIN)
 syncRouter.post('/gateway/toggle', requireHostPin, SyncController.toggleGateway);
 
-// Publish module (Protected by Teacher PIN)
+// Module CRUD (Protected by Teacher PIN)
 syncRouter.post('/modules', requireHostPin, SyncController.publishModule);
+syncRouter.put(
+  '/modules/:id',
+  requireHostPin,
+  validateBody(ModuleUpdateSchema),
+  SyncController.updateModule
+);
+syncRouter.delete('/modules/:id', requireHostPin, SyncController.deleteModule);
 
 // One-click distribute module to all connected student peers (Protected by Teacher PIN)
 syncRouter.post(
@@ -104,6 +125,11 @@ syncRouter.post(
   '/discussions/:id/pin',
   requireHostPin,
   SyncController.togglePinDiscussion
+);
+syncRouter.delete(
+  '/discussions/:id',
+  requireHostPin,
+  SyncController.deleteDiscussion
 );
 
 // Host network & QR discovery info

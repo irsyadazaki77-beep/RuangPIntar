@@ -65,6 +65,34 @@ export class QuizRepository {
     }));
   }
 
+  static findById(id: string): StudentSubmission | null {
+    const db = getDatabase();
+    const r = db
+      .prepare('SELECT * FROM student_submissions WHERE id = ?')
+      .get(id) as SubmissionRow | undefined;
+    if (!r) return null;
+    return {
+      id: r.id,
+      peerId: r.peer_id,
+      studentName: r.student_name,
+      avatar: r.avatar,
+      moduleId: r.module_id,
+      moduleTitle: r.module_title,
+      quizScore: r.quiz_score,
+      totalQuestions: r.total_questions,
+      passed: Boolean(r.passed),
+      simulationCompleted: Boolean(r.simulation_completed),
+      timestamp: r.timestamp,
+      updatedMs: r.updated_ms,
+    };
+  }
+
+  static deleteSubmission(id: string): boolean {
+    const db = getDatabase();
+    const result = db.prepare('DELETE FROM student_submissions WHERE id = ?').run(id);
+    return result.changes > 0;
+  }
+
   static count(): number {
     const db = getDatabase();
     const row = db.prepare('SELECT COUNT(*) as cnt FROM student_submissions').get() as { cnt: number };

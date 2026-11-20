@@ -14,6 +14,7 @@ import {
 export const authRouter = Router();
 
 // Session Token Authentication
+authRouter.get('/session', AuthController.checkSession);
 authRouter.post('/login', pinVerificationLimiter, AuthController.login);
 authRouter.post('/logout', AuthController.logout);
 
@@ -27,6 +28,7 @@ authRouter.post(
   requireHostPin,
   AuthController.changePin
 );
+authRouter.post('/backup', requireHostPin, SyncController.triggerBackup);
 authRouter.get(
   '/export-package',
   packageTransferLimiter,

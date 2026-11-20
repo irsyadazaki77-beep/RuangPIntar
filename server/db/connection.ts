@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import { config } from '../config/env.js';
 
 let dbInstance: Database.Database | null = null;
+let lastBackupTimestamp: string | null = null;
 
 export function getDatabase(): Database.Database {
   if (!dbInstance) {
@@ -35,6 +36,43 @@ export function getDatabase(): Database.Database {
 }
 
 /**
+ * Checks SQLite connectivity and integrity using PRAGMA quick_check.
+ */
+export function checkDatabaseHealth(): { ok: boolean; walMode: boolean; integrity: string } {
+  try {
+    const db = getDatabase();
+    const journalRow = db.pragma('journal_mode', { simple: true }) as string;
+    const integrityRow = db.pragma('quick_check(1)', { simple: true }) as string;
+    return {
+      ok: integrityRow === 'ok',
+      walMode: String(journalRow).toLowerCase() === 'wal',
+      integrity: String(integrityRow),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      walMode: false,
+      integrity: err instanceof Error ? err.message : 'error',
+    };
+  }
+}
+
+export function getLastBackupAt(): string | null {
+  if (lastBackupTimestamp) return lastBackupTimestamp;
+  const backupPath = `${config.dbPath}.backup`;
+  try {
+    if (fs.existsSync(backupPath)) {
+      const stat = fs.statSync(backupPath);
+      lastBackupTimestamp = stat.mtime.toISOString();
+      return lastBackupTimestamp;
+    }
+  } catch {
+    // Ignore fs stat errors
+  }
+  return null;
+}
+
+/**
  * Creates an atomic, online non-blocking snapshot of the database for resilience against sudden power loss.
  */
 export async function backupDatabase(targetPath?: string): Promise<string> {
@@ -52,6 +90,7 @@ export async function backupDatabase(targetPath?: string): Promise<string> {
       fs.unlinkSync(backupFile);
     }
     fs.renameSync(tempBackup, backupFile);
+    lastBackupTimestamp = new Date().toISOString();
     return backupFile;
   } catch (err) {
     if (fs.existsSync(tempBackup)) {
@@ -196,6 +235,12 @@ function initializeSchema(db: Database.Database): void {
       device_name TEXT NOT NULL,
       registered_at TEXT NOT NULL,
       registered_ms INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS pin_lockouts (
+      client_ip TEXT PRIMARY KEY,
+      attempt_count INTEGER NOT NULL DEFAULT 0,
+      locked_until INTEGER NOT NULL DEFAULT 0
     );
   `);
 }

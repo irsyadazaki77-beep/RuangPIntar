@@ -1,19 +1,13 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Download,
   RefreshCw,
   ArrowLeft,
   ArrowRight,
-  Search,
-  Share2,
   MessageSquare,
-  Award,
   ChevronDown,
   ChevronUp,
-  Sliders,
-  HelpCircle,
-  FileText,
   Layers,
   Maximize2,
   Minimize2,
@@ -28,8 +22,6 @@ import {
   Sun,
   FlaskConical,
   Target,
-  School,
-  Library,
   Bot,
 } from 'lucide-react';
 import { playIndonesianSpeech, stopSpeech } from '../utils/speechUtils';
@@ -66,6 +58,7 @@ interface Props {
   onNavigateTab: (tab: 'pustaka' | 'mesh' | 'tutor' | 'guru') => void;
   onAskTutorWithPrompt?: (moduleId: string, questionPrompt: string) => void;
   isSyncing: boolean;
+  teacherSessionToken?: string | null;
   onSyncStudentSubmission?: (payload: { moduleId: string; moduleTitle: string; quizScore: number; totalQuestions: number; passed: boolean; simulationCompleted: boolean }) => void;
 }
 
@@ -101,6 +94,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
   onNavigateTab,
   onAskTutorWithPrompt,
   isSyncing,
+  teacherSessionToken,
   onSyncStudentSubmission,
 }) => {
   const { studentProfile, classroomBroadcast } = useMeshNetwork();
@@ -182,12 +176,38 @@ export const ModuleLibraryView: React.FC<Props> = ({
   const [copiedNote, setCopiedNote] = useState<boolean>(false);
   const [revealedExerciseSteps, setRevealedExerciseSteps] = useState<Record<string, number>>({});
 
-  // Student gamification, timed quiz challenge & mission states
-  const [completedMissions, setCompletedMissions] = useState<Record<string, boolean>>({});
-  const [studentXp, setStudentXp] = useState<number>(345);
-  const [quizStreak, setQuizStreak] = useState<number>(1);
-  const [quizCorrectCount, setQuizCorrectCount] = useState<number>(1);
-  const [quizTimedWinsCount, setQuizTimedWinsCount] = useState<number>(0);
+  // Student gamification, timed quiz challenge & mission states (persisted locally for offline continuity)
+  const loadSavedProgress = () => {
+    try {
+      const raw = window.localStorage.getItem('ruangpintar_student_progress_v1');
+      if (!raw) return null;
+      return JSON.parse(raw) as {
+        completedMissions?: Record<string, boolean>;
+        studentXp?: number;
+        quizStreak?: number;
+        quizCorrectCount?: number;
+        quizTimedWinsCount?: number;
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const [completedMissions, setCompletedMissions] = useState<Record<string, boolean>>(
+    () => loadSavedProgress()?.completedMissions ?? {}
+  );
+  const [studentXp, setStudentXp] = useState<number>(
+    () => loadSavedProgress()?.studentXp ?? 345
+  );
+  const [quizStreak, setQuizStreak] = useState<number>(
+    () => loadSavedProgress()?.quizStreak ?? 1
+  );
+  const [quizCorrectCount, setQuizCorrectCount] = useState<number>(
+    () => loadSavedProgress()?.quizCorrectCount ?? 1
+  );
+  const [quizTimedWinsCount, setQuizTimedWinsCount] = useState<number>(
+    () => loadSavedProgress()?.quizTimedWinsCount ?? 0
+  );
   const [isTimedQuizMode, setIsTimedQuizMode] = useState<boolean>(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(30);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
@@ -195,6 +215,23 @@ export const ModuleLibraryView: React.FC<Props> = ({
     message: string;
     xpDelta: number;
   } | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        'ruangpintar_student_progress_v1',
+        JSON.stringify({
+          completedMissions,
+          studentXp,
+          quizStreak,
+          quizCorrectCount,
+          quizTimedWinsCount,
+        })
+      );
+    } catch {
+      // Ignore storage quota errors
+    }
+  }, [completedMissions, studentXp, quizStreak, quizCorrectCount, quizTimedWinsCount]);
 
   useEffect(() => {
     try {
@@ -558,6 +595,24 @@ export const ModuleLibraryView: React.FC<Props> = ({
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <button
                     type="button"
+                    onClick={() => {
+                      if (onAskTutorWithPrompt) {
+                        onAskTutorWithPrompt(
+                          activeModule.id,
+                          `Jelaskan rangkuman rumus utama dan studi kasus lapangan dari modul ${activeModule.title}!`
+                        );
+                      } else {
+                        onNavigateTab('tutor');
+                      }
+                    }}
+                    className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer border ${activeTheme.softBg} ${activeTheme.accentText} ${activeTheme.softBorder} hover:opacity-90`}
+                  >
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>Tanya Pintar</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => setIsFocusReaderMode((prev) => !prev)}
                     className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer border ${
                       isFocusReaderMode
@@ -749,24 +804,6 @@ export const ModuleLibraryView: React.FC<Props> = ({
                     <MessageSquare className="w-4 h-4 shrink-0" />
                     <span>4. Forum Kelas</span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onAskTutorWithPrompt) {
-                        onAskTutorWithPrompt(
-                          activeModule.id,
-                          `Jelaskan rangkuman rumus utama dan studi kasus lapangan dari modul ${activeModule.title}!`
-                        );
-                      } else {
-                        onNavigateTab('tutor');
-                      }
-                    }}
-                    className={`min-h-[46px] px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${activeTheme.softBg} ${activeTheme.accentText} border ${activeTheme.softBorder} hover:opacity-90`}
-                  >
-                    <Bot className="w-4 h-4 shrink-0" />
-                    <span>4. Tanya Pintar →</span>
-                  </button>
                 </div>
               </div>
 
@@ -938,7 +975,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                                 }}
                                 className={`min-h-[44px] px-3.5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 shadow-2xs border ${
                                   speakingChapterIndex === idx
-                                    ? 'bg-amber-500 text-white border-transparent shadow-xs animate-pulse ring-2 ring-amber-300'
+                                    ? 'bg-amber-600 text-white border-transparent shadow-xs ring-2 ring-amber-300'
                                     : 'bg-sky-50/90 text-sky-900 border-sky-200 hover:bg-sky-100'
                                 }`}
                                 title="Dengarkan pembacaan teks otomatis untuk bab ini"
@@ -1289,6 +1326,7 @@ export const ModuleLibraryView: React.FC<Props> = ({
                   authorName={studentProfile.studentName}
                   authorAvatar={studentProfile.avatar}
                   theme={activeTheme}
+                  teacherSessionToken={teacherSessionToken}
                 />
               )}
             </div>

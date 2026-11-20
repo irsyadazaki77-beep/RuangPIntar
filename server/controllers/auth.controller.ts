@@ -2,21 +2,50 @@ import crypto from 'crypto';
 import type { Request, Response } from 'express';
 import {
   verifyPinTimingSafe,
-  getCurrentHostPin,
+  hashPinScrypt,
   extractBearerToken,
 } from '../middleware/authMiddleware.js';
 import {
   HostConfigRepository,
   HostSessionRepository,
+  PinLockoutRepository,
 } from '../db/repositories/config.repository.js';
-import {
-  validateHostPinChange,
-} from '../../src/utils/edgeEngine.js';
 import { SECURITY_CONSTANTS } from '../config/env.js';
 
-const failedPinAttempts = new Map<string, { count: number; lockedUntil: number }>();
-
 export class AuthController {
+  /**
+   * GET /api/auth/session
+   * Validates the active Bearer token against SQLite host_sessions.
+   */
+  public static checkSession(req: Request, res: Response): void {
+    const token = extractBearerToken(req);
+    if (!token) {
+      res.status(401).json({
+        ok: false,
+        valid: false,
+        error: 'Token sesi tidak ditemukan.',
+      });
+      return;
+    }
+
+    const session = HostSessionRepository.getSession(token);
+    if (!session) {
+      res.status(401).json({
+        ok: false,
+        valid: false,
+        error: 'Sesi Simpul Guru tidak valid atau telah kedaluwarsa.',
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      valid: true,
+      expiresAt: session.expiresAt,
+      createdAt: session.createdAt,
+    });
+  }
+
   /**
    * POST /api/auth/login
    * Authenticates teacher PIN and issues a secure 8-hour session token.
@@ -24,7 +53,7 @@ export class AuthController {
   public static login(req: Request, res: Response): void {
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
     const now = Date.now();
-    const record = failedPinAttempts.get(clientIp);
+    const record = PinLockoutRepository.get(clientIp);
 
     if (record && record.lockedUntil > now) {
       const waitSec = Math.ceil((record.lockedUntil - now) / 1000);
@@ -40,7 +69,8 @@ export class AuthController {
 
     const candidate = String(req.body?.pin || '').trim();
     if (candidate && verifyPinTimingSafe(candidate)) {
-      failedPinAttempts.delete(clientIp);
+      PinLockoutRepository.clear(clientIp);
+      HostSessionRepository.cleanExpired();
 
       const rawToken = crypto.randomBytes(32).toString('hex');
       const session = HostSessionRepository.create(rawToken);
@@ -54,12 +84,9 @@ export class AuthController {
       return;
     }
 
-    const currentCount = (record?.count || 0) + 1;
+    const currentCount = (record && record.lockedUntil <= now && record.lockedUntil > 0 ? 0 : record?.count || 0) + 1;
     if (currentCount >= SECURITY_CONSTANTS.MAX_PIN_ATTEMPTS) {
-      failedPinAttempts.set(clientIp, {
-        count: currentCount,
-        lockedUntil: now + SECURITY_CONSTANTS.LOCKOUT_DURATION_MS,
-      });
+      PinLockoutRepository.set(clientIp, currentCount, now + SECURITY_CONSTANTS.LOCKOUT_DURATION_MS);
       res.status(429).json({
         success: false,
         ok: false,
@@ -70,7 +97,7 @@ export class AuthController {
       return;
     }
 
-    failedPinAttempts.set(clientIp, { count: currentCount, lockedUntil: 0 });
+    PinLockoutRepository.set(clientIp, currentCount, 0);
     res.status(401).json({
       success: false,
       ok: false,
@@ -103,7 +130,7 @@ export class AuthController {
   public static verifyPin(req: Request, res: Response): void {
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
     const now = Date.now();
-    const record = failedPinAttempts.get(clientIp);
+    const record = PinLockoutRepository.get(clientIp);
 
     if (record && record.lockedUntil > now) {
       const waitSec = Math.ceil((record.lockedUntil - now) / 1000);
@@ -119,17 +146,14 @@ export class AuthController {
 
     const candidate = String(req.body?.pin || req.header('x-host-pin') || '').trim();
     if (candidate && verifyPinTimingSafe(candidate)) {
-      failedPinAttempts.delete(clientIp);
+      PinLockoutRepository.clear(clientIp);
       res.json({ ok: true, valid: true });
       return;
     }
 
-    const currentCount = (record?.count || 0) + 1;
+    const currentCount = (record && record.lockedUntil <= now && record.lockedUntil > 0 ? 0 : record?.count || 0) + 1;
     if (currentCount >= SECURITY_CONSTANTS.MAX_PIN_ATTEMPTS) {
-      failedPinAttempts.set(clientIp, {
-        count: currentCount,
-        lockedUntil: now + SECURITY_CONSTANTS.LOCKOUT_DURATION_MS,
-      });
+      PinLockoutRepository.set(clientIp, currentCount, now + SECURITY_CONSTANTS.LOCKOUT_DURATION_MS);
       res.status(429).json({
         ok: false,
         valid: false,
@@ -140,7 +164,7 @@ export class AuthController {
       return;
     }
 
-    failedPinAttempts.set(clientIp, { count: currentCount, lockedUntil: 0 });
+    PinLockoutRepository.set(clientIp, currentCount, 0);
     res.status(401).json({
       ok: false,
       valid: false,
@@ -151,18 +175,30 @@ export class AuthController {
   public static changePin(req: Request, res: Response): void {
     const currentPin = String(req.body?.currentPin || req.header('x-host-pin') || '').trim();
     const newPin = String(req.body?.newPin || '').trim();
-    const activeHostPin = getCurrentHostPin();
 
-    const validation = validateHostPinChange(currentPin, activeHostPin, newPin);
-    if (!validation.valid) {
-      res.status(400).json({ ok: false, error: validation.error });
+    if (!currentPin || !verifyPinTimingSafe(currentPin)) {
+      res.status(400).json({ ok: false, error: 'PIN saat ini tidak sesuai.' });
+      return;
+    }
+    if (!newPin || newPin.length < 4 || newPin.length > 12) {
+      res.status(400).json({ ok: false, error: 'PIN baru harus terdiri dari 4 hingga 12 karakter.' });
+      return;
+    }
+    if (newPin === currentPin) {
+      res.status(400).json({ ok: false, error: 'PIN baru tidak boleh sama dengan PIN sebelumnya.' });
       return;
     }
 
-    HostConfigRepository.set('host_pin', newPin);
+    // Store salted scrypt hash in SQLite host_config
+    HostConfigRepository.set('host_pin', hashPinScrypt(newPin));
+
+    // Revoke any other sessions while keeping the caller's current token active
+    const callerToken = extractBearerToken(req);
+    HostSessionRepository.revokeAllExcept(callerToken);
+
     res.json({
       ok: true,
-      message: 'PIN Keamanan Simpul Guru berhasil diperbarui dan disimpan di SQLite lokal.',
+      message: 'PIN Keamanan Simpul Guru berhasil diperbarui dengan hash scrypt dan disimpan di SQLite lokal.',
     });
   }
 }

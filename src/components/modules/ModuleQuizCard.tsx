@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Lightbulb,
@@ -12,8 +12,6 @@ import {
   BookOpen,
   Volume2,
   VolumeX,
-  Star,
-  Award,
   Target,
   Trophy,
   Shuffle,
@@ -310,12 +308,12 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
               key={`${activeModule.id}-q-${originalQuestionIdx}`}
               className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 space-y-4 shadow-2xs"
             >
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className={`font-bold px-3 py-1 rounded-full ${theme.softBg} ${theme.accentText}`}>
-                  SOAL 0{displayIdx + 1}
+              <div className="flex items-center justify-between gap-2 text-xs pb-2 border-b border-slate-100">
+                <span className={`font-mono font-bold uppercase tracking-wider ${theme.accentText}`}>
+                  SOAL 0{displayIdx + 1} / 0{totalQuestions}
                 </span>
                 {cp.difficulty && (
-                  <span className="text-slate-500 font-semibold">Tingkat: {cp.difficulty}</span>
+                  <span className="text-slate-500 font-medium">Tingkat: {cp.difficulty}</span>
                 )}
               </div>
 
@@ -386,7 +384,7 @@ export const ModuleQuizCard: React.FC<ModuleQuizCardProps> = ({
                               </span>
                             ) : (
                               <span className="text-amber-800 flex items-center gap-1 font-bold">
-                                <span>💡</span>
+                                <Lightbulb className="w-3.5 h-3.5" />
                                 <span className="hidden sm:inline">Coba Lagi</span>
                               </span>
                             )}

@@ -1,10 +1,20 @@
-import { getDatabase, closeDatabase, backupDatabase } from './connection.js';
+import {
+  getDatabase,
+  closeDatabase,
+  backupDatabase,
+  checkDatabaseHealth,
+  getLastBackupAt,
+} from './connection.js';
 import { ModuleRepository } from './repositories/module.repository.js';
 import { CacheRepository } from './repositories/cache.repository.js';
 import { QuizRepository } from './repositories/quiz.repository.js';
 import { PeerRepository } from './repositories/peer.repository.js';
 import { TransferRepository } from './repositories/transfer.repository.js';
-import { HostConfigRepository } from './repositories/config.repository.js';
+import {
+  HostConfigRepository,
+  HostSessionRepository,
+  PinLockoutRepository,
+} from './repositories/config.repository.js';
 import { PendingQuestionRepository } from './repositories/pendingQuestion.repository.js';
 import { DiscussionRepository } from './repositories/discussion.repository.js';
 import { DeviceRepository } from './repositories/device.repository.js';
@@ -27,12 +37,16 @@ export {
   getDatabase,
   closeDatabase,
   backupDatabase,
+  checkDatabaseHealth,
+  getLastBackupAt,
   ModuleRepository,
   CacheRepository,
   QuizRepository,
   PeerRepository,
   TransferRepository,
   HostConfigRepository,
+  HostSessionRepository,
+  PinLockoutRepository,
   PendingQuestionRepository,
   DiscussionRepository,
   DeviceRepository,

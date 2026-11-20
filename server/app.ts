@@ -6,8 +6,14 @@ import { authRouter } from './routes/auth.routes.js';
 import { aiRouter } from './routes/ai.routes.js';
 import { syncRouter } from './routes/sync.routes.js';
 import { generalApiLimiter } from './middleware/rateLimiter.js';
-import { notFoundHandler, centralErrorHandler } from './middleware/errorHandler.js';
+import {
+  requestIdMiddleware,
+  notFoundHandler,
+  centralErrorHandler,
+} from './middleware/errorHandler.js';
 import { SECURITY_CONSTANTS } from './config/env.js';
+import { checkDatabaseHealth, getLastBackupAt } from './db/index.js';
+import { classroomState } from './state/classroomState.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,7 +25,8 @@ export async function createApp(
 ): Promise<Express> {
   const app = express();
 
-  // Basic security and parsing
+  // Request tracing & JSON body parsing
+  app.use(requestIdMiddleware);
   app.use(express.json({ limit: SECURITY_CONSTANTS.MAX_REQUEST_BODY_SIZE }));
 
   // Apply general rate limiter to /api routes
@@ -27,15 +34,22 @@ export async function createApp(
 
   // System health & telemetry endpoint for Docker HEALTHCHECK and monitoring
   app.get('/api/health', (_req, res) => {
-    res.json({
-      status: 'ok',
+    const dbHealth = checkDatabaseHealth();
+    res.status(dbHealth.ok ? 200 : 503).json({
+      status: dbHealth.ok ? 'ok' : 'degraded',
       service: 'ruangpintar-edge-gateway',
-      version: '1.0.0',
+      version: '1.1.0',
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
-      database: 'connected',
-      sqliteWalMode: true,
+      database: dbHealth.ok ? 'connected' : 'error',
+      sqliteWalMode: dbHealth.walMode,
+      sqliteIntegrity: dbHealth.integrity,
       p2pMeshReady: true,
+      connectedWsClients: classroomState.getConnectedWsClientsCount(),
+      modulesCount: classroomState.getModules().length,
+      cacheEntriesCount: classroomState.getCacheEntries().length,
+      pendingAiQueueCount: classroomState.getPendingAiQuestions().length,
+      lastBackupAt: getLastBackupAt(),
       memoryUsageMB: Math.round(process.memoryUsage().rss / (1024 * 1024)),
     });
   });

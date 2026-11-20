@@ -39,79 +39,110 @@ export function buildCurriculumSynthesis(
   };
 }
 
-export async function queryGeminiGateway(
-  question: string,
-  selectedModule: LearningModule
-): Promise<{
+export interface GeminiGatewayResult {
   answerMarkdown: string;
   keyConcepts: string[];
   quotaBytesUsed: number;
-} | null> {
+}
+
+export interface GeminiGatewayOutcome {
+  result: GeminiGatewayResult | null;
+  errorReason?: string;
+}
+
+function isRetryableGeminiError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  const status = (err as { status?: number })?.status;
+  if (status && (status === 429 || status >= 500)) return true;
+  return /429|500|502|503|504|ECONNRESET|ETIMEDOUT|fetch failed|network/i.test(msg);
+}
+
+export async function queryGeminiGateway(
+  question: string,
+  selectedModule: LearningModule
+): Promise<GeminiGatewayOutcome> {
   const apiKey = config.geminiApiKey;
   const hasConfiguredKey =
     Boolean(apiKey) && apiKey !== 'MY_GEMINI_API_KEY' && apiKey!.trim().length > 10;
-  if (!classroomState.isGatewayTetheringOnline() || !hasConfiguredKey) {
-    return null;
+  if (!classroomState.isGatewayTetheringOnline()) {
+    return { result: null, errorReason: 'Gateway tethering guru sedang offline.' };
+  }
+  if (!hasConfiguredKey) {
+    return { result: null, errorReason: 'GEMINI_API_KEY belum dikonfigurasi pada Simpul Guru.' };
   }
 
-  try {
-    const ai = new GoogleGenAI({
-      apiKey: config.geminiApiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
+  const ai = new GoogleGenAI({
+    apiKey: config.geminiApiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
       },
-    });
+    },
+  });
 
-    const systemInstruction =
-      `Anda adalah Tutor AI RuangPintar Edge yang beroperasi di Simpul Lokal (Edge Gateway) Laptop Guru untuk membantu siswa SMA/SMK di wilayah 3T (Tertinggal, Terdepan, Terluar) Indonesia.\n\n` +
-      `Konteks Modul Saat Ini:\n- Judul: "${selectedModule.title}"\n- Bidang Studi: ${selectedModule.subject} (${selectedModule.gradeLevel})\n- Ringkasan: ${selectedModule.summary}\n\n` +
-      `Prinsip Respon Pembelajaran:\n` +
-      `1. Efisien & Padat: Langsung ke inti materi tanpa kalimat basa-basi pembuka/penutup untuk menghemat kuota satelit.\n` +
-      `2. Kontekstual Wilayah 3T: Hubungkan konsep sains/teknik dengan analogi nyata di desa, kepulauan, dan pesisir Indonesia.\n` +
-      `3. Struktur Wajib: Bagi penjelasan menjadi 3 bagian: (a) Konsep Inti, (b) Rumus & Contoh Perhitungan Konkret bila ada, (c) Penerapan Lapangan di Daerah 3T.`;
+  const systemInstruction =
+    `Anda adalah Tutor AI RuangPintar Edge yang beroperasi di Simpul Lokal (Edge Gateway) Laptop Guru untuk membantu siswa SMA/SMK di wilayah 3T (Tertinggal, Terdepan, Terluar) Indonesia.\n\n` +
+    `Konteks Modul Saat Ini:\n- Judul: "${selectedModule.title}"\n- Bidang Studi: ${selectedModule.subject} (${selectedModule.gradeLevel})\n- Ringkasan: ${selectedModule.summary}\n\n` +
+    `Prinsip Respon Pembelajaran:\n` +
+    `1. Efisien & Padat: Langsung ke inti materi tanpa kalimat basa-basi pembuka/penutup untuk menghemat kuota satelit.\n` +
+    `2. Kontekstual Wilayah 3T: Hubungkan konsep sains/teknik dengan analogi nyata di desa, kepulauan, dan pesisir Indonesia.\n` +
+    `3. Struktur Wajib: Bagi penjelasan menjadi 3 bagian: (a) Konsep Inti, (b) Rumus & Contoh Perhitungan Konkret bila ada, (c) Penerapan Lapangan di Daerah 3T.`;
 
-    const geminiResponse = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: question.trim(),
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            answerMarkdown: {
-              type: Type.STRING,
-              description: 'Jawaban lengkap terstruktur dalam format Markdown.',
-            },
-            keyConcepts: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: '3 konsep kunci utama dari jawaban.',
+  const maxAttempts = 3;
+  let lastErrorMsg = '';
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const geminiResponse = await ai.models.generateContent({
+        model: 'gemini-4-hydrogen',
+        contents: question.trim(),
+        config: {
+          systemInstruction,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              answerMarkdown: {
+                type: Type.STRING,
+                description: 'Jawaban lengkap terstruktur dalam format Markdown.',
+              },
+              keyConcepts: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: '3 konsep kunci utama dari jawaban.',
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    const rawText = (geminiResponse.text ?? '').trim();
-    if (!rawText) return null;
+      const rawText = (geminiResponse.text ?? '').trim();
+      if (!rawText) {
+        return { result: null, errorReason: 'Model Gemini mengembalikan respons kosong.' };
+      }
 
-    const parsed = JSON.parse(rawText);
-    const answerMarkdown = parsed.answerMarkdown || rawText;
-    const keyConcepts =
-      Array.isArray(parsed.keyConcepts) && parsed.keyConcepts.length > 0
-        ? parsed.keyConcepts.slice(0, 4)
-        : [selectedModule.subject, 'Gateway Gemini Cloud', 'Cache Lokal Guru'];
-    const quotaBytesUsed = Buffer.byteLength(question + answerMarkdown, 'utf8');
-    classroomState.incrementCloudQueriesCount();
-    return { answerMarkdown, keyConcepts, quotaBytesUsed };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[RuangPintar AI Gateway] Fallback ke sintesis lokal: ${message}`);
-    return null;
+      const parsed = JSON.parse(rawText);
+      const answerMarkdown = parsed.answerMarkdown || rawText;
+      const keyConcepts =
+        Array.isArray(parsed.keyConcepts) && parsed.keyConcepts.length > 0
+          ? parsed.keyConcepts.slice(0, 4)
+          : [selectedModule.subject, 'Gateway Gemini Cloud', 'Cache Lokal Guru'];
+      const quotaBytesUsed = Buffer.byteLength(question + answerMarkdown, 'utf8');
+      classroomState.incrementCloudQueriesCount();
+      return { result: { answerMarkdown, keyConcepts, quotaBytesUsed } };
+    } catch (err: unknown) {
+      lastErrorMsg = err instanceof Error ? err.message : String(err);
+      if (attempt < maxAttempts && isRetryableGeminiError(err)) {
+        const delayMs = 350 * Math.pow(2, attempt - 1);
+        await new Promise((r) => setTimeout(r, delayMs));
+        continue;
+      }
+      console.warn(`[RuangPintar AI Gateway] Fallback ke sintesis lokal: ${lastErrorMsg}`);
+      return { result: null, errorReason: lastErrorMsg };
+    }
   }
+
+  return { result: null, errorReason: lastErrorMsg || 'Koneksi Gemini Cloud terputus.' };
 }
 
 export class AiController {
@@ -169,15 +200,19 @@ export class AiController {
         };
 
         classroomState.addRecentQuery(result);
-        classroomState.broadcastState();
+        classroomState.broadcastDelta('cache', {
+          cacheEntries: classroomState.getCacheEntries(),
+          recentQueries: classroomState.getFullState().recentQueries,
+        });
         res.json({ result, state: classroomState.getFullState() });
         return;
       }
     }
 
-    // Step 2: Cache Miss -> Route via Teacher Host Single-Gateway Cloud AI (Gemini) if tethering is online
+    // Step 2: Cache Miss -> Route via Teacher Host Single-Gateway Cloud AI (Gemini 4 Hydrogen) if tethering is online
     const startTime = Date.now();
-    const cloudResult = await queryGeminiGateway(question, selectedModule);
+    const cloudOutcome = await queryGeminiGateway(question, selectedModule);
+    const cloudResult = cloudOutcome.result;
 
     let answerMarkdown: string;
     let keyConcepts: string[];
@@ -249,8 +284,16 @@ export class AiController {
     };
 
     classroomState.addRecentQuery(result);
-    classroomState.broadcastState();
-    res.json({ result, state: classroomState.getFullState() });
+    classroomState.broadcastDelta('cache', {
+      cacheEntries: classroomState.getCacheEntries(),
+      recentQueries: classroomState.getFullState().recentQueries,
+      pendingAiQuestions: classroomState.getPendingAiQuestions(),
+    });
+    res.json({
+      result,
+      cloudErrorReason: cloudOutcome.errorReason,
+      state: classroomState.getFullState(),
+    });
   }
 
   public static async processPendingQueue(_req: Request, res: Response): Promise<void> {
@@ -267,6 +310,7 @@ export class AiController {
       res.json({
         ok: true,
         processedCount: 0,
+        results: [],
         message: 'Tidak ada antrean pertanyaan offline yang menunggu.',
         state: classroomState.getFullState(),
       });
@@ -275,19 +319,25 @@ export class AiController {
 
     const modules = classroomState.getModules();
     let processedCount = 0;
+    const results: Array<{
+      id: string;
+      question: string;
+      status: 'processed' | 'failed';
+      error?: string;
+    }> = [];
 
     for (const item of pending) {
       const mod = modules.find((m) => m.id === item.moduleId) || modules[0];
-      const cloudResult = await queryGeminiGateway(item.question, mod);
-      if (cloudResult) {
+      const cloudOutcome = await queryGeminiGateway(item.question, mod);
+      if (cloudOutcome.result) {
         const entry: CacheEntry = {
           id: `cache-batch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           moduleId: mod.id,
           subject: mod.subject,
           questionCanonical: item.question,
           normalizedTokens: normalizeQuestion(item.question),
-          answerMarkdown: cloudResult.answerMarkdown,
-          keyConcepts: cloudResult.keyConcepts,
+          answerMarkdown: cloudOutcome.result.answerMarkdown,
+          keyConcepts: cloudOutcome.result.keyConcepts,
           createdByStudent: item.askedByPeerName,
           createdAt: formatTimeWITA(),
           hitCount: 1,
@@ -297,17 +347,29 @@ export class AiController {
         classroomState.addCacheEntry(entry);
         classroomState.removePendingAiQuestion(item.id);
         processedCount++;
+        results.push({ id: item.id, question: item.question, status: 'processed' });
+      } else {
+        results.push({
+          id: item.id,
+          question: item.question,
+          status: 'failed',
+          error: cloudOutcome.errorReason || 'Gagal terhubung ke Gemini Cloud.',
+        });
       }
     }
 
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('cache', {
+      cacheEntries: classroomState.getCacheEntries(),
+      pendingAiQuestions: classroomState.getPendingAiQuestions(),
+    });
     res.json({
       ok: true,
       processedCount,
       remainingCount: classroomState.getPendingAiQuestions().length,
+      results,
       message:
         processedCount > 0
-          ? `${processedCount} pertanyaan antrean berhasil dijawab oleh Gemini Cloud dan disimpan ke Cache Lokal!`
+          ? `${processedCount} pertanyaan antrean berhasil dijawab oleh Gemini 4 Hydrogen dan disimpan ke Cache Lokal!`
           : 'Gemini API tidak tersedia atau belum dikonfigurasi (cek GEMINI_API_KEY di .env).',
       state: classroomState.getFullState(),
     });
@@ -321,7 +383,7 @@ export class AiController {
     }
     const removed = classroomState.removePendingAiQuestion(id);
     if (removed) {
-      classroomState.broadcastState();
+      classroomState.broadcastDelta('pending_ai', classroomState.getPendingAiQuestions());
     }
     res.json({ ok: true, removed, state: classroomState.getFullState() });
   }
@@ -364,7 +426,69 @@ export class AiController {
     };
 
     classroomState.addCacheEntry(newEntry);
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('cache', {
+      cacheEntries: classroomState.getCacheEntries(),
+    });
     res.status(201).json({ ok: true, entry: newEntry, state: classroomState.getFullState() });
+  }
+
+  public static updateCacheEntry(req: Request, res: Response): void {
+    const rawId = req.params.id;
+    const id = String(Array.isArray(rawId) ? rawId[0] : rawId || '').trim();
+    const existing = classroomState.getCacheEntries().find((c) => c.id === id);
+    if (!existing) {
+      res.status(404).json({ ok: false, error: 'Entri cache lokal tidak ditemukan.' });
+      return;
+    }
+
+    const body = (req.validatedBody ?? req.body) as {
+      moduleId?: string;
+      questionCanonical?: string;
+      answerMarkdown?: string;
+      keyConcepts?: string[];
+    };
+
+    const modules = classroomState.getModules();
+    const targetMod = body.moduleId
+      ? modules.find((m) => m.id === body.moduleId) || modules[0]
+      : modules.find((m) => m.id === existing.moduleId);
+
+    const nextQuestion = body.questionCanonical ? body.questionCanonical.trim() : existing.questionCanonical;
+    const updated: CacheEntry = {
+      ...existing,
+      moduleId: targetMod ? targetMod.id : existing.moduleId,
+      subject: targetMod ? targetMod.subject : existing.subject,
+      questionCanonical: nextQuestion,
+      normalizedTokens: normalizeQuestion(nextQuestion),
+      answerMarkdown: body.answerMarkdown ? body.answerMarkdown.trim() : existing.answerMarkdown,
+      keyConcepts:
+        Array.isArray(body.keyConcepts) && body.keyConcepts.length > 0
+          ? body.keyConcepts
+          : existing.keyConcepts,
+    };
+
+    classroomState.updateCacheEntry(id, updated);
+    classroomState.broadcastDelta('cache', {
+      cacheEntries: classroomState.getCacheEntries(),
+    });
+    res.json({ ok: true, entry: updated, state: classroomState.getFullState() });
+  }
+
+  public static deleteCacheEntry(req: Request, res: Response): void {
+    const rawId = req.params.id;
+    const id = String(Array.isArray(rawId) ? rawId[0] : rawId || '').trim();
+    if (!id) {
+      res.status(400).json({ ok: false, error: 'ID entri cache wajib diisi.' });
+      return;
+    }
+    const deleted = classroomState.deleteCacheEntry(id);
+    if (!deleted) {
+      res.status(404).json({ ok: false, error: 'Entri cache lokal tidak ditemukan.' });
+      return;
+    }
+    classroomState.broadcastDelta('cache', {
+      cacheEntries: classroomState.getCacheEntries(),
+    });
+    res.json({ ok: true, deleted: true, id, state: classroomState.getFullState() });
   }
 }

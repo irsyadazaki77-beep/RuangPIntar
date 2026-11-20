@@ -649,3 +649,309 @@ test('FASE 6: Cache hit deduplication, offline AI queue, exam mode lock, distrib
     closeDatabase();
   }
 });
+
+test('FASE 7: Full CRUD APIs, scrypt PIN hashing, session check, enriched health, backup, and WS state:delta', async () => {
+  const { HostConfigRepository } = await import('./db/index.js');
+  const { isScryptHash } = await import('./middleware/authMiddleware.js');
+
+  const server = http.createServer();
+  new WebSocketHandler(server);
+  const app = await createApp(server, { skipVite: true });
+  server.on('request', app);
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+
+  const addr = server.address();
+  assert.ok(addr && typeof addr === 'object');
+  const baseUrl = `http://127.0.0.1:${addr.port}`;
+  const wsUrl = `ws://127.0.0.1:${addr.port}/ws`;
+
+  const prevDbPin = HostConfigRepository.get('host_pin', config.hostPin);
+
+  try {
+    // 1. Enriched /api/health + X-Request-Id observability header
+    const healthRes = await fetch(`${baseUrl}/api/health`);
+    assert.equal(healthRes.status, 200);
+    assert.ok(healthRes.headers.get('x-request-id'));
+    const healthData = await healthRes.json();
+    assert.equal(healthData.status, 'ok');
+    assert.equal(healthData.sqliteIntegrity, 'ok');
+    assert.equal(typeof healthData.connectedWsClients, 'number');
+    assert.equal(typeof healthData.modulesCount, 'number');
+    assert.equal(typeof healthData.pendingAiQueueCount, 'number');
+
+    // 2. Auth login + GET /api/auth/session
+    const activePin = getCurrentHostPin();
+    const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: activePin }),
+    });
+    assert.equal(loginRes.status, 200);
+    const { token } = (await loginRes.json()) as { token: string };
+    assert.ok(token);
+
+    const validSessionRes = await fetch(`${baseUrl}/api/auth/session`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(validSessionRes.status, 200);
+    const validSessionData = await validSessionRes.json();
+    assert.equal(validSessionData.ok, true);
+    assert.equal(validSessionData.valid, true);
+
+    const invalidSessionRes = await fetch(`${baseUrl}/api/auth/session`, {
+      headers: { Authorization: 'Bearer invalid-session-token-xyz' },
+    });
+    assert.equal(invalidSessionRes.status, 401);
+
+    // 3. Full Module CRUD (POST -> PUT -> DELETE)
+    const createModRes = await fetch(`${baseUrl}/api/modules`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: 'Modul Uji CRUD Energi Angin Pesisir',
+        subject: 'Teknik Energi',
+        gradeLevel: 'Kelas XI SMA / SMK',
+        summary: 'Ringkasan uji CRUD penuh untuk turbin angin pesisir 3T.',
+        sectionHeading: '01. Dasar Aerodinamika Turbin',
+        sectionBody: 'Energi kinetik angin dikonversi oleh bilah rotor menjadi energi mekanik dan listrik.',
+        formula: 'P = 0.5 * rho * A * v^3 * Cp',
+        keyTakeaway: 'Kecepatan angin berpangkat tiga terhadap daya keluaran turbin.',
+        sizeMB: 18,
+      }),
+    });
+    assert.equal(createModRes.status, 201);
+    const createdMod = (await createModRes.json()).module;
+    assert.ok(createdMod?.id);
+
+    const updateModRes = await fetch(`${baseUrl}/api/modules/${createdMod.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: 'Modul Uji CRUD Energi Angin Pesisir (Revisi 2)',
+        sizeMB: 22,
+      }),
+    });
+    assert.equal(updateModRes.status, 200);
+    const updatedMod = (await updateModRes.json()).module;
+    assert.equal(updatedMod.title, 'Modul Uji CRUD Energi Angin Pesisir (Revisi 2)');
+    assert.equal(updatedMod.sizeMB, 22);
+
+    const deleteModRes = await fetch(`${baseUrl}/api/modules/${createdMod.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(deleteModRes.status, 200);
+    const deleteModData = await deleteModRes.json();
+    assert.equal(deleteModData.ok, true);
+
+    // 4. Full Cache CRUD (POST -> PUT -> DELETE)
+    const seedCacheRes = await fetch(`${baseUrl}/api/cache/seed`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        moduleId: 'mod-fisika-mikrohidro',
+        questionCanonical: 'Apa fungsi utama katup pengaman pada pipa pesat mikrohidro?',
+        answerMarkdown: 'Katup pengaman digunakan untuk menghentikan aliran air cepat saat pemeliharaan turbin.',
+      }),
+    });
+    assert.equal(seedCacheRes.status, 201);
+    const createdCache = (await seedCacheRes.json()).entry;
+    assert.ok(createdCache?.id);
+
+    const updateCacheRes = await fetch(`${baseUrl}/api/cache/${createdCache.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        questionCanonical: 'Apa fungsi katup pengaman pada penstock PLTMH?',
+        answerMarkdown: 'Katup pengaman (main inlet valve) melindungi turbin dari lonjakan tekanan air (water hammer).',
+      }),
+    });
+    assert.equal(updateCacheRes.status, 200);
+
+    const deleteCacheRes = await fetch(`${baseUrl}/api/cache/${createdCache.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(deleteCacheRes.status, 200);
+
+    // 5. Discussion creation & Teacher deletion
+    const createDiscRes = await fetch(`${baseUrl}/api/sync/discussions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        moduleId: 'mod-fisika-mikrohidro',
+        authorName: 'Uji Forum',
+        authorRole: 'STUDENT',
+        message: 'Pesan uji forum yang akan dimoderasi guru.',
+      }),
+    });
+    assert.equal(createDiscRes.status, 201);
+    const createdPost = (await createDiscRes.json()).post;
+    assert.ok(createdPost?.id);
+
+    const delDiscRes = await fetch(`${baseUrl}/api/sync/discussions/${createdPost.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(delDiscRes.status, 200);
+
+    // 6. Submission creation, Teacher score update & deletion
+    const createSubRes = await fetch(`${baseUrl}/api/students/sync-submission`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studentId: 'peer-crud-test',
+        studentName: 'Siswa Uji CRUD',
+        moduleId: 'mod-fisika-mikrohidro',
+        moduleTitle: 'Fisika Terapan: Mikrohidro',
+        score: 88,
+        quizScore: 2,
+        totalQuestions: 2,
+        passed: true,
+        simulationCompleted: true,
+      }),
+    });
+    assert.equal(createSubRes.status, 200);
+    const createdSub = (await createSubRes.json()).submission;
+    assert.ok(createdSub?.id);
+
+    const updateSubRes = await fetch(`${baseUrl}/api/sync/submissions/${createdSub.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ quizScore: 1, totalQuestions: 2, simulationCompleted: true }),
+    });
+    assert.equal(updateSubRes.status, 200);
+
+    const delSubRes = await fetch(`${baseUrl}/api/sync/submissions/${createdSub.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(delSubRes.status, 200);
+
+    // 7. Manual SQLite Backup Endpoint
+    const backupRes = await fetch(`${baseUrl}/api/host/backup`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(backupRes.status, 200);
+    const backupData = await backupRes.json();
+    assert.equal(backupData.ok, true);
+    assert.ok(backupData.backedUpAt);
+    assert.ok(backupData.backupFile);
+
+    // 8. WebSocket receives lightweight state:delta frame on classroom broadcast
+    const deltaPromise = new Promise<Record<string, unknown>>((resolve, reject) => {
+      const ws = new WebSocket(wsUrl);
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error('Timed out waiting for state:delta over WebSocket'));
+      }, 4000);
+
+      ws.on('message', (raw) => {
+        try {
+          const parsed = JSON.parse(raw.toString()) as Record<string, unknown>;
+          if (parsed.type === 'state:delta' && parsed.topic === 'broadcast') {
+            clearTimeout(timeout);
+            ws.close();
+            resolve(parsed);
+          }
+        } catch {
+          // ignore
+        }
+      });
+
+      ws.on('open', async () => {
+        await fetch(`${baseUrl}/api/sync/broadcast`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            message: 'Uji siaran delta real-time',
+            examMode: false,
+          }),
+        });
+      });
+
+      ws.on('error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+    });
+
+    const deltaEvent = await deltaPromise;
+    assert.equal(deltaEvent.type, 'state:delta');
+    assert.equal(deltaEvent.topic, 'broadcast');
+
+    // Clear test broadcast
+    await fetch(`${baseUrl}/api/sync/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ message: '', examMode: false, clear: true }),
+    });
+
+    // 9. AuthController.changePin hashes with scrypt and verifies timing-safely
+    // (invoked directly because Test #5 intentionally exhausts changePinLimiter on 127.0.0.1)
+    const { AuthController } = await import('./controllers/auth.controller.js');
+    let changePinStatus = 200;
+    let changePinBody: Record<string, unknown> = {};
+    const mockReq = {
+      body: { currentPin: activePin, newPin: '918273' },
+      header: (name: string) =>
+        name.toLowerCase() === 'authorization' ? `Bearer ${token}` : undefined,
+      headers: { authorization: `Bearer ${token}` },
+    } as unknown as import('express').Request;
+    const mockRes = {
+      status(code: number) {
+        changePinStatus = code;
+        return this;
+      },
+      json(payload: Record<string, unknown>) {
+        changePinBody = payload;
+        return this;
+      },
+    } as unknown as import('express').Response;
+
+    AuthController.changePin(mockReq, mockRes);
+    assert.equal(changePinStatus, 200);
+    assert.equal(changePinBody.ok, true);
+
+    const storedAfterChange = HostConfigRepository.get('host_pin', '');
+    assert.equal(isScryptHash(storedAfterChange), true);
+    assert.equal(verifyPinTimingSafe('918273'), true);
+    assert.equal(verifyPinTimingSafe('000000'), false);
+
+    // Caller's session remains valid after PIN rotation
+    const postRotateSessionRes = await fetch(`${baseUrl}/api/auth/session`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(postRotateSessionRes.status, 200);
+  } finally {
+    HostConfigRepository.set('host_pin', prevDbPin);
+    server.close();
+    closeDatabase();
+  }
+});
+

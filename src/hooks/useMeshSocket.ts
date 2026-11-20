@@ -40,6 +40,7 @@ export function useMeshSocket() {
     socketConnected,
     setSocketConnected,
     applyServerState,
+    applyDeltaEvent,
     setPeers,
     setActiveWebRtcChannelsCount,
     setLastBinaryPacketInfo,
@@ -457,6 +458,10 @@ export function useMeshSocket() {
             const msg = JSON.parse(String(event.data));
             if (msg.type === 'init' || msg.type === 'state:sync') {
               if (mounted && msg.data) applyServerState(msg.data);
+            } else if (msg.type === 'state:delta') {
+              if (mounted && msg.topic) {
+                applyDeltaEvent(msg.topic, msg.data, msg.metrics);
+              }
             } else if (msg.type === 'webrtc:peer-joined') {
               createPeerConnection(msg.remoteClientId, true);
             } else if (msg.type === 'webrtc:offer' && msg.fromClientId) {
@@ -516,6 +521,7 @@ export function useMeshSocket() {
     activeHost,
     reconnectNonce,
     applyServerState,
+    applyDeltaEvent,
     handleIncomingBinaryChunk,
     setActiveWebRtcChannelsCount,
     setPeers,

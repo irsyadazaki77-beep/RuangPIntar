@@ -79,6 +79,17 @@ export class CacheRepository {
     tx(entries);
   }
 
+  static findById(id: string): CacheEntry | null {
+    const all = CacheRepository.loadAll();
+    return all.find((c) => c.id === id) || null;
+  }
+
+  static delete(id: string): boolean {
+    const db = getDatabase();
+    const result = db.prepare('DELETE FROM cache_entries WHERE id = ?').run(id);
+    return result.changes > 0;
+  }
+
   static count(): number {
     const db = getDatabase();
     const row = db.prepare('SELECT COUNT(*) as cnt FROM cache_entries').get() as { cnt: number };

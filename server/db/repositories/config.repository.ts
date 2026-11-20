@@ -38,21 +38,28 @@ export class HostSessionRepository {
     return { token, createdAt, expiresAt };
   }
 
-  static isValid(token: string): boolean {
-    if (!token || typeof token !== 'string') return false;
+  static getSession(token: string): HostSessionRecord | null {
+    if (!token || typeof token !== 'string') return null;
     const db = getDatabase();
     const now = Date.now();
     const row = db
-      .prepare('SELECT expires_at FROM host_sessions WHERE token = ?')
-      .get(token) as { expires_at: number } | undefined;
+      .prepare('SELECT token, created_at, expires_at FROM host_sessions WHERE token = ?')
+      .get(token) as { token: string; created_at: number; expires_at: number } | undefined;
 
-    if (!row) return false;
+    if (!row) return null;
     if (row.expires_at <= now) {
-      // Clean up expired session
       this.revoke(token);
-      return false;
+      return null;
     }
-    return true;
+    return {
+      token: row.token,
+      createdAt: row.created_at,
+      expiresAt: row.expires_at,
+    };
+  }
+
+  static isValid(token: string): boolean {
+    return this.getSession(token) !== null;
   }
 
   static revoke(token: string): boolean {
@@ -62,9 +69,52 @@ export class HostSessionRepository {
     return result.changes > 0;
   }
 
+  static revokeAllExcept(keepToken?: string | null): number {
+    const db = getDatabase();
+    if (keepToken) {
+      const result = db.prepare('DELETE FROM host_sessions WHERE token != ?').run(keepToken);
+      return result.changes;
+    }
+    const result = db.prepare('DELETE FROM host_sessions').run();
+    return result.changes;
+  }
+
   static cleanExpired(): void {
     const db = getDatabase();
     const now = Date.now();
     db.prepare('DELETE FROM host_sessions WHERE expires_at <= ?').run(now);
+  }
+}
+
+export interface PinLockoutRecord {
+  clientIp: string;
+  count: number;
+  lockedUntil: number;
+}
+
+export class PinLockoutRepository {
+  static get(clientIp: string): PinLockoutRecord | null {
+    const db = getDatabase();
+    const row = db
+      .prepare('SELECT client_ip, attempt_count, locked_until FROM pin_lockouts WHERE client_ip = ?')
+      .get(clientIp) as { client_ip: string; attempt_count: number; locked_until: number } | undefined;
+    if (!row) return null;
+    return {
+      clientIp: row.client_ip,
+      count: row.attempt_count,
+      lockedUntil: row.locked_until,
+    };
+  }
+
+  static set(clientIp: string, count: number, lockedUntil: number): void {
+    const db = getDatabase();
+    db.prepare(
+      'INSERT OR REPLACE INTO pin_lockouts (client_ip, attempt_count, locked_until) VALUES (?, ?, ?)'
+    ).run(clientIp, count, lockedUntil);
+  }
+
+  static clear(clientIp: string): void {
+    const db = getDatabase();
+    db.prepare('DELETE FROM pin_lockouts WHERE client_ip = ?').run(clientIp);
   }
 }

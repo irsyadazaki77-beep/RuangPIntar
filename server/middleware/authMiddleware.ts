@@ -29,6 +29,18 @@ export function compareStringTimingSafe(a: unknown, b: unknown): boolean {
 // Preserve plural alias for backward compatibility across modules
 export const compareStringsTimingSafe = compareStringTimingSafe;
 
+export function isScryptHash(value: string): boolean {
+  if (typeof value !== 'string') return false;
+  const parts = value.split('$');
+  return parts.length === 3 && parts[0] === 'scrypt' && parts[1].length >= 16 && parts[2].length === 64;
+}
+
+export function hashPinScrypt(pin: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derived = crypto.scryptSync(pin.trim(), salt, 32).toString('hex');
+  return `scrypt$${salt}$${derived}`;
+}
+
 export function getCurrentHostPin(): string {
   const storedPin = HostConfigRepository.get('host_pin', config.hostPin);
   // Migrate away from legacy hardcoded '1945' if HOST_PIN was not explicitly set to '1945'
@@ -49,6 +61,17 @@ export function verifyPinTimingSafe(
     return false;
   }
   const normalizedCandidate = candidate.trim();
+
+  if (isScryptHash(actualPin)) {
+    const [, salt, storedHex] = actualPin.split('$');
+    const derivedBuf = crypto.scryptSync(normalizedCandidate, salt, 32);
+    const storedBuf = Buffer.from(storedHex, 'hex');
+    if (derivedBuf.length !== storedBuf.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(derivedBuf, storedBuf);
+  }
+
   return compareStringTimingSafe(normalizedCandidate, actualPin);
 }
 

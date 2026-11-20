@@ -3,17 +3,21 @@ import { WebSocketServer, WebSocket } from 'ws';
 import {
   decodeBinaryChunkPayload,
   type PeerNode,
+  type SwarmMetrics,
 } from '../../src/utils/edgeEngine.js';
-import { classroomState } from '../state/classroomState.js';
+import { classroomState, type DeltaTopic } from '../state/classroomState.js';
 
 interface ClientMeta {
   clientId: string;
   peerId: string;
+  isAlive: boolean;
+  lastSeenMs: number;
 }
 
 export class WebSocketHandler {
   private wss: WebSocketServer;
   private clients = new Map<WebSocket, ClientMeta>();
+  private heartbeatTimer: NodeJS.Timeout | null = null;
 
   constructor(server: http.Server) {
     this.wss = new WebSocketServer({ noServer: true });
@@ -33,18 +37,63 @@ export class WebSocketHandler {
     });
 
     this.init();
+    this.startHeartbeat();
+
+    server.on('close', () => {
+      if (this.heartbeatTimer) {
+        clearInterval(this.heartbeatTimer);
+        this.heartbeatTimer = null;
+      }
+    });
 
     // Register broadcasters in classroomState
     classroomState.setBroadcaster(
       () => this.broadcastState(),
-      (frame: Uint8Array) => this.broadcastBinary(frame)
+      (frame: Uint8Array) => this.broadcastBinary(frame),
+      (topic: DeltaTopic, payload: unknown, metrics: SwarmMetrics) =>
+        this.broadcastDelta(topic, payload, metrics),
+      () => this.getConnectedClientsCount()
     );
+  }
+
+  private startHeartbeat(): void {
+    this.heartbeatTimer = setInterval(() => {
+      for (const [ws, meta] of this.clients.entries()) {
+        if (!meta.isAlive) {
+          this.clients.delete(ws);
+          ws.terminate();
+          continue;
+        }
+        meta.isAlive = false;
+        try {
+          ws.ping();
+        } catch {
+          this.clients.delete(ws);
+          ws.terminate();
+        }
+      }
+    }, 30_000);
+    // Prevent heartbeat timer from blocking graceful process / test shutdown
+    this.heartbeatTimer.unref();
   }
 
   private init(): void {
     this.wss.on('connection', (ws) => {
       const clientId = `rtc-${Math.random().toString(36).slice(2, 9)}`;
-      this.clients.set(ws, { clientId, peerId: 'peer-siswa-05' });
+      this.clients.set(ws, {
+        clientId,
+        peerId: 'peer-siswa-05',
+        isAlive: true,
+        lastSeenMs: Date.now(),
+      });
+
+      ws.on('pong', () => {
+        const meta = this.clients.get(ws);
+        if (meta) {
+          meta.isAlive = true;
+          meta.lastSeenMs = Date.now();
+        }
+      });
 
       // Send initial authoritative state
       ws.send(
@@ -85,6 +134,12 @@ export class WebSocketHandler {
       }
 
       ws.on('message', (raw, isBinary) => {
+        const senderMeta = this.clients.get(ws);
+        if (senderMeta) {
+          senderMeta.isAlive = true;
+          senderMeta.lastSeenMs = Date.now();
+        }
+
         try {
           // Handle binary ArrayBuffer / Buffer chunk frames
           if (isBinary) {
@@ -125,6 +180,11 @@ export class WebSocketHandler {
           }
 
           const msg = JSON.parse(String(raw));
+
+          if (msg.type === 'ping') {
+            ws.send(JSON.stringify({ type: 'pong', ts: Date.now() }));
+            return;
+          }
 
           if (msg.type === 'peer:identify' && msg.peerId && msg.studentName) {
             const peerIdStr = String(msg.peerId).trim().slice(0, 64);
@@ -193,7 +253,7 @@ export class WebSocketHandler {
               peers.push(newPeer);
             }
             classroomState.savePeers();
-            this.broadcastState();
+            classroomState.broadcastDelta('peers', peers);
           }
 
           // Relay WebRTC SDP offers, answers, ICE candidates, and chunk requests
@@ -220,7 +280,25 @@ export class WebSocketHandler {
       });
 
       ws.on('close', () => {
+        const departing = this.clients.get(ws);
         this.clients.delete(ws);
+
+        if (departing && departing.peerId && departing.peerId !== 'peer-test-unit') {
+          const stillActive = Array.from(this.clients.values()).some(
+            (m) => m.peerId === departing.peerId
+          );
+          if (!stillActive) {
+            const peers = classroomState.getPeers();
+            const peerNode = peers.find(
+              (p) => p.id === departing.peerId && p.role === 'PEER'
+            );
+            if (peerNode && peerNode.rtcStatus === 'DataChannel Terhubung') {
+              peerNode.rtcStatus = 'Siaga Mesh';
+              classroomState.savePeers();
+              classroomState.broadcastDelta('peers', peers);
+            }
+          }
+        }
       });
     });
   }
@@ -229,6 +307,20 @@ export class WebSocketHandler {
     const payload = JSON.stringify({
       type: 'state:sync',
       data: classroomState.getFullState(),
+    });
+    for (const client of this.wss.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(payload);
+      }
+    }
+  }
+
+  public broadcastDelta(topic: DeltaTopic, data: unknown, metrics: SwarmMetrics): void {
+    const payload = JSON.stringify({
+      type: 'state:delta',
+      topic,
+      data,
+      metrics,
     });
     for (const client of this.wss.clients) {
       if (client.readyState === WebSocket.OPEN) {

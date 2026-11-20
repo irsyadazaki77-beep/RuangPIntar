@@ -15,6 +15,7 @@ import { classroomState, formatTimeWITA } from '../state/classroomState.js';
 import {
   QuizRepository,
   DiscussionRepository,
+  backupDatabase,
   exportSneakernetPackage,
   importSneakernetPackage,
 } from '../db/index.js';
@@ -33,6 +34,8 @@ import {
   type DistributeAllPayload,
   type ClassroomBroadcastPayload,
   type DiscussionCreatePayload,
+  type ModuleUpdatePayload,
+  type SubmissionUpdatePayload,
 } from '../schemas/sync.schema.js';
 
 export class SyncController {
@@ -93,7 +96,7 @@ export class SyncController {
     };
 
     QuizRepository.saveSubmission(sub);
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('submissions', QuizRepository.loadSubmissions(100));
     res.json({
       ok: true,
       success: true,
@@ -132,7 +135,7 @@ export class SyncController {
 
     if (updated) {
       classroomState.savePeers();
-      classroomState.broadcastState();
+      classroomState.broadcastDelta('peers', classroomState.getPeers());
     }
 
     res.json({ ok: true, success: true, state: classroomState.getFullState() });
@@ -227,7 +230,10 @@ export class SyncController {
       classroomState.savePeers();
     }
 
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('transfers', {
+      peers: classroomState.getPeers(),
+      transferHistory: classroomState.getTransferHistory().slice(0, 30),
+    });
     res.json({
       ok: true,
       success: true,
@@ -256,7 +262,7 @@ export class SyncController {
 
     targetPeer.moduleChunks[moduleId] = [];
     classroomState.savePeers();
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('peers', classroomState.getPeers());
     res.json({ ok: true, success: true, state: classroomState.getFullState() });
   }
 
@@ -316,7 +322,7 @@ export class SyncController {
       nextOnline = !classroomState.isGatewayTetheringOnline();
     }
     classroomState.setGatewayTetheringOnline(nextOnline);
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('gateway', { gatewayTetheringOnline: nextOnline });
     res.json({ ok: true, gatewayTetheringOnline: nextOnline, state: classroomState.getFullState() });
   }
 
@@ -333,7 +339,19 @@ export class SyncController {
       formula = 'E_total = P_sistem × t_operasi',
       keyTakeaway = 'Pemanfaatan sumber daya lokal meningkatkan kemandirian energi dan ekosistem desa.',
       sizeMB = 24,
+      sections: customSections,
+      checkpoints: customCheckpoints,
+      simulationType: customSimType,
     } = req.body || {};
+
+    const effectiveSectionHeading =
+      Array.isArray(customSections) && customSections[0]?.heading
+        ? String(customSections[0].heading)
+        : sectionHeading;
+    const effectiveSectionBody =
+      Array.isArray(customSections) && customSections[0]?.body
+        ? String(customSections[0].body)
+        : sectionBody;
 
     const numSizeMB = Number(sizeMB);
     const validation = validateModuleSubmission({
@@ -341,8 +359,8 @@ export class SyncController {
       subject,
       gradeLevel,
       summary,
-      sectionHeading,
-      sectionBody,
+      sectionHeading: effectiveSectionHeading,
+      sectionBody: effectiveSectionBody,
       sizeMB: numSizeMB,
     });
 
@@ -386,8 +404,57 @@ export class SyncController {
           modules.find((m) => m.subject === 'Fisika Terapan')?.imageUrl ||
           '/src/assets/images/module_microhydro_physics_1793880029053.jpg',
       },
+      'Pertanian Lahan Kering': {
+        sim: 'agroforestry',
+        fallbackImg:
+          '/src/assets/images/module_dryland_agroforestry_1794013784750.jpg',
+      },
+      'Teknik Lingkungan': {
+        sim: 'desalination',
+        fallbackImg:
+          '/src/assets/images/module_solar_desalination_1794013784758.jpg',
+      },
     };
     const matchedMeta = subjectSimMap[subject] || subjectSimMap['Fisika Terapan'];
+
+    const normalizedSections: LearningModule['sections'] =
+      Array.isArray(customSections) && customSections.length > 0
+        ? customSections.map((sec: LearningModule['sections'][number], i: number) => ({
+            heading: String(sec.heading || `0${i + 1}. Bagian Materi`).trim(),
+            body: String(sec.body || '').trim(),
+            formula: sec.formula ? String(sec.formula).trim() : undefined,
+            keyTakeaway: String(sec.keyTakeaway || keyTakeaway).trim(),
+          }))
+        : [
+            {
+              heading: String(sectionHeading).trim(),
+              body: String(sectionBody).trim(),
+              formula: String(formula).trim(),
+              keyTakeaway: String(keyTakeaway).trim(),
+            },
+          ];
+
+    const normalizedCheckpoints: LearningModule['checkpoints'] =
+      Array.isArray(customCheckpoints) && customCheckpoints.length > 0
+        ? customCheckpoints.map((cp: LearningModule['checkpoints'][number]) => ({
+            question: String(cp.question).trim(),
+            options: Array.isArray(cp.options) ? cp.options.map((o) => String(o).trim()) : [],
+            correctIndex: Math.max(0, Math.min((cp.options?.length || 1) - 1, Number(cp.correctIndex) || 0)),
+            explanation: String(cp.explanation || keyTakeaway).trim(),
+          }))
+        : [
+            {
+              question: `Apa tujuan utama dari penerapan materi "${title.trim()}" pada komunitas sekolah 3T?`,
+              options: [
+                String(keyTakeaway).trim(),
+                'Meningkatkan ketergantungan pada kuota internet satelit komersial',
+                'Mengurangi efisiensi perangkat lokal di ruang kelas',
+                'Menghapus penyimpanan lokal pada simpul guru',
+              ],
+              correctIndex: 0,
+              explanation: String(keyTakeaway).trim(),
+            },
+          ];
 
     const newModule: LearningModule = {
       id: `mod-${Date.now()}`,
@@ -404,28 +471,9 @@ export class SyncController {
       mediaType: 'Modul Teks & Diagram',
       imageUrl: matchedMeta.fallbackImg,
       summary: summary.trim(),
-      sections: [
-        {
-          heading: sectionHeading.trim(),
-          body: sectionBody.trim(),
-          formula: formula.trim(),
-          keyTakeaway: keyTakeaway.trim(),
-        },
-      ],
-      simulationType: matchedMeta.sim,
-      checkpoints: [
-        {
-          question: `Apa tujuan utama dari penerapan materi "${title.trim()}" pada komunitas sekolah 3T?`,
-          options: [
-            keyTakeaway.trim(),
-            'Meningkatkan ketergantungan pada kuota internet satelit komersial',
-            'Mengurangi efisiensi perangkat lokal di ruang kelas',
-            'Menghapus penyimpanan lokal pada simpul guru',
-          ],
-          correctIndex: 0,
-          explanation: keyTakeaway.trim(),
-        },
-      ],
+      sections: normalizedSections,
+      simulationType: (customSimType as LearningModule['simulationType']) || matchedMeta.sim,
+      checkpoints: normalizedCheckpoints,
       updatedAt: `Dipublikasikan ${formatTimeWITA()} · Tersedia di Simpul Guru`,
     };
 
@@ -444,8 +492,98 @@ export class SyncController {
     }
     classroomState.savePeers();
 
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('modules', {
+      modules: classroomState.getModules(),
+      peers: classroomState.getPeers(),
+    });
     res.status(201).json({ ok: true, module: newModule, state: classroomState.getFullState() });
+  }
+
+  public static updateModule(req: Request, res: Response): void {
+    const rawId = req.params.id;
+    const id = String(Array.isArray(rawId) ? rawId[0] : rawId || '').trim();
+    const existing = classroomState.getModules().find((m) => m.id === id);
+    if (!existing) {
+      res.status(404).json({ ok: false, error: 'Modul pembelajaran tidak ditemukan.' });
+      return;
+    }
+
+    const body = (req.validatedBody ?? req.body) as ModuleUpdatePayload;
+    const nextTitle = body.title ? body.title.trim() : existing.title;
+    const nextSummary = body.summary ? body.summary.trim() : existing.summary;
+    const nextSizeMB = typeof body.sizeMB === 'number' ? body.sizeMB : existing.sizeMB;
+
+    const allowedSubjects: LearningModule['subject'][] = [
+      'Fisika Terapan',
+      'Biologi Pesisir',
+      'Matematika Maritim',
+      'Teknik Energi',
+    ];
+    const nextSubject: LearningModule['subject'] =
+      body.subject && allowedSubjects.includes(body.subject as LearningModule['subject'])
+        ? (body.subject as LearningModule['subject'])
+        : existing.subject;
+
+    const updated: LearningModule = {
+      ...existing,
+      title: nextTitle,
+      subject: nextSubject,
+      gradeLevel: body.gradeLevel ? body.gradeLevel.trim() : existing.gradeLevel,
+      authorTeacher: body.authorTeacher ? body.authorTeacher.trim() : existing.authorTeacher,
+      schoolOrigin: body.schoolOrigin ? body.schoolOrigin.trim() : existing.schoolOrigin,
+      summary: nextSummary,
+      sizeMB: nextSizeMB,
+      chunkSizeKB: Math.max(256, Math.round((nextSizeMB * 1024) / existing.totalChunks)),
+      simulationType: body.simulationType ?? existing.simulationType,
+      sections: body.sections
+        ? body.sections.map((s) => ({
+            heading: s.heading.trim(),
+            body: s.body.trim(),
+            formula: s.formula?.trim() || undefined,
+            keyTakeaway: s.keyTakeaway.trim(),
+          }))
+        : existing.sections,
+      checkpoints: body.checkpoints
+        ? body.checkpoints.map((c) => ({
+            question: c.question.trim(),
+            options: c.options.map((o) => o.trim()),
+            correctIndex: Math.max(0, Math.min(c.options.length - 1, c.correctIndex)),
+            explanation: c.explanation.trim(),
+          }))
+        : existing.checkpoints,
+      updatedAt: `Diperbarui ${formatTimeWITA()} · Simpul Guru`,
+    };
+
+    classroomState.updateModule(id, updated);
+    classroomState.broadcastDelta('modules', {
+      modules: classroomState.getModules(),
+    });
+    res.json({ ok: true, module: updated, state: classroomState.getFullState() });
+  }
+
+  public static deleteModule(req: Request, res: Response): void {
+    const rawId = req.params.id;
+    const id = String(Array.isArray(rawId) ? rawId[0] : rawId || '').trim();
+    const modules = classroomState.getModules();
+    if (modules.length <= 1) {
+      res.status(400).json({
+        ok: false,
+        error: 'Minimal harus tersisa 1 modul aktif di dalam pustaka Simpul Guru.',
+      });
+      return;
+    }
+
+    const deleted = classroomState.deleteModule(id);
+    if (!deleted) {
+      res.status(404).json({ ok: false, error: 'Modul pembelajaran tidak ditemukan.' });
+      return;
+    }
+
+    classroomState.broadcastDelta('modules', {
+      modules: classroomState.getModules(),
+      peers: classroomState.getPeers(),
+    });
+    res.json({ ok: true, deleted: true, id, state: classroomState.getFullState() });
   }
 
   /**
@@ -539,7 +677,10 @@ export class SyncController {
     if (totalTransferred > 0) {
       classroomState.savePeers();
     }
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('transfers', {
+      peers: classroomState.getPeers(),
+      transferHistory: classroomState.getTransferHistory().slice(0, 30),
+    });
 
     res.json({
       ok: true,
@@ -562,7 +703,7 @@ export class SyncController {
 
     if (parsed.clear || (!parsed.message && !parsed.focusModuleId && !parsed.examMode)) {
       classroomState.setClassroomBroadcast(null);
-      classroomState.broadcastState();
+      classroomState.broadcastDelta('broadcast', null);
       res.json({ ok: true, broadcast: null, state: classroomState.getFullState() });
       return;
     }
@@ -575,7 +716,7 @@ export class SyncController {
       updatedMs: Date.now(),
     };
     classroomState.setClassroomBroadcast(nextBroadcast);
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('broadcast', nextBroadcast);
     res.json({ ok: true, broadcast: nextBroadcast, state: classroomState.getFullState() });
   }
 
@@ -630,7 +771,7 @@ export class SyncController {
     };
 
     DiscussionRepository.insert(post);
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('discussions', { moduleId: post.moduleId, post });
     res.status(201).json({ ok: true, post });
   }
 
@@ -649,7 +790,125 @@ export class SyncController {
       res.status(404).json({ ok: false, error: 'Komentar diskusi tidak ditemukan' });
       return;
     }
-    classroomState.broadcastState();
+    classroomState.broadcastDelta('discussions', { moduleId: updated.moduleId, post: updated });
     res.json({ ok: true, post: updated });
+  }
+
+  /**
+   * Deletes a discussion post (Teacher Host moderation).
+   */
+  public static deleteDiscussion(req: Request, res: Response): void {
+    const rawId = req.params.id;
+    const id = String(Array.isArray(rawId) ? rawId[0] : rawId || '').trim();
+    if (!id) {
+      res.status(400).json({ ok: false, error: 'ID diskusi wajib diisi.' });
+      return;
+    }
+    const deleted = DiscussionRepository.delete(id);
+    if (!deleted) {
+      res.status(404).json({ ok: false, error: 'Komentar diskusi tidak ditemukan.' });
+      return;
+    }
+    classroomState.broadcastDelta('discussions', { deletedId: id });
+    res.json({ ok: true, deleted: true, id });
+  }
+
+  /**
+   * Updates a student gradebook submission (Teacher Host correction).
+   */
+  public static updateSubmission(req: Request, res: Response): void {
+    const rawId = req.params.id;
+    const id = String(Array.isArray(rawId) ? rawId[0] : rawId || '').trim();
+    const existing = QuizRepository.findById(id);
+    if (!existing) {
+      res.status(404).json({ ok: false, error: 'Data nilai siswa tidak ditemukan.' });
+      return;
+    }
+
+    const body = (req.validatedBody ?? req.body) as SubmissionUpdatePayload;
+    const nextTotal = body.totalQuestions ?? existing.totalQuestions;
+    const nextScore = Math.min(nextTotal, body.quizScore ?? existing.quizScore);
+    const nextPassed =
+      typeof body.passed === 'boolean'
+        ? body.passed
+        : nextTotal > 0
+        ? (nextScore / nextTotal) * 100 >= 70
+        : existing.passed;
+
+    const updated: StudentSubmission = {
+      ...existing,
+      quizScore: nextScore,
+      totalQuestions: nextTotal,
+      passed: nextPassed,
+      simulationCompleted: body.simulationCompleted ?? existing.simulationCompleted,
+      timestamp: formatTimeWITA(),
+      updatedMs: Date.now(),
+    };
+
+    QuizRepository.saveSubmission(updated);
+    classroomState.broadcastDelta('submissions', QuizRepository.loadSubmissions(100));
+    res.json({ ok: true, submission: updated, state: classroomState.getFullState() });
+  }
+
+  /**
+   * Deletes a student gradebook submission (Teacher Host only).
+   */
+  public static deleteSubmission(req: Request, res: Response): void {
+    const rawId = req.params.id;
+    const id = String(Array.isArray(rawId) ? rawId[0] : rawId || '').trim();
+    if (!id) {
+      res.status(400).json({ ok: false, error: 'ID nilai siswa wajib diisi.' });
+      return;
+    }
+    const deleted = QuizRepository.deleteSubmission(id);
+    if (!deleted) {
+      res.status(404).json({ ok: false, error: 'Data nilai siswa tidak ditemukan.' });
+      return;
+    }
+    classroomState.broadcastDelta('submissions', QuizRepository.loadSubmissions(100));
+    res.json({ ok: true, deleted: true, id, state: classroomState.getFullState() });
+  }
+
+  /**
+   * Removes a stale student peer node from mesh registry (Teacher Host only).
+   */
+  public static deletePeer(req: Request, res: Response): void {
+    const rawId = req.params.id;
+    const id = String(Array.isArray(rawId) ? rawId[0] : rawId || '').trim();
+    if (!id) {
+      res.status(400).json({ ok: false, error: 'ID perangkat peer wajib diisi.' });
+      return;
+    }
+    const peer = classroomState.getPeers().find((p) => p.id === id);
+    if (!peer) {
+      res.status(404).json({ ok: false, error: 'Perangkat simpul tidak ditemukan.' });
+      return;
+    }
+    if (peer.role === 'HOST') {
+      res.status(400).json({ ok: false, error: 'Simpul Utama Guru (HOST) tidak dapat dihapus.' });
+      return;
+    }
+
+    classroomState.removePeer(id);
+    classroomState.broadcastDelta('peers', classroomState.getPeers());
+    res.json({ ok: true, deleted: true, id, state: classroomState.getFullState() });
+  }
+
+  /**
+   * Triggers an online non-blocking SQLite snapshot backup (Teacher Host only).
+   */
+  public static async triggerBackup(_req: Request, res: Response): Promise<void> {
+    try {
+      const backupFile = await backupDatabase();
+      res.json({
+        ok: true,
+        backupFile,
+        backedUpAt: new Date().toISOString(),
+        message: 'Cadangan (snapshot) SQLite Simpul Guru berhasil dibuat secara aman.',
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal membuat cadangan SQLite.';
+      res.status(500).json({ ok: false, error: msg });
+    }
   }
 }

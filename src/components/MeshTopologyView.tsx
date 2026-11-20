@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   Share2,
@@ -12,6 +12,8 @@ import {
   Trophy,
   History,
   User,
+  List,
+  Network,
 } from 'lucide-react';
 import type {
   LearningModule,
@@ -66,6 +68,7 @@ export const MeshTopologyView: React.FC<Props> = ({
   );
   const [selectedTargetPeerId, setSelectedTargetPeerId] = useState<string>('peer-siswa-05');
   const [animatePackets, setAnimatePackets] = useState<boolean>(true);
+  const [topologyViewMode, setTopologyViewMode] = useState<'graf' | 'daftar'>('graf');
   const [activeInspectorTab, setActiveInspectorTab] = useState<MeshInspectorTab>('matriks');
 
   const activeModule = modules.find((m) => m.id === selectedModuleId) || modules[0];
@@ -150,14 +153,14 @@ export const MeshTopologyView: React.FC<Props> = ({
         <div className="p-6 sm:p-7 space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-200">
             <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                <span className="px-2.5 py-1 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE] text-[#1D4ED8] inline-flex items-center gap-1.5">
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Jaringan Teman Sekelas</span>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-[#475569]">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-[#1D4ED8]">
+                  <Share2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Jaringan Teman Sekelas (WebRTC P2P)</span>
                 </span>
-                <span aria-hidden="true" className="text-[#E2E8F0]">·</span>
-                <span className="text-[#059669] font-bold">
-                  Terhubung ke Guru: Aktif ({Math.max(1, activeWebRtcChannelsCount)} Jalur)
+                <span aria-hidden="true" className="text-[#CBD5E1]">·</span>
+                <span className="font-mono text-[11px] text-[#059669] font-semibold tabular-nums">
+                  {Math.max(1, activeWebRtcChannelsCount)} Jalur DataChannel Aktif
                 </span>
               </div>
               <h1
@@ -217,27 +220,131 @@ export const MeshTopologyView: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Two-Column Topology Canvas + Warm Recessed Control Deck */}
+          {/* Two-Column Topology Canvas + Cool Slate Control Deck */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Left: Interactive Blueprint SVG WebRTC Mesh Graph */}
-            <div className="lg:col-span-7 blueprint-stage text-slate-100 rounded-xl p-5 flex flex-col justify-between border border-slate-800">
+            {/* Left: Interactive Blueprint SVG WebRTC Mesh Graph OR Mobile-Friendly Device List */}
+            <div className="lg:col-span-7 blueprint-stage text-slate-100 rounded-xl p-5 flex flex-col justify-between border border-slate-800 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-slate-300 pb-3 border-b border-slate-800">
-                <span>Graf Pertukaran DataChannel Kelas (Subnet 192.168.43.0/24)</span>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span>Subnet 192.168.43.0/24</span>
+                  <span className="text-slate-600" aria-hidden="true">·</span>
                   <span className="text-sky-400 tabular-nums font-semibold">
-                    Offload Antar-Siswa: {metrics.meshOffloadPercentage}%
+                    Offload {metrics.meshOffloadPercentage}%
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setAnimatePackets((prev) => !prev)}
-                    className="px-2.5 py-1 text-[11px] font-sans font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    {animatePackets ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                    <span>{animatePackets ? 'Jeda Paket' : 'Putar Paket'}</span>
-                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex rounded-lg bg-slate-900 border border-slate-700 p-0.5 font-sans">
+                    <button
+                      type="button"
+                      onClick={() => setTopologyViewMode('graf')}
+                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-md flex items-center gap-1 cursor-pointer transition-colors ${
+                        topologyViewMode === 'graf'
+                          ? 'bg-sky-600 text-white'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <Network className="w-3 h-3" />
+                      <span>Graf</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTopologyViewMode('daftar')}
+                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-md flex items-center gap-1 cursor-pointer transition-colors ${
+                        topologyViewMode === 'daftar'
+                          ? 'bg-sky-600 text-white'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <List className="w-3 h-3" />
+                      <span>Daftar ({peers.length})</span>
+                    </button>
+                  </div>
+                  {topologyViewMode === 'graf' && (
+                    <button
+                      type="button"
+                      onClick={() => setAnimatePackets((prev) => !prev)}
+                      className="px-2.5 py-1 text-[11px] font-sans font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      {animatePackets ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                      <span>{animatePackets ? 'Jeda' : 'Putar'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
+              {topologyViewMode === 'daftar' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1 py-1">
+                  {peers.map((p) => {
+                    const heldCount = (p.moduleChunks[activeModule?.id || ''] || []).length;
+                    const total = activeModule?.totalChunks || 16;
+                    const pct = Math.round((heldCount / total) * 100);
+                    const isHost = p.role === 'HOST';
+                    const isSelected = p.id === selectedTargetPeerId;
+                    const isActiveChannel =
+                      p.rtcStatus === 'DataChannel Terhubung' ||
+                      p.rtcStatus === 'Menyemai Pecahan' ||
+                      isHost;
+
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        disabled={isHost}
+                        onClick={() => {
+                          if (!isHost) setSelectedTargetPeerId(p.id);
+                        }}
+                        className={`text-left p-3 rounded-xl border transition-colors space-y-2 ${
+                          isHost
+                            ? 'bg-slate-900/90 border-amber-500/60 cursor-default'
+                            : isSelected
+                            ? 'bg-sky-950/90 border-sky-400 cursor-pointer'
+                            : 'bg-slate-900/70 border-slate-700 hover:border-slate-500 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-100 truncate">
+                              {p.name}
+                            </div>
+                            <div className="text-[10px] font-mono text-slate-400 tabular-nums">
+                              {p.localIp} · {p.latencyMs} ms
+                            </div>
+                          </div>
+                          <span
+                            className={`text-[10px] font-mono font-semibold shrink-0 ${
+                              isHost
+                                ? 'text-amber-400'
+                                : isActiveChannel
+                                ? 'text-emerald-400'
+                                : 'text-slate-400'
+                            }`}
+                          >
+                            {isHost ? 'HOST' : isActiveChannel ? 'Terhubung' : 'Siaga'}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] font-mono text-slate-300 tabular-nums">
+                            <span>
+                              {heldCount}/{total} pecahan
+                            </span>
+                            <span className={pct === 100 ? 'text-emerald-400 font-bold' : 'text-sky-400'}>
+                              {pct}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                              style={{ width: `${pct}%` }}
+                              className={`h-full rounded-full transition-all ${
+                                pct === 100 ? 'bg-emerald-500' : 'bg-sky-500'
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
               <svg
                 viewBox="0 0 700 390"
                 className="w-full h-76 my-2"
@@ -434,11 +541,12 @@ export const MeshTopologyView: React.FC<Props> = ({
                   );
                 })}
               </svg>
+              )}
 
-              <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-800 text-xs text-slate-300 font-mono">
-                <span>Aliran Biru: Paket DataChannel Antar-Siswa</span>
-                <span>Aliran Hijau: Paket Pecahan Terakhir</span>
-                <span>Garis Abu: Seed Awal Guru</span>
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800 text-[11px] text-slate-300 font-mono">
+                <span>Biru: DataChannel Siswa</span>
+                <span>Hijau: Transfer Terakhir</span>
+                <span>Abu: Seed Awal Guru</span>
               </div>
             </div>
 
@@ -617,18 +725,18 @@ export const MeshTopologyView: React.FC<Props> = ({
         {activeInspectorTab === 'matriks' && (
           <div className="space-y-3">
             <div>
-              <h2 className="text-base font-bold text-stone-900">
+              <h2 className="text-base font-bold text-slate-900">
                 Matriks Distribusi Pecahan Data Real-Time ({activeModule.code} — {activeModule.totalChunks} Pecahan)
               </h2>
-              <p className="text-xs text-stone-600">
-                Setiap sel menunjukkan ketersediaan pecahan terenkripsi (SHA-256) di memori peramban masing-masing perangkat.
+              <p className="text-xs text-slate-600">
+                Setiap sel menunjukkan ketersediaan pecahan terverifikasi (SHA-256) di memori peramban masing-masing perangkat.
               </p>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#E2E8F0] text-[11px] font-mono text-stone-500">
+                  <tr className="border-b border-[#E2E8F0] text-[11px] font-mono text-slate-500">
                     <th className="py-2.5 pr-4 font-semibold">Simpul Perangkat (IP Lokal)</th>
                     <th className="py-2.5 px-2 font-semibold">Peran</th>
                     <th className="py-2.5 px-2 font-semibold">Pecahan Tersimpan (0–15)</th>
@@ -636,18 +744,18 @@ export const MeshTopologyView: React.FC<Props> = ({
                     <th className="py-2.5 pl-2 text-right font-semibold">Unduhan P2P</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#ece8df] text-xs">
+                <tbody className="divide-y divide-slate-200 text-xs">
                   {peers.map((peer) => {
                     const held = peer.moduleChunks[activeModule.id] || [];
                     return (
                       <tr key={peer.id} className="hover:bg-[#F8FAFC] transition-colors">
                         <td className="py-3 pr-4">
-                          <div className="font-semibold text-stone-900">{peer.name}</div>
-                          <div className="text-[11px] font-mono text-stone-500">
+                          <div className="font-semibold text-slate-900">{peer.name}</div>
+                          <div className="text-[11px] font-mono text-slate-500">
                             {peer.localIp} · {peer.deviceType} · Latensi {peer.latencyMs} ms
                           </div>
                         </td>
-                        <td className="py-3 px-2 font-mono text-[11px] text-stone-700">
+                        <td className="py-3 px-2 font-mono text-[11px] text-slate-700">
                           {peer.role === 'HOST' ? 'HOST SEEDER' : 'PEER SWARM'}
                         </td>
                         <td className="py-3 px-2">
@@ -661,9 +769,9 @@ export const MeshTopologyView: React.FC<Props> = ({
                                   className={`w-5 h-5 rounded-xs font-mono text-[10px] flex items-center justify-center tabular-nums transition-colors ${
                                     hasChunk
                                       ? peer.role === 'HOST'
-                                        ? 'bg-stone-900 text-white'
-                                        : 'bg-sky-700 text-white'
-                                      : 'bg-[#f4f1ea] text-stone-400'
+                                        ? 'bg-slate-900 text-white'
+                                        : 'bg-[#1D4ED8] text-white'
+                                      : 'bg-slate-100 text-slate-400'
                                   }`}
                                 >
                                   {idx}
@@ -675,7 +783,7 @@ export const MeshTopologyView: React.FC<Props> = ({
                         <td className="py-3 px-2 text-right font-mono font-semibold text-emerald-700 tabular-nums">
                           {peer.uploadedMB.toFixed(1)} MB
                         </td>
-                        <td className="py-3 pl-2 text-right font-mono text-stone-700 tabular-nums">
+                        <td className="py-3 pl-2 text-right font-mono text-slate-700 tabular-nums">
                           {peer.downloadedMB.toFixed(1)} MB
                         </td>
                       </tr>
@@ -692,11 +800,11 @@ export const MeshTopologyView: React.FC<Props> = ({
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h2 className="text-base font-bold text-stone-900">
+                <h2 className="text-base font-bold text-slate-900">
                   Klasemen Kontributor Seeder P2P Kelas (Gotong Royong Tanpa Kuota)
                 </h2>
-                <p className="text-xs text-stone-600">
-                  Klik baris siswa untuk menjadikannya target simulasi transfer pada graf di atas.
+                <p className="text-xs text-slate-600">
+                  Klik kartu siswa untuk menjadikannya target simulasi transfer pada graf di atas.
                 </p>
               </div>
               <span className="text-xs font-mono text-emerald-700 font-semibold tabular-nums">
@@ -717,28 +825,28 @@ export const MeshTopologyView: React.FC<Props> = ({
                       onClick={() => setSelectedTargetPeerId(peer.id)}
                       className={`rounded-xl p-4 border transition-colors cursor-pointer flex flex-col justify-between space-y-2.5 ${
                         isCurrentUser
-                          ? 'bg-sky-50/60 border-sky-300'
+                          ? 'bg-[#EFF6FF] border-[#93C5FD]'
                           : selectedTargetPeerId === peer.id
-                          ? 'bg-[#f4f1ea] border-stone-400'
-                          : 'bg-[#F8FAFC] border-[#E2E8F0] hover:border-stone-300'
+                          ? 'bg-slate-100 border-slate-400'
+                          : 'bg-[#F8FAFC] border-[#E2E8F0] hover:border-slate-300'
                       }`}
                     >
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-[11px] font-mono">
-                          <span className="font-bold text-stone-700">Peringkat #{idx + 1}</span>
-                          <span className="text-stone-500">{peer.localIp}</span>
+                          <span className="font-bold text-slate-700">Peringkat #{idx + 1}</span>
+                          <span className="text-slate-500">{peer.localIp}</span>
                         </div>
-                        <div className="text-xs font-bold text-stone-900 leading-snug">
+                        <div className="text-xs font-bold text-slate-900 leading-snug">
                           {peer.name}
                         </div>
                       </div>
 
                       <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0]">
                         <div className="flex justify-between text-[11px] font-mono tabular-nums">
-                          <span className="text-stone-500">Dibagikan:</span>
+                          <span className="text-slate-500">Dibagikan:</span>
                           <strong className="text-emerald-700">{peer.uploadedMB.toFixed(1)} MB</strong>
                         </div>
-                        <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                           <div
                             style={{ width: `${barPct}%` }}
                             className="h-full bg-emerald-600 rounded-full transition-all duration-300"
@@ -757,14 +865,14 @@ export const MeshTopologyView: React.FC<Props> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-stone-900">
+                <h2 className="text-base font-bold text-slate-900">
                   Riwayat Pertukaran Pecahan Data WebRTC DataChannel
                 </h2>
-                <p className="text-xs text-stone-600">
+                <p className="text-xs text-slate-600">
                   Bukti audit bahwa distribusi konten berlangsung murni di jaringan WiFi lokal dengan konsumsi kuota provider 0 KB.
                 </p>
               </div>
-              <span className="text-xs font-mono text-stone-500 tabular-nums">
+              <span className="text-xs font-mono text-slate-500 tabular-nums">
                 Menampilkan {transferHistory.length} paket terakhir
               </span>
             </div>
@@ -772,7 +880,7 @@ export const MeshTopologyView: React.FC<Props> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#E2E8F0] text-[11px] font-mono text-stone-500">
+                  <tr className="border-b border-[#E2E8F0] text-[11px] font-mono text-slate-500">
                     <th className="py-2.5 pr-3">Waktu</th>
                     <th className="py-2.5 px-3">Modul &amp; Pecahan</th>
                     <th className="py-2.5 px-3">Rute Pertukaran (Pengirim → Penerima)</th>
@@ -780,30 +888,30 @@ export const MeshTopologyView: React.FC<Props> = ({
                     <th className="py-2.5 pl-3 text-right">Kuota Provider</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#ece8df] text-xs">
+                <tbody className="divide-y divide-slate-200 text-xs">
                   {transferHistory.map((tx) => (
                     <tr key={tx.id} className="hover:bg-[#F8FAFC] transition-colors">
-                      <td className="py-3 pr-3 font-mono text-stone-500 tabular-nums whitespace-nowrap">
+                      <td className="py-3 pr-3 font-mono text-slate-500 tabular-nums whitespace-nowrap">
                         {tx.timestamp}
                       </td>
                       <td className="py-3 px-3">
-                        <span className="font-semibold text-stone-900">{tx.moduleTitle}</span>
-                        <span className="mx-1.5 text-stone-400">·</span>
-                        <span className="font-mono text-sky-800 tabular-nums">
+                        <span className="font-semibold text-slate-900">{tx.moduleTitle}</span>
+                        <span className="mx-1.5 text-slate-400">·</span>
+                        <span className="font-mono text-[#1D4ED8] tabular-nums">
                           Pecahan #{tx.chunkIndex} ({tx.chunkHash})
                         </span>
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-medium text-stone-800">{tx.fromPeerName}</span>
-                          <span className="text-[11px] font-mono text-stone-500">
+                          <span className="font-medium text-slate-800">{tx.fromPeerName}</span>
+                          <span className="text-[11px] font-mono text-slate-500">
                             ({tx.fromPeerRole === 'PEER' ? 'Offload Siswa' : 'Seed Guru'})
                           </span>
-                          <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
-                          <span className="font-medium text-stone-900">{tx.toPeerName}</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="font-medium text-slate-900">{tx.toPeerName}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-stone-800 tabular-nums">
+                      <td className="py-3 px-3 text-right font-mono text-slate-800 tabular-nums">
                         {tx.sizeKB.toLocaleString('id-ID')} KB
                       </td>
                       <td className="py-3 pl-3 text-right font-mono font-semibold text-emerald-700 tabular-nums">

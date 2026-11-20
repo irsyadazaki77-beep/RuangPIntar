@@ -150,3 +150,64 @@ export const DiscussionCreateSchema = z.object({
 });
 
 export type DiscussionCreatePayload = z.infer<typeof DiscussionCreateSchema>;
+
+export const ModuleSectionSchema = z.object({
+  heading: z.string().trim().min(3, 'Judul bab minimal 3 karakter').max(160),
+  body: z.string().trim().min(15, 'Isi materi bab minimal 15 karakter').max(8000),
+  formula: z.string().trim().max(240).optional(),
+  keyTakeaway: z.string().trim().min(5, 'Intisari bab minimal 5 karakter').max(500),
+});
+
+export const ModuleCheckpointSchema = z.object({
+  question: z.string().trim().min(5, 'Pertanyaan kuis minimal 5 karakter').max(400),
+  options: z
+    .array(z.string().trim().min(1, 'Opsi jawaban wajib diisi').max(260))
+    .min(2, 'Minimal 2 opsi jawaban')
+    .max(5, 'Maksimal 5 opsi jawaban'),
+  correctIndex: z.number().int().min(0).max(4),
+  explanation: z.string().trim().min(5, 'Pembahasan jawaban minimal 5 karakter').max(500),
+});
+
+export const ModuleUpdateSchema = z.object({
+  title: z.string().trim().min(5, 'Judul modul minimal 5 karakter').max(180).optional(),
+  subject: z
+    .enum([
+      'Fisika Terapan',
+      'Biologi Pesisir',
+      'Matematika Maritim',
+      'Teknik Energi',
+      'Pertanian Lahan Kering',
+      'Teknik Lingkungan',
+    ])
+    .optional(),
+  gradeLevel: z.string().trim().min(3).max(80).optional(),
+  authorTeacher: z.string().trim().min(2).max(120).optional(),
+  schoolOrigin: z.string().trim().min(2).max(160).optional(),
+  summary: z.string().trim().min(15, 'Ringkasan modul minimal 15 karakter').max(1000).optional(),
+  sizeMB: z.number().min(2).max(200).optional(),
+  simulationType: z
+    .enum(['microhydro', 'mangrove', 'navigation', 'solar', 'agroforestry', 'desalination'])
+    .optional(),
+  sections: z.array(ModuleSectionSchema).min(1, 'Minimal 1 bab materi').max(12).optional(),
+  checkpoints: z.array(ModuleCheckpointSchema).min(1, 'Minimal 1 soal kuis').max(20).optional(),
+});
+
+export type ModuleUpdatePayload = z.infer<typeof ModuleUpdateSchema>;
+
+export const CacheEntryUpdateSchema = z.object({
+  moduleId: z.string().trim().min(1).optional(),
+  questionCanonical: z.string().trim().min(5, 'Pertanyaan kanonik minimal 5 karakter').max(400).optional(),
+  answerMarkdown: z.string().trim().min(10, 'Jawaban cache minimal 10 karakter').max(8000).optional(),
+  keyConcepts: z.array(z.string().trim().min(1).max(80)).max(6).optional(),
+});
+
+export type CacheEntryUpdatePayload = z.infer<typeof CacheEntryUpdateSchema>;
+
+export const SubmissionUpdateSchema = z.object({
+  quizScore: z.number().int().min(0).max(100).optional(),
+  totalQuestions: z.number().int().min(1).max(100).optional(),
+  passed: z.boolean().optional(),
+  simulationCompleted: z.boolean().optional(),
+});
+
+export type SubmissionUpdatePayload = z.infer<typeof SubmissionUpdateSchema>;

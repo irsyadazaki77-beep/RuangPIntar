@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   School,
-  Library,
-  FlaskConical,
   MessageSquare,
   Share2,
   Award,
@@ -60,18 +58,18 @@ export const ModuleHeroHeader: React.FC<ModuleHeroHeaderProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
         <div className="lg:col-span-8 p-6 sm:p-8 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-              <span className="px-2.5 py-1 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE] text-[#1D4ED8] inline-flex items-center gap-1.5">
-                <School className="w-3.5 h-3.5" />
-                <span>Terhubung ke Guru (192.168.43.1)</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-[#475569]">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-[#1D4ED8]">
+                <School className="w-3.5 h-3.5 shrink-0" />
+                <span>Simpul Guru (192.168.43.1)</span>
               </span>
-              <span className="px-2.5 py-1 rounded-lg bg-[#ECFDF5] border border-[#A7F3D0] text-[#059669] inline-flex items-center gap-1.5">
-                <Library className="w-3.5 h-3.5" />
-                <span>{totalModulesCount} Buku Pelajaran</span>
+              <span className="text-[#CBD5E1]" aria-hidden="true">·</span>
+              <span className="font-mono text-[11px] tabular-nums text-[#0F172A] font-semibold">
+                {totalModulesCount} Buku Pelajaran
               </span>
-              <span className="px-2.5 py-1 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE] text-[#1D4ED8] inline-flex items-center gap-1.5">
-                <FlaskConical className="w-3.5 h-3.5" />
-                <span>6 Lab Sains Luring</span>
+              <span className="text-[#CBD5E1]" aria-hidden="true">·</span>
+              <span className="font-mono text-[11px] text-[#059669] font-semibold">
+                6 Lab Sains Luring
               </span>
             </div>
 

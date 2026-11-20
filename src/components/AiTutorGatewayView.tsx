@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Send,
@@ -14,6 +14,9 @@ import {
   Square,
   CheckCircle2,
   GraduationCap,
+  Clock,
+  Lock,
+  Lightbulb,
 } from 'lucide-react';
 import type {
   LearningModule,
@@ -46,7 +49,7 @@ interface Props {
   isAsking: boolean;
 }
 
-type TutorSidebarTab = 'skenario' | 'cache';
+type TutorSidebarTab = 'skenario' | 'cache' | 'riwayat';
 
 const tutorContainerVariants = {
   hidden: { opacity: 0 },
@@ -324,7 +327,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                 Arsitektur: Single-Gateway Cloud AI
               </span>
               <span aria-hidden="true">·</span>
-              <span>Model Cloud: Gemini 3.8 Flash (Server-Side Guru)</span>
+              <span>Model Cloud: Gemini 4 Hydrogen (Server-Side Guru)</span>
               <span aria-hidden="true">·</span>
               <span className="text-emerald-700 font-semibold">
                 Tethering Guru:{' '}
@@ -449,45 +452,59 @@ export const AiTutorGatewayView: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Segmented Switcher to Prevent Sidebar Stacking Overload */}
+          {/* Segmented Switcher: Skenario / Cache Lokal / Riwayat Sesi */}
           <div className="pt-4 border-t border-slate-200 space-y-3.5">
             <div
               role="tablist"
-              aria-label="Pilih Skenario atau Memori Cache"
-              className="grid grid-cols-2 gap-1 frosted-glass-bar p-1 rounded-xl"
+              aria-label="Pilih Skenario, Memori Cache, atau Riwayat Sesi"
+              className="grid grid-cols-3 gap-1 frosted-glass-bar p-1 rounded-xl"
             >
               <button
                 type="button"
                 role="tab"
                 aria-selected={sidebarTab === 'skenario'}
                 onClick={() => setSidebarTab('skenario')}
-                className={`py-2 px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                className={`py-2 px-2 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                   sidebarTab === 'skenario'
                     ? activeTheme.activeTabGradient
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Skenario Uji Cepat
+                Skenario
               </button>
               <button
                 type="button"
                 role="tab"
                 aria-selected={sidebarTab === 'cache'}
                 onClick={() => setSidebarTab('cache')}
-                className={`py-2 px-2.5 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 ${
+                className={`py-2 px-2 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 ${
                   sidebarTab === 'cache'
                     ? activeTheme.activeTabGradient
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Database className="w-3 h-3 shrink-0" />
-                <span>Cache Lokal ({cacheEntries.length})</span>
+                <span>Arsip ({cacheEntries.length})</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sidebarTab === 'riwayat'}
+                onClick={() => setSidebarTab('riwayat')}
+                className={`py-2 px-2 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 ${
+                  sidebarTab === 'riwayat'
+                    ? activeTheme.activeTabGradient
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Clock className="w-3 h-3 shrink-0" />
+                <span>Sesi ({recentQueries.length})</span>
               </button>
             </div>
 
             {sidebarTab === 'skenario' ? (
               <div className="space-y-2.5">
-                <p className="text-[11px] text-stone-500">
+                <p className="text-[11px] text-slate-500">
                   Klik skenario di bawah untuk menguji perbedaan respons Cache Hit (0 ms) dan Cloud Miss lintas 6 modul:
                 </p>
 
@@ -505,7 +522,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                   <div className="font-mono text-[10px] text-emerald-700 font-semibold">
                     FIS-XI-01 · Cache Hit · 0 ms · 0 Kuota
                   </div>
-                  <div className="text-stone-800 font-medium line-clamp-2">
+                  <div className="text-slate-800 font-medium line-clamp-2">
                     &ldquo;Bagaimana menghitung daya listrik mikrohidro dari debit dan tinggi jatuh air?&rdquo;
                   </div>
                 </button>
@@ -524,7 +541,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                   <div className="font-mono text-[10px] text-emerald-700 font-semibold">
                     TEK-XI-04 · Cache Hit PLTS &amp; LiFePO4 · 0 ms
                   </div>
-                  <div className="text-stone-800 font-medium line-clamp-2">
+                  <div className="text-slate-800 font-medium line-clamp-2">
                     &ldquo;Bagaimana cara menghitung kapasitas panel surya Wp dan baterai LiFePO4 untuk laboratorium komputer sekolah 3T?&rdquo;
                   </div>
                 </button>
@@ -543,7 +560,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                   <div className="font-mono text-[10px] text-emerald-700 font-semibold">
                     BIO-XI-05 · Cache Hit Agroforestri Mamar · 0 ms
                   </div>
-                  <div className="text-stone-800 font-medium line-clamp-2">
+                  <div className="text-slate-800 font-medium line-clamp-2">
                     &ldquo;Bagaimana sistem agroforestri Mamar dan teras batu menjaga mata air tetap mengalir saat musim kemarau panjang di NTT?&rdquo;
                   </div>
                 </button>
@@ -562,7 +579,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                   <div className="font-mono text-[10px] text-emerald-700 font-semibold">
                     FIS-XI-06 · Cache Hit Distilasi Surya · 0 ms
                   </div>
-                  <div className="text-stone-800 font-medium line-clamp-2">
+                  <div className="text-slate-800 font-medium line-clamp-2">
                     &ldquo;Bagaimana prinsip kerja distilasi surya dan arang tempurung kelapa dalam memurnikan air payau pesisir?&rdquo;
                   </div>
                 </button>
@@ -581,21 +598,21 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                   <div className="font-mono text-[10px] text-sky-800 font-semibold">
                     Pertanyaan Baru · Cloud → Otomatis Simpan ke Cache
                   </div>
-                  <div className="text-stone-800 font-medium line-clamp-2">
+                  <div className="text-slate-800 font-medium line-clamp-2">
                     &ldquo;Bagaimana langkah perawatan saringan bak penenang (forebay) dan pipa pesat saat musim hujan deras di desa?&rdquo;
                   </div>
                 </button>
               </div>
-            ) : (
+            ) : sidebarTab === 'cache' ? (
               <div className="space-y-2.5">
                 <input
                   type="search"
                   value={cacheFilterText}
                   onChange={(e) => setCacheFilterText(e.target.value)}
                   placeholder="Cari pertanyaan di memori cache lokal..."
-                  className="w-full px-3 py-1.5 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-stone-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700"
+                  className="w-full px-3 py-1.5 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-slate-900 focus:outline-none focus:bg-white focus:ring-2 focus:ring-sky-700"
                 />
-                <div className="space-y-2 max-h-80 overflow-y-auto pr-1 divide-y divide-[#ece8df]">
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1 divide-y divide-slate-200">
                   {cacheEntries
                     .filter(
                       (entry) =>
@@ -611,19 +628,19 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                         className="py-2.5 first:pt-0 last:pb-0 flex flex-col justify-between gap-1.5"
                       >
                         <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px] font-mono text-stone-500 tabular-nums">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 tabular-nums">
                             <span>{entry.subject}</span>
                             <span className="text-emerald-700 font-semibold">
                               {entry.hitCount}× Hit · Hemat {entry.savedQuotaKB.toFixed(1)} KB
                             </span>
                           </div>
-                          <p className="text-xs font-medium text-stone-900 leading-snug line-clamp-2">
+                          <p className="text-xs font-medium text-slate-900 leading-snug line-clamp-2">
                             {entry.questionCanonical}
                           </p>
                         </div>
 
                         <div className="flex items-center justify-between pt-1">
-                          <span className="text-[10px] text-stone-500 truncate">
+                          <span className="text-[10px] text-slate-500 truncate">
                             Oleh: {entry.createdByStudent.split(' ')[0]}
                           </span>
                           <button
@@ -631,7 +648,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                             onClick={() =>
                               handleQuickPrompt(entry.questionCanonical, entry.moduleId)
                             }
-                            className="px-2 py-0.5 text-[11px] font-semibold text-sky-800 hover:text-sky-950 hover:underline whitespace-nowrap shrink-0 cursor-pointer"
+                            className="px-2 py-0.5 text-[11px] font-semibold text-[#1D4ED8] hover:text-[#1E40AF] hover:underline whitespace-nowrap shrink-0 cursor-pointer"
                           >
                             Panggil Cache 0ms →
                           </button>
@@ -639,6 +656,56 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                       </div>
                     ))}
                 </div>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-88 overflow-y-auto pr-1">
+                {recentQueries.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-center text-xs text-slate-500">
+                    Belum ada riwayat tanya-jawab pada sesi ini.
+                  </div>
+                ) : (
+                  recentQueries.map((item, idx) => {
+                    const isSelected =
+                      activeResponse?.queryId === item.queryId ||
+                      (activeResponse?.question === item.question &&
+                        activeResponse?.timestamp === item.timestamp);
+                    return (
+                      <button
+                        key={item.queryId || `hist-${idx}`}
+                        type="button"
+                        onClick={() => setActiveResponse(item)}
+                        className={`w-full text-left p-3 rounded-xl border transition-colors text-xs cursor-pointer space-y-1 ${
+                          isSelected
+                            ? 'bg-[#EFF6FF] border-[#93C5FD]'
+                            : 'bg-[#F8FAFC] border-[#E2E8F0] hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-[10px] font-mono tabular-nums">
+                          <span
+                            className={
+                              item.source === 'LOCAL_CACHE'
+                                ? 'text-emerald-700 font-semibold'
+                                : 'text-[#1D4ED8] font-semibold'
+                            }
+                          >
+                            {item.source === 'LOCAL_CACHE'
+                              ? 'Arsip 0ms'
+                              : item.source === 'LOCAL_EDGE_SYNTHESIS'
+                                ? 'Sintesis Lokal'
+                                : 'Cloud Baru'}
+                          </span>
+                          <span className="text-slate-500">{item.timestamp}</span>
+                        </div>
+                        <p className="font-semibold text-slate-900 line-clamp-2">
+                          {item.question}
+                        </p>
+                        <div className="text-[10px] text-slate-500 truncate">
+                          {item.askedByPeerName}
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
               </div>
             )}
           </div>
@@ -649,15 +716,12 @@ export const AiTutorGatewayView: React.FC<Props> = ({
           {/* Top Conversation Header */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#E2E8F0]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#1D4ED8] text-[#FFFFFF] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[#1D4ED8] text-[#FFFFFF] flex items-center justify-center shrink-0">
                 <GraduationCap className="w-5 h-5 text-[#FBBF24]" />
               </div>
               <div>
-                <h2 className="font-display text-base font-bold text-[#0F172A] flex items-center gap-2">
-                  <span>Tanya Pintar</span>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#ECFDF5] border border-[#A7F3D0] text-[#059669]">
-                    Pendamping Kelas
-                  </span>
+                <h2 className="font-display text-base font-bold text-[#0F172A]">
+                  Tanya Pintar — Pendamping Kelas
                 </h2>
                 <p className="text-xs text-[#64748B]">
                   Simpul Guru: 192.168.43.1 · Jawaban Terkurasi &amp; Bebas Kuota
@@ -665,7 +729,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#059669] bg-[#ECFDF5] border border-[#A7F3D0] px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#059669]">
               <ShieldCheck className="w-4 h-4 text-[#059669] shrink-0" />
               <span>Terverifikasi Guru</span>
             </div>
@@ -755,7 +819,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                           }}
                           className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
                             isSpeakingAnswer
-                              ? 'bg-amber-500 text-white border-transparent shadow-2xs animate-pulse'
+                              ? 'bg-amber-600 text-white border-transparent shadow-2xs ring-2 ring-amber-300'
                               : 'bg-white text-slate-800 border-slate-300 hover:border-sky-400'
                           }`}
                         >
@@ -814,8 +878,8 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                       />
 
                       {/* Unboxed Inline Key Concepts */}
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600 font-mono pt-3 border-t border-[#ece8df]">
-                        <span className="font-semibold text-stone-900">Konsep Kunci:</span>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 font-mono pt-3 border-t border-slate-200">
+                        <span className="font-semibold text-slate-900">Konsep Kunci:</span>
                         {activeResponse.keyConcepts.map((concept, idx) => (
                           <React.Fragment key={idx}>
                             {idx > 0 && <span aria-hidden="true">·</span>}
@@ -826,9 +890,9 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                     </div>
 
                     {/* Re-Query Proof Bar */}
-                    <div className="px-5 py-3 bg-[#f6f4ee] border-t border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="text-xs text-stone-600">
-                        <strong className="text-stone-900">Uji Bukti Cache Lokal:</strong> Tanyakan
+                    <div className="px-5 py-3 bg-[#F8FAFC] border-t border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="text-xs text-slate-600">
+                        <strong className="text-slate-900">Uji Bukti Cache Lokal:</strong> Tanyakan
                         ulang dari perangkat teman sekelas untuk membuktikan latensi 0 ms.
                       </div>
                       <button
@@ -851,12 +915,12 @@ export const AiTutorGatewayView: React.FC<Props> = ({
                 </div>
               </motion.div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center py-12 px-4 space-y-2.5 text-sm text-stone-500">
-                <Sparkles className="w-6 h-6 text-sky-700" />
-                <p className="font-medium text-stone-800">
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-12 px-4 space-y-2.5 text-sm text-slate-500">
+                <Sparkles className="w-6 h-6 text-[#1D4ED8]" />
+                <p className="font-medium text-slate-800">
                   Ruang Jawaban Tutor AI Satu Pintu Siap Digunakan
                 </p>
-                <p className="text-xs text-stone-500 max-w-md">
+                <p className="text-xs text-slate-500 max-w-md">
                   Pilih salah satu skenario uji cepat di panel kiri atau ketik pertanyaan kurikulum di bawah.
                 </p>
               </div>
@@ -870,7 +934,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
               className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs sm:text-sm space-y-1"
             >
               <div className="font-bold flex items-center gap-2">
-                <span>🔒</span>
+                <Lock className="w-4 h-4 text-amber-700 shrink-0" />
                 <span>Mode Ujian Sedang Diaktifkan oleh Guru</span>
               </div>
               <p className="text-xs text-amber-900">
@@ -886,7 +950,7 @@ export const AiTutorGatewayView: React.FC<Props> = ({
             {/* Quick Starter Prompts Chips */}
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
-                <span>💡</span>
+                <Lightbulb className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span>Pertanyaan Cepat Sesuai Bab:</span>
               </span>
               <div className="flex flex-wrap items-center gap-1.5">

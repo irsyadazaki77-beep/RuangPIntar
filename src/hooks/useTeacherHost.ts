@@ -1,9 +1,43 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMeshNetwork } from '../context/MeshNetworkContext';
 import { apiFetch, safeParseJson } from '../utils/apiClient';
+import type { LearningModule } from '../utils/edgeEngine';
 
 const HOST_SESSION_TOKEN_KEY = 'ruangpintar_host_session_token';
 const HOST_SESSION_EXPIRY_KEY = 'ruangpintar_host_session_expires_at';
+
+export interface PublishModulePayload {
+  title: string;
+  subject: string;
+  gradeLevel: string;
+  summary: string;
+  sectionHeading: string;
+  sectionBody: string;
+  formula: string;
+  keyTakeaway: string;
+  sizeMB: number;
+  simulationType?: LearningModule['simulationType'];
+  sections?: LearningModule['sections'];
+  checkpoints?: LearningModule['checkpoints'];
+}
+
+export interface UpdateModulePayload {
+  title?: string;
+  subject?: LearningModule['subject'];
+  gradeLevel?: string;
+  summary?: string;
+  sizeMB?: number;
+  simulationType?: LearningModule['simulationType'];
+  sections?: LearningModule['sections'];
+  checkpoints?: LearningModule['checkpoints'];
+}
+
+export interface AiQueueProcessItemResult {
+  id: string;
+  question: string;
+  status: 'processed' | 'failed';
+  error?: string;
+}
 
 export function useTeacherHost() {
   const {
@@ -27,6 +61,33 @@ export function useTeacherHost() {
       return null;
     }
   });
+
+  // Verify stored Bearer token against backend on initial mount
+  useEffect(() => {
+    if (!sessionToken) return;
+    let active = true;
+    void apiFetch('/api/auth/session', {
+      headers: { Authorization: `Bearer ${sessionToken}` },
+    })
+      .then((res) => {
+        if (!active) return;
+        if (res.status === 401) {
+          setSessionToken(null);
+          try {
+            window.sessionStorage.removeItem(HOST_SESSION_TOKEN_KEY);
+            window.sessionStorage.removeItem(HOST_SESSION_EXPIRY_KEY);
+          } catch {
+            // Ignore storage errors
+          }
+        }
+      })
+      .catch(() => {
+        // Offline tolerance: keep token until server is reachable
+      });
+    return () => {
+      active = false;
+    };
+  }, [sessionToken]);
 
   const handleLockHost = useCallback(async () => {
     const currentToken = sessionToken;
@@ -122,7 +183,6 @@ export function useTeacherHost() {
           }
           return { ok: false, error: data.error || 'Gagal memperbarui PIN.' };
         }
-        // Re-authenticate session with new PIN to refresh token
         await handleVerifyHostPin(newPin);
         return { ok: true, message: data.message };
       } catch {
@@ -154,17 +214,7 @@ export function useTeacherHost() {
   }, [applyServerState, gatewayTetheringOnline, getAuthHeaders, handleLockHost, setStatusBanner]);
 
   const handlePublishModule = useCallback(
-    async (payload: {
-      title: string;
-      subject: string;
-      gradeLevel: string;
-      summary: string;
-      sectionHeading: string;
-      sectionBody: string;
-      formula: string;
-      keyTakeaway: string;
-      sizeMB: number;
-    }): Promise<{ ok: boolean; error?: string }> => {
+    async (payload: PublishModulePayload): Promise<{ ok: boolean; error?: string }> => {
       try {
         const response = await apiFetch('/api/modules', {
           method: 'POST',
@@ -186,6 +236,58 @@ export function useTeacherHost() {
       }
     },
     [applyServerState, getAuthHeaders, handleLockHost, setActiveModuleId]
+  );
+
+  const handleUpdateModule = useCallback(
+    async (id: string, payload: UpdateModulePayload): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        const response = await apiFetch(`/api/modules/${encodeURIComponent(id)}`, {
+          method: 'PUT',
+          headers: getAuthHeaders({
+            'Content-Type': 'application/json',
+          }),
+          body: JSON.stringify(payload),
+        });
+        const data = await safeParseJson(response);
+        if (!response.ok || !data.ok) {
+          if (response.status === 401) await handleLockHost();
+          return { ok: false, error: data.error || 'Gagal memperbarui modul.' };
+        }
+        if (data.state) applyServerState(data.state);
+        setStatusBanner('Perubahan modul berhasil disimpan ke Simpul Guru & disinkronkan ke kelas.');
+        return { ok: true };
+      } catch {
+        return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+      }
+    },
+    [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]
+  );
+
+  const handleDeleteModule = useCallback(
+    async (id: string): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        const response = await apiFetch(`/api/modules/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
+        const data = await safeParseJson(response);
+        if (!response.ok || !data.ok) {
+          if (response.status === 401) await handleLockHost();
+          return { ok: false, error: data.error || 'Gagal menghapus modul.' };
+        }
+        if (data.state) {
+          applyServerState(data.state);
+          if (Array.isArray(data.state.modules) && data.state.modules.length > 0) {
+            setActiveModuleId(data.state.modules[0].id);
+          }
+        }
+        setStatusBanner('Modul berhasil dihapus dari katalog Simpul Guru.');
+        return { ok: true };
+      } catch {
+        return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+      }
+    },
+    [applyServerState, getAuthHeaders, handleLockHost, setActiveModuleId, setStatusBanner]
   );
 
   const handleSeedCacheEntry = useCallback(
@@ -215,6 +317,125 @@ export function useTeacherHost() {
     },
     [applyServerState, getAuthHeaders, handleLockHost]
   );
+
+  const handleUpdateCacheEntry = useCallback(
+    async (
+      id: string,
+      payload: {
+        moduleId?: string;
+        questionCanonical?: string;
+        answerMarkdown?: string;
+        keyConcepts?: string[];
+      }
+    ): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        const response = await apiFetch(`/api/cache/${encodeURIComponent(id)}`, {
+          method: 'PUT',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(payload),
+        });
+        const data = await safeParseJson(response);
+        if (!response.ok || !data.ok) {
+          if (response.status === 401) await handleLockHost();
+          return { ok: false, error: data.error || 'Gagal memperbarui arsip tanya-jawab.' };
+        }
+        if (data.state) applyServerState(data.state);
+        setStatusBanner('Entri arsip tanya-jawab lokal berhasil diperbarui.');
+        return { ok: true };
+      } catch {
+        return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+      }
+    },
+    [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]
+  );
+
+  const handleDeleteCacheEntry = useCallback(
+    async (id: string): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        const response = await apiFetch(`/api/cache/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
+        const data = await safeParseJson(response);
+        if (!response.ok || !data.ok) {
+          if (response.status === 401) await handleLockHost();
+          return { ok: false, error: data.error || 'Gagal menghapus entri cache.' };
+        }
+        if (data.state) applyServerState(data.state);
+        setStatusBanner('Entri arsip tanya-jawab lokal dihapus.');
+        return { ok: true };
+      } catch {
+        return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+      }
+    },
+    [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]
+  );
+
+  const handleDeleteSubmission = useCallback(
+    async (id: string): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        const response = await apiFetch(`/api/sync/submissions/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
+        const data = await safeParseJson(response);
+        if (!response.ok || !data.ok) {
+          if (response.status === 401) await handleLockHost();
+          return { ok: false, error: data.error || 'Gagal menghapus catatan nilai siswa.' };
+        }
+        if (data.state) applyServerState(data.state);
+        setStatusBanner('Catatan nilai siswa dihapus dari buku nilai lokal.');
+        return { ok: true };
+      } catch {
+        return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+      }
+    },
+    [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]
+  );
+
+  const handleDeletePeer = useCallback(
+    async (id: string): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        const response = await apiFetch(`/api/sync/peers/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
+        const data = await safeParseJson(response);
+        if (!response.ok || !data.ok) {
+          if (response.status === 401) await handleLockHost();
+          return { ok: false, error: data.error || 'Gagal membersihkan perangkat simpul.' };
+        }
+        if (data.state) applyServerState(data.state);
+        setStatusBanner('Perangkat siswa yang tidak aktif telah dihapus dari daftar mesh.');
+        return { ok: true };
+      } catch {
+        return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+      }
+    },
+    [applyServerState, getAuthHeaders, handleLockHost, setStatusBanner]
+  );
+
+  const handleTriggerBackup = useCallback(async (): Promise<{
+    ok: boolean;
+    message?: string;
+    error?: string;
+  }> => {
+    try {
+      const response = await apiFetch('/api/host/backup', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      });
+      const data = await safeParseJson(response);
+      if (!response.ok || !data.ok) {
+        if (response.status === 401) await handleLockHost();
+        return { ok: false, error: data.error || 'Gagal membuat cadangan SQLite.' };
+      }
+      if (data.message) setStatusBanner(data.message);
+      return { ok: true, message: data.message };
+    } catch {
+      return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
+    }
+  }, [getAuthHeaders, handleLockHost, setStatusBanner]);
 
   const handleExportPackage = useCallback(async () => {
     try {
@@ -335,6 +556,7 @@ export function useTeacherHost() {
     ok: boolean;
     message?: string;
     error?: string;
+    results?: AiQueueProcessItemResult[];
   }> => {
     try {
       const res = await apiFetch('/api/tutor/process-queue', {
@@ -348,7 +570,11 @@ export function useTeacherHost() {
       }
       if (data.state) applyServerState(data.state);
       if (data.message) setStatusBanner(data.message);
-      return { ok: true, message: data.message };
+      return {
+        ok: true,
+        message: data.message,
+        results: Array.isArray(data.results) ? data.results : undefined,
+      };
     } catch {
       return { ok: false, error: 'Gagal menghubungi server Simpul Guru.' };
     }
@@ -383,7 +609,14 @@ export function useTeacherHost() {
     handleLockHost,
     handleToggleGatewayTethering,
     handlePublishModule,
+    handleUpdateModule,
+    handleDeleteModule,
     handleSeedCacheEntry,
+    handleUpdateCacheEntry,
+    handleDeleteCacheEntry,
+    handleDeleteSubmission,
+    handleDeletePeer,
+    handleTriggerBackup,
     handleExportPackage,
     handleImportPackage,
     handleDistributeToAll,

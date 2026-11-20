@@ -187,3 +187,11 @@
     transform: none !important;
   }
 }
+
+@media print {
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+}

@@ -79,4 +79,10 @@ export const DiscussionRepository = {
       createdMs: row.created_ms,
     };
   },
+
+  delete(id: string): boolean {
+    const db = getDatabase();
+    const result = db.prepare(`DELETE FROM module_discussions WHERE id = ?`).run(id);
+    return result.changes > 0;
+  },
 };

@@ -80,13 +80,21 @@ function MainLayout() {
 
   // Teacher Host operations hook
   const {
+    sessionToken,
     isPinVerified,
     handleVerifyHostPin,
     handleChangeHostPin,
     handleLockHost,
     handleToggleGatewayTethering,
     handlePublishModule,
+    handleUpdateModule,
+    handleDeleteModule,
     handleSeedCacheEntry,
+    handleUpdateCacheEntry,
+    handleDeleteCacheEntry,
+    handleDeleteSubmission,
+    handleDeletePeer,
+    handleTriggerBackup,
     handleExportPackage,
     handleImportPackage,
     handleDistributeToAll,
@@ -266,28 +274,29 @@ function MainLayout() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-24 md:pb-8 space-y-5">
         <StatusBanner />
+        <StudentOnboardingModal />
 
         {classroomBroadcast && (classroomBroadcast.message || classroomBroadcast.examMode || classroomBroadcast.focusModuleId) && (
           <div
             role="status"
-            className="bg-white border border-slate-200 border-l-4 border-l-[#1D4ED8] rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs"
+            className="bg-[#EFF6FF]/60 border border-[#BFDBFE] rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs"
           >
             <div className="flex items-start gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1D4ED8] shrink-0 mt-0.5">
+              <div className="w-8 h-8 rounded-xl bg-[#1D4ED8] flex items-center justify-center text-white shrink-0 mt-0.5">
                 <Megaphone className="w-4 h-4" />
               </div>
               <div className="space-y-0.5">
                 <div className="font-bold text-slate-900 flex flex-wrap items-center gap-2">
                   <span>Arahan Guru ({classroomBroadcast.updatedAt})</span>
                   {classroomBroadcast.examMode && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-bold">
+                    <span className="inline-flex items-center gap-1 text-rose-700 text-[11px] font-bold">
                       <Lock className="w-3 h-3" />
                       <span>Mode Ujian Aktif</span>
                     </span>
                   )}
                 </div>
                 {classroomBroadcast.message && (
-                  <p className="text-slate-600">{classroomBroadcast.message}</p>
+                  <p className="text-slate-700">{classroomBroadcast.message}</p>
                 )}
               </div>
             </div>
@@ -338,6 +347,7 @@ function MainLayout() {
                   setActiveTab('tutor');
                 }}
                 isSyncing={isSyncing}
+                teacherSessionToken={sessionToken}
                 onSyncStudentSubmission={handleSyncStudentSubmission}
               />
             )}
@@ -378,6 +388,7 @@ function MainLayout() {
             {activeTab === 'guru' && (
               <TeacherHostView
                 modules={modules}
+                peers={peers}
                 cacheEntries={cacheEntries}
                 metrics={metrics}
                 submissions={submissions}
@@ -390,7 +401,14 @@ function MainLayout() {
                 onLockHost={handleLockHost}
                 onToggleGatewayTethering={handleToggleGatewayTethering}
                 onPublishModule={handlePublishModule}
+                onUpdateModule={handleUpdateModule}
+                onDeleteModule={handleDeleteModule}
                 onSeedCacheEntry={handleSeedCacheEntry}
+                onUpdateCacheEntry={handleUpdateCacheEntry}
+                onDeleteCacheEntry={handleDeleteCacheEntry}
+                onDeleteSubmission={handleDeleteSubmission}
+                onDeletePeer={handleDeletePeer}
+                onTriggerBackup={handleTriggerBackup}
                 onExportPackage={handleExportPackage}
                 onImportPackage={handleImportPackage}
                 onDistributeToAll={handleDistributeToAll}
@@ -413,8 +431,6 @@ function MainLayout() {
           />
         )}
       </Suspense>
-
-      <StudentOnboardingModal />
 
       {/* Mobile Bottom Tab Bar (Native-like PWA Navigation) */}
       <nav

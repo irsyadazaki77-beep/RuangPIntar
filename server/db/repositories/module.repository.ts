@@ -114,6 +114,17 @@ export class ModuleRepository {
     tx(modules);
   }
 
+  static findById(id: string): LearningModule | null {
+    const all = ModuleRepository.loadAll();
+    return all.find((m) => m.id === id) || null;
+  }
+
+  static delete(id: string): boolean {
+    const db = getDatabase();
+    const result = db.prepare('DELETE FROM modules WHERE id = ?').run(id);
+    return result.changes > 0;
+  }
+
   static count(): number {
     const db = getDatabase();
     const row = db.prepare('SELECT COUNT(*) as cnt FROM modules').get() as { cnt: number };
